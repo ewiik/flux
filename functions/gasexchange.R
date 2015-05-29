@@ -1,4 +1,4 @@
-gassexchange <- function() {
+gasxexchange <- function() {
 
 }
 
