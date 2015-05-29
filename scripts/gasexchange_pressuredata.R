@@ -134,11 +134,6 @@ getData <- function(stations, folder, verbose = TRUE, delete = TRUE) {
 
 ## my station data frame
 
-#minimum example first
-
-stations <- data.frame(StationID =  48977, start = 2014, end = 2014) 
-met <- getData(stations, folder = "./weatherdata", verbose = TRUE)
-
 # nb all stations can cover my year range apart from outlook which has hourly only from 1996... there are randomly monthly data going way back but the monthly interface does not show pressure... if we want to request data it costs.... $100!!!! http://climate.weather.gc.ca/newPriceAnnounce_e.html
 
 #maximum example now
@@ -146,7 +141,4 @@ stations <- data.frame(StationID = c(3002, 51441, 3062, 44203, 48977, 3318, 2926
 
 met <- getData(stations, folder = "./weatherdata")
 
-## get outgas.rds and start extracting info... TBC
-
-outgas <- readRDS("outgas.rds")
 
