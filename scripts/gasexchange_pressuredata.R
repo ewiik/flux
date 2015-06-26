@@ -129,8 +129,7 @@ getData <- function(stations, folder, verbose = TRUE, delete = TRUE) {
     }
 
     out                                 # return
-    saveRDS(out, "outgas.rds") # ew edited here
-}
+    }
 
 ## my station data frame
 
