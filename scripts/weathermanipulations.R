@@ -1,6 +1,11 @@
 ## we have 1080 dfs in total; in met, they do not have the first 9 lines
 ## grab met from gasexchange_pressuredata.R
 
+library("reshape")
+
+## get station details
+stations <- read.csv("data/weatherstations.csv")
+
 ## here something to add column "station"
 names(met[[1]])
 # [1] "StationID"             "Date/Time"             "Year"                  "Month"                
@@ -11,5 +16,18 @@ names(met[[1]])
 # [21] "Stn Press Flag"        "Hmdx"                  "Hmdx Flag"             "Wind Chill"           
 # [25] "Wind Chill Flag"       "Weather"  
 
-met2 <- met
-sapply(met2[[i]], met2[[i]]$superstation = ))
+# met2 <- met[c(1:2, 1000:1002)] # testset, has regina and indhead
+metmelt <- melt.list(met, id.vars = c("StationID", "Date/Time"))
+
+metmelt$superstation[metmelt$StationID == 3002 | metmelt$StationID == 51441] <- "regina"
+metmelt$superstation[metmelt$StationID == 3062 | metmelt$StationID == 44203 | metmelt$StationID == 48977] <- "yorkton"
+metmelt$superstation[metmelt$StationID == 3318] <- "outlook"
+metmelt$superstation[metmelt$StationID == 2926 | metmelt$StationID == 2925] <- "indhead"
+unique(metmelt$superstation) # yes all appear, no NAs
+
+metsub <- subset(metmelt, subset = grepl("kPa", variable), select = c(variable,value)) # works
+metsubregina <- subset(metmelt, subset = c(superstation == "regina", grepl("kPa", variable)), select = c(variable,value)) # doesn't work
+metsubregina <- subset(metmelt, subset = c(superstation == "regina", variable = grepl("kPa", variable)), 
+                       select = c(variable,value)) # crashes computer
+
+  
