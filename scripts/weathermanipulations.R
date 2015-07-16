@@ -3,11 +3,11 @@
 
 library("reshape")
 
-if (file.exists("dmet.rds")) {
-  dmet <- readRDS("dmet.rds")  
+if (file.exists("data/dmet.rds")) {
+  dmet <- readRDS("data/dmet.rds")  
 } else {
   dmet <- do.call("rbind", met)
-  saveRDS(dmet, "dmet.rds")
+  saveRDS(dmet, "data/dmet.rds")
 }
 
 
@@ -118,3 +118,6 @@ pressure <- na.omit(do.call("rbind", lapply(spldmet, meanPressure)))
 rownames(pressure) <- NULL
 
 pressure[order(pressure$Superstation),] # just looking
+
+saveRDS(pressure[order(pressure$Superstation),], "data/pressuredata.rds")
+  # save for next script
