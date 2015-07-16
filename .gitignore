@@ -1,2 +1,7 @@
 # don't want to track anything in data since this is stuff I don't want to share.
 data/private/*
+
+.Rhistory
+.directory
+
+*~
