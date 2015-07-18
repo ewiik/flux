@@ -1,7 +1,7 @@
-## today we will begin work on outputting co2 exchange
+## outputting co2 exchange with all data combined as one table
 ## get necessary data from database queries
 
-if (file.exists("pressuredata.rds")) {
+if (file.exists("data/pressuredata.rds")) {
   pressuredata <- readRDS("data/pressuredata.rds")  
 } else {
   print("run weathermanipulations.R")
@@ -26,14 +26,13 @@ if (file.exists("data/private/fluxquery3.csv")) { # T, cond, salinity
   print("get fluxquery3.csv from dropbox")
 }
 
-if (file.exists("data/superstationz.csv")) { # T, cond, salinity
+if (file.exists("data/superstationz.csv")) { # links superstations with lakes
   superstations <- read.csv("data/superstationz.csv")
 } else {
   print("get superstationz.csv from emma")
 }
 
 ## are we really removing all NA data? THERE'S LOTS! complete.cases, na.omit
-##
 ## NO - Leave NA's alone so we can see where they are at this stage
 remNA <- FALSE
 ##
@@ -78,13 +77,23 @@ joined <- merge(joined, pressuredata, sort = FALSE, all.x = TRUE)
 ## need to change wind from km/h to m/s
 joined <- transform(joined, Wind = Wind * (1000/60/60))
 
-## need to generate function that will run through the stuff in gasexchange_equations.R
-source("functions/gasExchange.R")
+## need to change dic from mg/L to uM
+joined <- transform(joined, TIC = TIC / 0.012)
+#   this is what Kerris' spreadsheet indicates for the unit conversion
+
+## need to source function that will run through the calculations
+source("functions/gasExchange.R") #FIXMEs in here too!!!
 
 ## Run the gas exchange equations on our data to create co2 flux
 joined <- transform(joined,
-                    co2Flux = gasExchange(temp = Temperature, cond = Conductivity, ph = pH, dic = TIC, alt = Elevation,
+                    co2Flux = gasExchange(temp = Temperature, cond = Conductivity, ph = pH, dic = TIC, 
+                                          pco2atm = rep(370, times = 1242), # see line 94
                                           kpa = Pressure, wind = Wind, salt = Salinity))
+#     archaic issue with naming in the database, dic = TIC is correct
+
+##      FIXME: Still need to decide what to do with pco2atm - Do we use blanket 370 like Kerri did? Or
+## ftp://aftp.cmdl.noaa.gov/data/trace_gases/co2/in-situ/surface/mlo/co2_mlo_surface-insitu_1_ccgg_MonthlyData.txt
+##      i.e. data/maunaloa.csv
 
 ## For this work we only want a subset
 take <- c("B", "C", "K", "L", "P", "WW")
