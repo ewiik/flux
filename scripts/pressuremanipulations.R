@@ -96,7 +96,7 @@ joined <- transform(joined,
 ##      i.e. data/maunaloa.csv
 
 ## For this work we only want a subset
-take <- c("B", "C", "K", "L", "P", "WW")
+take <- c("B", "C", "D", "K", "L", "P", "WW")
 gasFlux <- subset(joined, subset = Lake %in% take)
 
 ## Save output for paper
