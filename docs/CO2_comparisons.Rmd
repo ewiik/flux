@@ -1,0 +1,127 @@
+---
+title: "CO2 worksheet"
+author: "Emma"
+date: "July 20, 2015"
+output: pdf_document
+---
+
+```{r knitr-config, echo = FALSE, results = "hide"}
+knitr::opts_chunk$set(echo = FALSE, message = TRUE, warning = TRUE,
+                      cache = TRUE)
+```
+
+Comparison of old vs new CO2 flux output
+========================================
+
+I've now run the CO2 flux calculations on all *complete* data from both the weather website with atmospheric pressure and the database with all monitoring data. This means that there are lots of omitted data due to NAs in the pressure data (some stations only got this started in 2008), and in the monitoring data (sometimes wind missing, often DIC missing).
+
+Essential data for going through this are in a shared Dropbox folder (which is what I have in my data/private folder for git). Further, the .Rmd file is public (in git) whereas the .pdf is in Dropbox. This is because the .pdf actually displays all the protected data. In this document, "old" refers to Kerri's calculations, "new" refers to my calculations.
+
+## Key differences and uncertainties with the calculations
+
+- Resolve inference of missing pressure data for stations with patchy historical data records
+- Resolve outliers in new and old data
+- Resolve inference of other missing data in database (e.g. wind missing for 1994 data lots of time, DIC missing for quite a lot which has a regression-based workaround by Kerri (see gasExchange.R)
+- Resolve whether to change atmospheric CO2 ppm of 370 (repeated through years) to the long-term data set from Mauna Loa (which Kerri recommended we do); note that this data set is downloaded and in git foled data/maunaloa.csv
+- I have old CO2 data only from 2008-2010 but more exists somewhere?
+
+``` {r load_packages, echo = FALSE}
+library("ggplot2")
+
+```
+
+``` {r load_data, include = FALSE}
+co2old <- read.csv("private/kerri_co2flux_results.csv")
+co2old$treat <- rep("old", times = nrow(co2old))
+co2old <- transform(co2old, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
+
+co2new <- readRDS("private/gasFlux.rds")
+co2new$treat <- rep("new", times = nrow(co2new))
+co2both <- rbind(co2old, co2new[,c('Lake', 'Date','co2Flux','treat')])
+
+```
+This plot reveals some "outliers" in both the old and the new data that need checking.
+
+```{r ggplot_data_all, echo = FALSE, warning = FALSE, message = FALSE}
+co2plot1 <- ggplot(data = co2both, aes(x= Date, y = co2Flux, 
+                                                group = treat, colour = treat)) +
+                  geom_line() +
+                  geom_point( size=0.2, shape=21, fill="white") +
+                  facet_wrap( "Lake" ) +
+                  theme(legend.position = "top")
+
+co2plot1
+```
+
+In this plot, ylimits have been set to make comparison of the old and new CO2 data a bit easier. The patterns certainly reproduce but the magnitudes differ slightly.
+
+``` {r ggplot_data_lim, echo = FALSE, warning=FALSE, message=FALSE}
+co2plot2 <- ggplot(data = co2both, aes(x= Date, y = co2Flux, 
+                                                group = treat, colour = treat)) +
+                  geom_line() +
+                  geom_point( size=0.2, shape=21, fill="white") +
+                  facet_wrap( "Lake" ) + ylim(-200,200)
+
+co2plot2
+```
+
+As for inferring missing weather station pressure data, here's a plot that compares the pressures between weather stations (which station applies to which lake is indicated in the table). Note that this graph is based on the monthly means of pressure for each year, for those months where we have other monitoring data. Didn't have time for this version to pull the full data set and plot with that.
+
+```{r pressure_meta, results = "asis"}
+sups <- read.csv("superstationz.csv")
+knitr::kable(sups)
+```
+
+``` {r pressure_diffs, echo = FALSE, warning=FALSE, message=FALSE}
+pressplot <- ggplot(data = na.omit(co2new), aes(x = Date, y = Pressure,
+                                                group = Superstation, colour = Superstation)) +
+                    geom_line() +
+                    geom_point( size=2, shape=21, fill="white") # +
+                    # facet_wrap( "Superstation" ) 
+pressplot
+```
+
+How important is pressure in terms of the CO2 flux outcome? Here's a plot when setting all pressure to 95.5 (i.e. approximately that of Yorkton in contrast to that in the other sites, ca 94.5 - 95.0). New : the CO2 data I've generated with all available data, sim: Simulated i.e. with Pressure set at 95.5. This can be played around with by setting the variable on line 90 of the .Rmd file.
+
+``` {r pressure_simulated, echo = FALSE, warning=FALSE, message=FALSE}
+source("../functions/gasExchange.R")
+co2sim <- co2new
+co2sim <- na.omit(co2sim)
+co2sim$Pressure <- rep(95.5, times = nrow(co2sim))
+co2sim <- transform(co2sim,
+                    co2Flux = gasExchange(temp = Temperature, cond = Conductivity, ph = pH, dic = TIC, 
+                                          pco2atm = rep(370, times = nrow(co2sim)), 
+                                          kpa = Pressure, wind = Wind, salt = Salinity))
+co2sim$treat <- rep("sim", times = nrow(co2sim))
+co2sims <- rbind(co2new[,c('Lake', 'Date','co2Flux','treat')], 
+                 co2sim[,c('Lake', 'Date','co2Flux','treat')])
+co2plot3 <- ggplot(data = co2sims, aes(x= Date, y = co2Flux, 
+                                                group = treat, colour = Lake)) +
+                  # geom_line() +
+                  geom_point( size = 1, shape= 21, fill="white") +
+                  facet_wrap( "treat" ) + ylim(-200,200)
+
+co2plot3
+
+co2simz <- co2new
+co2simz <- na.omit(co2simz)
+names(co2simz)[17] <- "trueflux"
+co2treat <- cbind(data.frame(trueflux = co2simz$trueflux), co2sim)
+names(co2treat)
+
+ggplot(data = co2treat, aes(x= co2Flux, y = trueflux, 
+                                                group = Lake, colour = Lake)) +
+                  geom_abline() +
+                  geom_point(size = 1, shape= 21, fill="white") +
+                  facet_wrap( "Lake" ) + ylim(-200,200)
+```
+
+``` {r diffplot, echo = FALSE, warning=FALSE, message=FALSE}
+diffplot <- ggplot(data = co2treat, aes(x= Date, y = co2Flux - trueflux, 
+                                                group = Lake, colour = Lake)) +
+                  geom_abline() +
+                  geom_point( size = 1, shape= 21, fill="white") +
+                  facet_wrap( "Lake" ) # + ylim(-200,200)
+
+diffplot
+```
