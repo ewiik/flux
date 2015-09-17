@@ -1,9 +1,9 @@
 # don't want to track anything in private since this is stuff I don't want to share.
 data/private/*
 # .Rmd file wanted public but not compiled doc
-data/CO2_comparisons.pdf
-data/CO2_comparisons_cache/*
-data/CO2_comparisons_files/*
+docs/CO2_comparisons.pdf
+docs/CO2_comparisons_cache/*
+docs/CO2_comparisons_files/*
 
 .Rhistory
 .directory
