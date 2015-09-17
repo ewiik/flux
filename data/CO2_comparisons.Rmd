@@ -5,7 +5,7 @@ date: "July 20, 2015"
 output: pdf_document
 ---
 
-```{r kintr-config, echo = FALSE, results = "hide"}
+```{r knitr-config, echo = FALSE, results = "hide"}
 knitr::opts_chunk$set(echo = FALSE, message = TRUE, warning = TRUE,
                       cache = TRUE)
 ```
@@ -102,4 +102,26 @@ co2plot3 <- ggplot(data = co2sims, aes(x= Date, y = co2Flux,
                   facet_wrap( "treat" ) + ylim(-200,200)
 
 co2plot3
+
+co2simz <- co2new
+co2simz <- na.omit(co2simz)
+names(co2simz)[17] <- "trueflux"
+co2treat <- cbind(data.frame(trueflux = co2simz$trueflux), co2sim)
+names(co2treat)
+
+ggplot(data = co2treat, aes(x= co2Flux, y = trueflux, 
+                                                group = Lake, colour = Lake)) +
+                  geom_abline() +
+                  geom_point(size = 1, shape= 21, fill="white") +
+                  facet_wrap( "Lake" ) + ylim(-200,200)
+```
+
+``` {r diffplot, echo = FALSE, warning=FALSE, message=FALSE}
+diffplot <- ggplot(data = co2treat, aes(x= Date, y = co2Flux - trueflux, 
+                                                group = Lake, colour = Lake)) +
+                  geom_abline() +
+                  geom_point( size = 1, shape= 21, fill="white") +
+                  facet_wrap( "Lake" ) # + ylim(-200,200)
+
+diffplot
 ```
