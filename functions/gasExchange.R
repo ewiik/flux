@@ -73,10 +73,7 @@ gasExchange <- function(temp, cond, ph, dic, pco2atm, kpa, wind, salt) {
     ## =IF(J2="",+(I2/101.325)*((+H2*0.000001)*10^(-Q2+6)),
     ##      EXP(-0.12806*(+J2/1000))*((+H2*0.000001)*10^(-Q2+6)))
     ## if no alt, use kpa
-    ##      FIXME: not sure which preferred when both available... however discussions with Kerri regarding
-    ##      kpa data indicate kpa preferred
-    ##      FIXME: in the spreadsheet the whole Pressure column is filled with 101.325
-    ##       so this equation would imply that the first term defaults to 1 for that case ???! TRUE?
+    ## when both available, use alt. But kpa actually better to default to (discussions with kerri)
     ## co2eq <- exp(-0.12806*(+ alt/1000))*((+ pco2atm*0.000001)*10^(-pkh + 6)) 
     co2eq <- (kpa/101.325) * ((pco2atm * 0.000001) * 10^(-pkh + 6))
     
