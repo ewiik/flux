@@ -1,4 +1,4 @@
-## received complete time series of data from kerri (/fromkerri/): pco2foremmasept2015 
+## received complete time series of data from kerri (.../fromkerri/): pco2foremmasept2015 
 ##    and pco2foremmatidy - the latter has been saved as csv
 ## will now see if my data reproduce her results
 
@@ -31,11 +31,11 @@ co2kerrisub <- subset(co2kerri, select = c('Lake', 'Date', 'Year', 'Month', 'Flu
 # CO2uM is the gasExchange.R one (co2 <- dic*ao)
 # CO2uatm is ibid (pco2 <- co2/(10^-pkh)
 # CO2eq is calculated with the IF clause that defaults to alt.. I used Pressure 
-# Wind: is the annual average value of each site (though in fact is constant 4.06 m/s)
+# Wind: is the annual average value of each site (though in fact is constant 4.06 m/s for this practice run)
 # Salinity: 0 entered for all rows. Not calculated from cond relationship either
 
-## FIXME: Still need to look into the discrepancies between the assumptions above and Kerri's original calculations
-##        as indicated in pressuremanipulations.R and notebook (meeting to be had)
+## FIXME: Still need to look into the discrepancies between the assumptions above and Kerri's original 
+##        calculations as indicated in pressuremanipulations.R and notebook (meeting to be had)
 
 ## Grab my flux calculations and check whether dates can be matched 
 original <- readRDS("data/private/gasFlux.rds") # (pco2atm = 370) (see pressuremanipulations.R)
