@@ -23,10 +23,13 @@ dmet$superstation[dmet$StationID == 2926 | dmet$StationID == 2925] <- "indhead"
 unique(dmet$superstation) # yes all appear, no NAs
 
 names(dmet)[2] <- "datetime" 
+dmet$Week
 
-take <- c("StationID","datetime","Year","Month","Day","Time","superstation","Stn Press (kPa)")
+take <- c("StationID","datetime","Year","Month","Day","Time","superstation","Stn Press (kPa)",
+          "Wind Spd (km/h)")
 dmet <- dmet[take]
 names(dmet)[names(dmet) == "Stn Press (kPa)"] <- "Pressure"
+names(dmet)[names(dmet) == "Wind Spd (km/h)"] <- "Wind"
 
 ## Coerce datetime to the correct internal type
 dmet <- transform(dmet, 
@@ -88,19 +91,11 @@ unique(diff(dmet$datetime[dmet$superstation == "yorkton"]))
 unique(diff(dmet$datetime[dmet$superstation == "outlook"]))
 unique(diff(dmet$datetime[dmet$superstation == "indhead"]))
 
-## Remove NA data
-unique(subset(dmet, is.na(Pressure) & superstation == "regina", 
-              select = c(datetime, Year, Month, superstation))$Year)
-# holes in data set, played around in this call, seems odd one here and there rather 
-  # than all-encompassing (e.g. only months 2,7,8 in 1994)
-
-miss <- with(dmet, is.na(Pressure))
-dmet <- droplevels(dmet[!miss, ])
-
 ## Split apart
 spldmet <- with(dmet, split(dmet, list(superstation, Year, Month)))
+spldmet2 <- with(dmet, split(dmet, list(superstation, Year, Month, Day)))
 
-### Wrapper function
+### Wrapper functions
 meanPressure <- function(df) {
   meanP <- if (NROW(df) == 0) {
     NA
@@ -113,11 +108,29 @@ meanPressure <- function(df) {
                       Month = Month[1],
                       Pressure = meanP))
 }
+meanWind <- function(df) {
+  meanW <- if (NROW(df) == 0) {
+    NA
+  } else {
+    mean(df[["Wind"]], na.rm = TRUE)
+  }
+  with(df, data.frame(Superstation = superstation[1],
+                      StationID = StationID[1],
+                      Year = Year[1],
+                      Month = Month[1],
+                      Day = Day[1],
+                      Wind = meanW))
+}
 
 pressure <- na.omit(do.call("rbind", lapply(spldmet, meanPressure)))
 rownames(pressure) <- NULL
 
+winds <- na.omit(do.call("rbind", lapply(spldmet2, meanWind)))
+rownames(winds) <- NULL
+
 pressure[order(pressure$Superstation),] # just looking
+winds[order(winds$Superstation),] # just looking
 
 saveRDS(pressure[order(pressure$Superstation),], "data/pressuredata.rds")
-  # save for next script
+saveRDS(winds[order(winds$Superstation),], "data/windsdata.rds")
+# save for next script
