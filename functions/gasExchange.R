@@ -8,11 +8,11 @@
 ## original calculation defaults: Pressure = annual means (but Kerri recommended using monthly means
 ##    since we are doing more high-res calcs;
 ##                                Atmospheric pCO2 ppm = blanket value of 370 (but Kerri recommended to
-##    allow to change over time owing to increase due to HUMANS)
+##    allow to change with Mauna Loa values)
 
-## constants: r, q, z, t from Cole & Caraco -98 and Wanninkhof & Knox -96
-## equations from Stumm & Morgan book
-##      FIXME: these to be made more specific
+## constants: r, q, z, t from Cole & Caraco -98 (DOI: 10.4319/lo.1998.43.4.0647) and Wanninkhof & Knox -96
+##    (DOI: 10.4319/lo.1996.41.4.0689); equations from Stumm & Morgan: Aquatic Chemistry: 
+##    Chemical Equilibria and Rates in Natural Waters
 
 gasExchange <- function(temp, cond, ph, dic, pco2atm, kpa, wind, salt) { 
     r1a <- -2225.22 # all r1 are Khco3...
@@ -58,17 +58,18 @@ gasExchange <- function(temp, cond, ph, dic, pco2atm, kpa, wind, salt) {
     ##   She did a different regression-based calculation for missing DIC values using 
     ##   conductivity-DIC relationship:
     ##   DIC (mg/L) = 26.57 + 0.018 * Conductivity (see email 1st June 2015)
+    ## However, it is uncertain if she used this for *all* data points or only where stuff missing
+    ##   (see email 23.09.2015)
     
     # =R2*N2 
     co2 <- dic*ao
-    ## but then rather than using DIC as above, the spreadsheet indicates that Kerri replaced this calculation 
-    ##   with a co2 ~ pH-based regression; something to resolve once we start patching NAs
-    ##      FIXME: check with Kerri that I'm doing the right thing with spreadsheet procedure
+    ## when DIC (and cond, see above) missing, Kerri replaced this calculation 
+    ##   with log CO2 (uM) = 10.94 -1.124*pH  (r2 = 0.94)
     
     # =S2/(10^-Q2) .... mcAtm
     pco2 <- co2/(10^-pkh) #
-    ## this also differs but is correct and should use that, Kerri 
-    ##    used a different relationship
+    ## when DIC (and cond, see above) missing, Kerri replaced this calculation  
+    ##    with log pCO2 (uatm) = 12.076-1.101*pH (r2 = 0.95)
     
     ## =IF(J2="",+(I2/101.325)*((+H2*0.000001)*10^(-Q2+6)),
     ##      EXP(-0.12806*(+J2/1000))*((+H2*0.000001)*10^(-Q2+6)))
