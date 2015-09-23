@@ -67,7 +67,7 @@ joined <- merge(joined, subset(elevd, select = c("Abbreviation", "Elevation_m"))
                 by.x = "Lake", by.y = "Abbreviation", sort = FALSE)
 names(joined)[names(joined) == "Elevation_m"] <- "Elevation"
 
-## drop all lakes we're not interested in
+## drop all lakes we're not interested in 
 drop <- TRUE
 if(drop) {
   joined <- subset(joined, Lake %in% c("B", "C", "WW", "D", "K", "L", "P"))
@@ -143,17 +143,27 @@ if(regina) {
 
 joinedtest <- merge(joined, winddf, by = c("Date", "Lake"), sort = FALSE, all.x = TRUE)
 # one data frame with means for all sample occasions of all lakes
+## FIXME: If joinedtest is deemed fully operational, the code below needs to be changed and run to
+##    produce a new gasFlux.rds, also to incorporate the change in wind transformation (below).for now,
+##    joinedtest will be saved as a separate object which only contains parameters prior to function 
+##    executions (since this can then be run separately under different scenarios in co2_scenarios.R)
 
 ## need to change wind from km/h to m/s
-joined <- transform(joined, Wind = Wind * (1000/60/60))
-joined <- transform(joined, meanWind = meanWind * (1000/60/60))
+## NOTE! chatted with kerri and it seems the database is wrong! despite column name km/h the data 
+##    are actually m/s --> commented out Wind conversion below.
+# joined <- transform(joined, Wind = Wind * (1000/60/60))
+joinedtest <- transform(joinedtest, meanWind = meanWind * (1000/60/60))
 
 ## need to change dic from mg/L to uM
 joined <- transform(joined, TIC = TIC / 0.012)
+joinedtest <- transform(joinedtest, TIC = TIC / 0.012)
 #   this is what Kerris' spreadsheet indicates for the unit conversion
 
+## save joinedtest for now
+saveRDS(joinedtest, "data/private/joinedtest.rds")
+
 ## need to source function that will run through the calculations
-source("functions/gasExchange.R") #FIXMEs in here too!!!
+source("functions/gasExchange.R") ## FIXMEs for scenario = kerri
 
 ## Run the gas exchange equations on our data to create co2 flux
 joined <- transform(joined,
@@ -162,13 +172,5 @@ joined <- transform(joined,
                                           kpa = Pressure, wind = Wind, salt = Salinity))
 #     archaic issue with naming in the database, dic = TIC is correct
 
-##      FIXME: Still need to decide what to do with pco2atm - Do we use blanket 370 like Kerri did? Or
-## ftp://aftp.cmdl.noaa.gov/data/trace_gases/co2/in-situ/surface/mlo/co2_mlo_surface-insitu_1_ccgg_MonthlyData.txt
-##      i.e. data/maunaloa.csv
-
-## For this work we only want a subset
-take <- c("B", "C", "D", "K", "L", "P", "WW")
-gasFlux <- subset(joined, subset = Lake %in% take)
-
 ## Save output for paper
-saveRDS(gasFlux, "data/private/gasFlux.rds")
+saveRDS(joined, "data/private/gasFlux.rds")
