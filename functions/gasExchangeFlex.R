@@ -7,7 +7,7 @@
 ## FIXME: Kerri to say whether all DIC or only missing DIC calculated from cond
 
 gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, salt = NULL, dic = NULL, 
-                            alt = NULL, kpa = NULL, pco2atm = NULL) { 
+                            alt = NULL, kpa = NULL, pco2atm = NULL trace = FALSE) { 
   
   if(!kerri) {
     if(is.null(c(dic))) {
@@ -73,8 +73,9 @@ gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, salt = NULL, di
   ##   used in case alk exists, not dic. NB equation not tested to be correct, nor was it used by Kerri. 
   ##   She did a different regression-based calculation for missing (or ALL!!!) DIC values using 
   ##   conductivity-DIC relationship:
-  if(kerri) { dic <- 26.57 + 0.018 * cond  # (mg/L)
-  dic <- dic / 0.012 # --> uM
+  if (kerri) {
+    dic <- 26.57 + 0.018 * cond  # (mg/L)
+    dic <- dic / 0.012 # --> uM
   }
   
   # =((O4+2*P4)*(R4)-1000000*10^(-D4)+1000000*10^(-14)+D4)
@@ -122,16 +123,16 @@ gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, salt = NULL, di
   
   if (kerri) {
     salt <- rep(0, times = length(dspeed))
-    } else {
-      salt <- salt
-    }
+  }
   
   if (any(is.na(salt))) {
-          take <- which(is.na(salt))
-          whichrows <- paste("calculating salt for row(s)", list(take))
-          salt[is.na(salt)] <- cond[is.na(salt)]*.68/1000 
-          print(whichrows)
-          } 
+    salt[is.na(salt)] <- cond[is.na(salt)]*.68/1000
+    if (trace) {
+      take <- which(is.na(salt))
+      whichrows <- paste("calculating salt for row(s)", list(take))
+      print(whichrows)
+    }
+  } 
   
   # =EXP($X$2+$Y$2*$T2^0.5+(10^4)*$Z$2/(C2+273)+$AA$2*LN(C2+273)) 
   r1 <- exp(r1a + r1b*salt^0.5 + (10^4)*r1d/(temp + 273) + r1e*log(temp + 273)) 
