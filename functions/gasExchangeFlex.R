@@ -1,14 +1,34 @@
-## a function that builds on gasExchange.R to allow for user-set options on the run
+## a function that builds on gasExchange.R to allow for user-set options 
 
 ## required variables: Temperature Celsius ("temp"), pH ("ph"), Conductivity [uS/cm] ("cond"), 
-## Atmospheric pCO2 ppm ("pco2atm"), 
-## required switches: kerri vs flex; if kerri, use alt, 
-##    Wind m/s ("wind"), Salinity ("salt"), 
-## "either or" variables: Barometric pressure kP ("kpa") & Altitude (m) ("alt");   
-##                        DIC uM ("dic") & Alkalinity uEq/L ("alk")
+## Atmospheric pCO2 ppm ("pco2atm"), Wind m/s ("wind"), Salinity ("salt"), 
+## "either or" etc variables: Barometric pressure kP ("kpa") & Altitude (m) ("alt");   
+##                        DIC uM ("dic") may be calculated from cond for kerri
+## FIXME: Kerri to say whether all DIC or only missing DIC calculated from cond
 
-
-gasExchangeFlex <- function(temp, cond, ph, dic, alt, kpa, wind, salt, kerri) { 
+gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, salt = NULL, dic = NULL, 
+                            alt = NULL, kpa = NULL, pco2atm = NULL) { 
+  
+  if(!kerri) {
+    if(is.null(c(dic))) {
+      stop("you must provide dic")
+      }
+    if(is.null(pco2atm)) {
+      stop("provide pco2atm")
+    }
+    if(is.null(salt)) {
+      stop("provide salt")
+    }
+    if(is.null(kpa)) {
+      stop("provide kpa")
+    }
+  } else {
+    if(is.null(alt)) {
+      stop("you must provide alt")
+    }
+  }
+ 
+  
   r1a <- -2225.22 # all r1 are Khco3...
   r1b <- -0.049
   r1d <- 8.91
@@ -21,8 +41,9 @@ gasExchangeFlex <- function(temp, cond, ph, dic, alt, kpa, wind, salt, kerri) {
   localc <- 1.056
   
   ## other data for scenario choices
-  ml <- read.csv("data/maunaloa.csv") # year month value of interest here
-  
+  if(kerri) {
+    pco2atm <- rep(370, times = length(ph))
+  } 
   
   # =IF(G2<>" ",G2*7*0.0000025,AF$2*7*0.0000025)
   ##   i.e. if cond missing, grab mean cond value - but for now we are omitting missing
@@ -47,33 +68,33 @@ gasExchangeFlex <- function(temp, cond, ph, dic, alt, kpa, wind, salt, kerri) {
   # =1.11+0.016*F2-0.00007*F2^2
   pkh <- 1.11 + 0.016*temp - 0.00007*temp^2
   
-  # =((O4+2*P4)*(R4)-1000000*10^(-D4)+1000000*10^(-14)+D4)
-  alk <- ((a1 + 2*a2)*(dic) - 1000000*10^(-ph) + 1000000*10^(-14) + ph) 
-  
   ## =1000000*(E2*0.000001-10^(-14+D2)+10^(-D2))/(O2+2*P2) 
   ## dic <- 1000000*(alk*0.000001 - 10^(-14 + ph) + 10^(-ph))/(a1 + 2*a2) 
   ##   used in case alk exists, not dic. NB equation not tested to be correct, nor was it used by Kerri. 
-  ##   She did a different regression-based calculation for missing DIC values using 
+  ##   She did a different regression-based calculation for missing (or ALL!!!) DIC values using 
   ##   conductivity-DIC relationship:
-  ##   DIC (mg/L) = 26.57 + 0.018 * Conductivity (see email 1st June 2015)
+  if(kerri) { dic <- 26.57 + 0.018 * cond  # (mg/L)
+  dic <- dic / 0.012 # --> uM
+  }
+  
+  # =((O4+2*P4)*(R4)-1000000*10^(-D4)+1000000*10^(-14)+D4)
+  alk <- ((a1 + 2*a2)*(dic) - 1000000*10^(-ph) + 1000000*10^(-14) + ph) 
   
   # =R2*N2 
   co2 <- dic*ao
-  ## but then rather than using DIC as above, the spreadsheet indicates that Kerri replaced this calculation 
-  ##   with a co2 ~ pH-based regression; something to resolve once we start patching NAs
-  ##      FIXME: check with Kerri that I'm doing the right thing with spreadsheet procedure
   
   # =S2/(10^-Q2) .... mcAtm
-  pco2 <- co2/(10^-pkh) #
-  ## this also differs but is correct and should use that, Kerri 
-  ##    used a different relationship
-  
+  pco2 <- co2/(10^-pkh) 
+   
   ## =IF(J2="",+(I2/101.325)*((+H2*0.000001)*10^(-Q2+6)),
   ##      EXP(-0.12806*(+J2/1000))*((+H2*0.000001)*10^(-Q2+6)))
   ## if no alt, use kpa
   ## when both available, use alt. But kpa actually better to default to (discussions with kerri)
-  ## co2eq <- exp(-0.12806*(+ alt/1000))*((+ pco2atm*0.000001)*10^(-pkh + 6)) 
-  co2eq <- (kpa/101.325) * ((pco2atm * 0.000001) * 10^(-pkh + 6))
+  if(kerri) {
+    co2eq <- exp(-0.12806*(alt/1000))*((pco2atm*0.000001)*10^(-pkh + 6)) 
+  } else {
+    co2eq <- (kpa/101.325) * ((pco2atm * 0.000001) * 10^(-pkh + 6))
+  }
   
   # log(S2)
   co2log <- log10(co2) 
@@ -99,13 +120,11 @@ gasExchangeFlex <- function(temp, cond, ph, dic, alt, kpa, wind, salt, kerri) {
   # =(0.61563+0.05316*C2)*0.00001 D cm2/s .. no idea what D is...
   dspeed <- (0.61563+0.05316*temp)*0.00001
   
-  
-  if (kerri == TRUE) { ## FIXME: check if this function really works
-    salt <- rep(0, times = length(!!!))
-    } # depends on if we provide df or vectors 
-    else {
+  if (kerri) {
+    salt <- rep(0, times = length(dspeed))
+    } else {
       salt <- salt
-      }
+    }
   
   if (any(is.na(salt))) {
           take <- which(is.na(salt))
