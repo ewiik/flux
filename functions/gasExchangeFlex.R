@@ -4,10 +4,9 @@
 ## Atmospheric pCO2 ppm ("pco2atm"), Wind m/s ("wind"), Salinity ("salt"), 
 ## "either or" etc variables: Barometric pressure kP ("kpa") & Altitude (m) ("alt");   
 ##                        DIC uM ("dic") may be calculated from cond for kerri
-## FIXME: Kerri to say whether all DIC or only missing DIC calculated from cond
 
 gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, salt = NULL, dic = NULL, 
-                            alt = NULL, kpa = NULL, pco2atm = NULL trace = FALSE) { 
+                            alt = NULL, kpa = NULL, pco2atm = NULL, trace = FALSE) { 
   
   if(!kerri) {
     if(is.null(c(dic))) {
@@ -74,8 +73,9 @@ gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, salt = NULL, di
   ##   She did a different regression-based calculation for missing (or ALL!!!) DIC values using 
   ##   conductivity-DIC relationship:
   if (kerri) {
-    dic <- 26.57 + 0.018 * cond  # (mg/L)
-    dic <- dic / 0.012 # --> uM
+    take <- which(is.na(dic))
+    dic[take] <- 26.57 + 0.018 * cond[take]  # (mg/L)
+    dic[take] <- dic[take] / 0.012 # --> uM
   }
   
   # =((O4+2*P4)*(R4)-1000000*10^(-D4)+1000000*10^(-14)+D4)
