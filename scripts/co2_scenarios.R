@@ -4,9 +4,11 @@
 ##    this script intends to reproduce exactly what was done before (rather than check
 ##    reproducibility of code as per co2data_comparisons.R) and also allow for comparison of
 ##    conclusions of regressions run with different options.
-## FIXME: meet with Kerri to discuss exact replication (see co2data_comparisons.R and gasExchange.R)
+## this script will require gasExchangeFlex.R
+## FIXME: still need to sort out removing outliers consistently across scripts
 
 ## get necessary data from previous processing
+## FIXME: will this be necesssary?
 if (file.exists("data/private/gasFlux.rds")) {
   co2emma <- readRDS("data/private/gasFlux.rds")  
 } else {
@@ -54,80 +56,44 @@ co2kerri$Altitude <- co2kerriw$Altitude.x
 co2kerrix <- merge(winds, co2kerri, by = "Lake")
 co2kerri$Wind_ms <- co2kerrix$Wind_ms.x
 
-# CHECK: CO2uM calculation, pCO2 calculation (one of the fixmes in gasExchange.R)
-# and then by gods this data set is complete for scenario = kerri
+## NOTE: *DIC values*: Kerri may have done DIC (mg/L) = 26.57 + 0.018 * Conductivity (see email 1st June 2015)
+##    for missing, or all, DIC data points! she is resolving this (see email 23.09.2015)
+##       *CO2uM, pCO2*: kerri used the spreadsheet to calculate from DIC, but when DIC missing 
+##    (even with the conductivity relationship), she used the final regression of pH to CO2 and pH to pCO2 
+##    in order to fill in the missing numbers - so this should only have been evoked when DIC & cond missing:
+##    log CO2 (uM) = 10.94 -1.124*pH  (r2 = 0.94)
+##    log pCO2 (uatm) = 12.076-1.101*pH (r2 = 0.95)
+## ergo since we using only existing data, the CO2 stuff is ok. However: 
+## FIXME: Kerri to report back on DIC values
 
-## Grab my flux calculations and met data and start scenarios which are:
-##    1: Grab pCO2 from Mauna Loa, grab wind from meteo stations and create averages for 
-##    sample time - 2 weeks, grab pressure from regina which was longest-running, do same average
-## Though average of time x could be a condition for the function call
-## These options will appear in gasExchangeFlex.R
-
-original <- readRDS("data/private/gasFlux.rds") # (pco2atm = 370) (see pressuremanipulations.R)
-joined <- merge(co2kerrisub, original, by = c("Lake", "Date"), all.x = TRUE)
+## Grab starting parameters and create a few more necessary columns
+params <- readRDS("data/private/joinedtest.rds") 
+ml <- read.csv("data/maunaloa.csv") 
+mlsub <- subset(ml, select = c('year', 'month', 'value'))
+names(mlsub) <- c("Year", "Month", "pco2atm")
+params <- merge(params, mlsub, by = c("Year", "Month"))
 
 ## need to source function that will run through the calculations
-source("functions/gasExchange.R") 
+source("functions/gasExchangeFlex.R") 
 
-## start messing around with parameters
-## ====================================
-##    Part 1: create complete similarity
-##    created new gasExchangealt.R to use alt rather than kpa and suppress salt calculation
-source("functions/gasExchangealt.R")
-identical <- transform(joined,
-                       co2Flux = gasExchangealt(temp = Temperature, cond = Conductivity, ph = pH, dic = TIC, 
-                                                pco2atm = rep(370, times = nrow(joined)), 
-                                                alt = rep(509.3, times = nrow(joined)),
-                                                wind = rep(4.06, times = nrow(joined)), 
-                                                salt = rep(0, times = nrow(joined))))
-with(identical, plot(FluxEnh ~ co2Flux))
-abline(0,1)
-with(identical, plot(FluxEnh - co2Flux ~ Date, xlab = "Date", ylab = "difference(kerri's - mine)"))
-# assuming R rounding errors here
+## test whether the function is working; params = temp, cond, ph, wind, kerri = FALSE, salt = NULL, dic = NULL, 
+##    alt = NULL, kpa = NULL, pco2atm = NULL
+## FIXME: test more scenarios, double check code, tweak.
+## scenario where all should work
+flexing <- transform(params, co2Flux = gasExchangeFlex(Temperature, Conductivity, pH, meanWind, kerri= FALSE, 
+                                                       salt = Salinity, dic = TIC, kpa = Pressure, 
+                                                       pco2atm = pco2atm))
+## kerri = TRUE, failing to provide alt
+flexing <- transform(params, co2Flux = gasExchangeFlex(Temperature, Conductivity, pH, Wind, kerri= TRUE, 
+                                                       salt = Salinity, dic = TIC, kpa = Pressure, 
+                                                       pco2atm = pco2atm))
+## kerri = TRUE, provide alt
+flexing <- transform(params, co2Flux = gasExchangeFlex(Temperature, Conductivity, pH, Wind, kerri= TRUE, 
+                                                       salt = Salinity, dic = TIC, kpa = Pressure, 
+                                                       alt = Elevation))
 
-##    Part 2: introduce salt (all else same)
-##    created new gasexchangesalt.R to phase back the salt calculation and use salt
-source("functions/gasExchangesalt.R")
-salty <- transform(joined,
-                   co2Flux = gasExchangesalt(temp = Temperature, cond = Conductivity, ph = pH, dic = TIC, 
-                                             pco2atm = rep(370, times = nrow(joined)), 
-                                             alt = rep(509.3, times = nrow(joined)),
-                                             wind = rep(4.06, times = nrow(joined)), 
-                                             salt = Salinity))
-with(salty, plot(FluxEnh ~ co2Flux))
-abline(0,1)
-with(salty, plot(FluxEnh - co2Flux ~ Date, xlab = "Date", ylab = "difference(kerri's - mine)", col = Lake))
-with(salty, which(FluxEnh - co2Flux == max(FluxEnh - co2Flux, na.rm = TRUE)))
-# one "outlier" here is a normal day in 2001, the other one of the high pH days;
-#     salt is used in equations r1 and r2
-take <- with(salty, which(abs(FluxEnh - co2Flux) >= 10))
-salty[take,]
-
-##    Part 3: introduce wind (all else same)
-windy <- transform(joined,
-                   co2Flux = gasExchangealt(temp = Temperature, cond = Conductivity, ph = pH, dic = TIC, 
-                                            pco2atm = rep(370, times = nrow(joined)), 
-                                            alt = rep(509.3, times = nrow(joined)),
-                                            wind = Wind, 
-                                            salt = rep(0, times = nrow(joined))))
-with(windy, plot(FluxEnh ~ co2Flux))
-abline(0,1)
-with(windy, plot(FluxEnh - co2Flux ~ Date, xlab = "Date", ylab = "difference(kerri's - mine)", col = Lake))
-with(windy, which(FluxEnh - co2Flux == max(FluxEnh - co2Flux, na.rm = TRUE)))
-# again max difference at the pH anomaly. funnily #303 seems to produce most differences, #850 not so
-
-##    Part 4: replace alt with Pressure (all else same)
-pressed <- transform(joined,
-                     co2Flux = gasExchange(temp = Temperature, cond = Conductivity, ph = pH, dic = TIC, 
-                                           pco2atm = rep(370, times = nrow(joined)), 
-                                           kpa = Pressure,
-                                           wind = rep(4.06, times = nrow(joined)), 
-                                           salt = rep(0, times = nrow(joined))))
-with(pressed, plot(FluxEnh ~ co2Flux))
-abline(0,1)
-with(pressed, plot(FluxEnh - co2Flux ~ Date, xlab = "Date", ylab = "difference(kerri's - mine)"))
-# using pressure rather than altitude incurs the least changes; less than 10 units of flux.
-
-## Save some output for later
-## saveRDS(, "data/private/.rds")
+## kerri = TRUE, no salt provided
+flexing <- transform(params, co2Flux = gasExchangeFlex(Temperature, Conductivity, pH, Wind, kerri= TRUE, 
+                                                       dic = TIC, kpa = Pressure, 
+                                                       alt = Elevation))
 
