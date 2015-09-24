@@ -85,7 +85,6 @@ if(regina) {
 ## merge joined with pressure and wind data
 ## add Year, Month and Day fields to aid the match
 ## FIXME: Still need to decide if and what to do with missing pressure data.
-## FIXME: Need not match metWind with day of sampling but calculate previous 2 week average
 joined <- transform(joined, Year = as.numeric(format(Date, format = "%Y")),
                     Month = as.numeric(format(Date, format = "%m")),
                     Day = as.numeric(format(Date, format = "%d")))
