@@ -100,7 +100,7 @@ toDate <- function(year, month, day) {
 windsdata <- transform(windsdata, Date = toDate(Year, Month, Day))
 
 ## create appropriate averages for each instance (i.e. sampling date minus 14 days)
-## FIXME: tinker with number of days, current selection give 13 previous days 
+## FIXME: <= interval clause still not picking the actual day of sampling!!
 ## hugely complicated scenario where appropriate values are grabbed from Lake-specific data
 if(regina) {
   windsub <- subset(windsdata, Superstation == "regina")
@@ -138,47 +138,27 @@ if(regina) {
   stop()
 }
 
-joinedtest <- merge(joined, winddf, by = c("Date", "Lake"), sort = FALSE, all.x = TRUE)
-# one data frame with means for all sample occasions of all lakes
-## FIXME: If joinedtest is deemed fully operational, the code below needs to be changed and run to
-##    produce a new gasFlux.rds, also to incorporate the change in wind transformation (below).for now,
-##    joinedtest will be saved as a separate object which only contains parameters prior to function 
-##    executions (since this can then be run separately under different scenarios in co2_scenarios.R)
+joined <- merge(joined, winddf, by = c("Date", "Lake"), sort = FALSE, all.x = TRUE)
 
 ## need to change wind from km/h to m/s
-## NOTE! chatted with kerri and it seems the database is wrong! despite column name km/h the data 
-##    are actually m/s --> commented out Wind conversion below.
-# joined <- transform(joined, Wind = Wind * (1000/60/60))
-joinedtest <- transform(joinedtest, meanWind = meanWind * (1000/60/60))
+joined <- transform(joined, Wind = Wind * (1000/60/60))
+joined <- transform(joined, meanWind = meanWind * (1000/60/60))
 
 ## need to change dic from mg/L to uM
 joined <- transform(joined, TIC = TIC / 0.012)
-joinedtest <- transform(joinedtest, TIC = TIC / 0.012)
 #   this is what Kerris' spreadsheet indicates for the unit conversion
 
-## save joinedtest for now
-saveRDS(joinedtest, "data/private/joinedtest.rds")
+## save joined as parameter data table
+saveRDS(joined, "data/private/params.rds")
 
-## diagnostics on joined vs joinedtest
-gasFlux <- readRDS("data/private/gasFlux.rds")
-length(gasFlux$Date) == length(joinedtest$Date)
-plop <- merge(gasFlux, joinedtest, by = c("Date", "Lake"))
-plop$Conductivity.x == plop$Conductivity.y # all TRUEs apart from NAs
-take <- which(is.na(plop$Conductivity.x == plop$Conductivity.y))
-plop[take,]
-plop$Temperature.x == plop$Temperature.y
-take <- which(is.na(plop$Temperature.x == plop$Temperature.y))
-plop[take,] # all NA compared are NA individually
-
-## need to source function that will run through the calculations
-source("functions/gasExchange.R") ## FIXMEs for scenario = kerri
-
+## This is what was done before the creation of gasFluxFlex.R - redid using new joined but
+##    essentially an archaic object now.
 ## Run the gas exchange equations on our data to create co2 flux
-joined <- transform(joined,
+source("functions/gasExchange.R")
+joinedarchaic <- transform(joined,
                     co2Flux = gasExchange(temp = Temperature, cond = Conductivity, ph = pH, dic = TIC, 
-                                          pco2atm = rep(370, times = 1242), # see line 94
-                                          kpa = Pressure, wind = Wind, salt = Salinity))
+                                          pco2atm = 370, kpa = Pressure, wind = Wind, salt = Salinity))
 #     archaic issue with naming in the database, dic = TIC is correct
 
 ## Save output for paper
-saveRDS(joined, "data/private/gasFlux.rds")
+saveRDS(joinedarchaic, "data/private/gasFlux.rds")
