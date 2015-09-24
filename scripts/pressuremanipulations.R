@@ -67,24 +67,24 @@ joined <- merge(joined, subset(elevd, select = c("Abbreviation", "Elevation_m"))
                 by.x = "Lake", by.y = "Abbreviation", sort = FALSE)
 names(joined)[names(joined) == "Elevation_m"] <- "Elevation"
 
-## drop all lakes we're not interested in 
+## select all lakes we're interested in 
 drop <- TRUE
-if(drop) {
+if (drop) {
   joined <- subset(joined, Lake %in% c("B", "C", "WW", "D", "K", "L", "P"))
 }
 
 ## choice of using or not using all superstations
 regina <- TRUE
 
-if(regina) {
-  joined$Superstation <- rep("regina")
+if (regina) {
+  joined$Superstation <- "regina"
 } else {
   joined <- merge(joined, superstations, sort = FALSE)
-  }
+}
 
 ## merge joined with pressure and wind data
 ## add Year, Month and Day fields to aid the match
-## FIXME: Still need to decide if and what to do with missing pressure data.
+## FIXME: Still need to decide if and what to do with missing pressure data if using all stations
 joined <- transform(joined, Year = as.numeric(format(Date, format = "%Y")),
                     Month = as.numeric(format(Date, format = "%m")),
                     Day = as.numeric(format(Date, format = "%d")))
@@ -94,24 +94,21 @@ joined <- merge(joined, pressuredata, sort = FALSE, all.x = TRUE)
 names(windsdata)[6] <- "metWind"
 
 toDate <- function(year, month, day) {
-  ISOdate(year, month, day)
+  ISOdatetime(year, month, day, hour = 12, min = 0, sec = 0, tz = "CST")
 }
 
-windsdata$Date <- with(windsdata, toDate(Year, Month, Day))
-windsdata <- transform(windsdata, Date = as.POSIXct(as.character(Date), format = "%Y-%m-%d"))
-
+windsdata <- transform(windsdata, Date = toDate(Year, Month, Day))
 
 ## create appropriate averages for each instance (i.e. sampling date minus 14 days)
 ## FIXME: tinker with number of days, current selection give 13 previous days 
 ## hugely complicated scenario where appropriate values are grabbed from Lake-specific data
 if(regina) {
   windsub <- subset(windsdata, Superstation == "regina")
-  windgrab <- function(interval, regina) {
-    datalist <- list()
-    datalist <- windsub$metWind[windsub$Date < interval[[2]][1] & windsub$Date > interval[[2]][2]]
-    }
+  windgrab <- function(interval, WIND) {
+    datalist <- WIND$metWind[WIND$Date <= interval[[2]][1] & WIND$Date >= interval[[2]][2]]
+  }
 } else {
-  print("to be developed") # i.e. case where, despite grabbing pressure data from regina, grabbing 
+  stop("to be developed") # i.e. case where, despite grabbing pressure data from regina, grabbing 
   #   wind data from individual weather stations
 }
 
@@ -122,22 +119,23 @@ if(regina) {
   windraw <- list()
   windmeans <- list()
   winddf <- data.frame(Lake = character(0), sampleDate = character(0), meanWind = integer(0))
-  for (i in 1:length(sampledatelist)) {
+  for (i in seq_along(sampledatelist)) { # seq_along == 1:length(listObj)
       sampledates <- sampledatelist[[i]] 
       interval <- list()
-          for (i in 1:nrow(sampledates)) { 
-          interval[[i]] <- list(sampledates[['Lake']][1], seq.POSIXt(from = sampledates[i,'Date'], 
-                                                                     by = "-14 day", length.out = 2))
+          for (i in seq_len(nrow(sampledates))) { 
+            interval[[i]] <- list(sampledates[['Lake']][1],
+                                  seq(from = sampledates[i, 'Date'], 
+                                      by = "-13 days", length.out = 2))
           } # this gives a list the length of nrow(sampledates[[i]]) with lake id and date range
-      windraw <- lapply(interval, windgrab) # gives list length of nrow(sampledates[[i]]) 
+      windraw <- lapply(interval, windgrab, WIND = windsub) # gives list length of nrow(sampledates[[i]]) 
       #   with all 13 wind data (with setting -14 days)
-      windmeans <- unlist(lapply(windraw, mean, na.rm = TRUE))
-      ## FIXME: is this how function options are entered in lapply?
+      windmeans <- sapply(windraw, mean, na.rm = TRUE) # sapply unlists if possible!
       winddf <- rbind(winddf, data.frame(Lake = sampledates['Date'], sampleDate = sampledates['Lake'], 
                                          meanWind = windmeans)) 
   }
 } else {
-  print("not-regina to be developed") ## FIXME not-regina option null
+  writeLines("not-regina to be developed") ## FIXME not-regina option null
+  stop()
 }
 
 joinedtest <- merge(joined, winddf, by = c("Date", "Lake"), sort = FALSE, all.x = TRUE)
@@ -160,6 +158,17 @@ joinedtest <- transform(joinedtest, TIC = TIC / 0.012)
 
 ## save joinedtest for now
 saveRDS(joinedtest, "data/private/joinedtest.rds")
+
+## diagnostics on joined vs joinedtest
+gasFlux <- readRDS("data/private/gasFlux.rds")
+length(gasFlux$Date) == length(joinedtest$Date)
+plop <- merge(gasFlux, joinedtest, by = c("Date", "Lake"))
+plop$Conductivity.x == plop$Conductivity.y # all TRUEs apart from NAs
+take <- which(is.na(plop$Conductivity.x == plop$Conductivity.y))
+plop[take,]
+plop$Temperature.x == plop$Temperature.y
+take <- which(is.na(plop$Temperature.x == plop$Temperature.y))
+plop[take,] # all NA compared are NA individually
 
 ## need to source function that will run through the calculations
 source("functions/gasExchange.R") ## FIXMEs for scenario = kerri
