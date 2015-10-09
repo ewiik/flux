@@ -94,6 +94,10 @@ routines <- routines[,-which(colnames(routines)=="Date2")] # wanted to avoid usi
 produc <- produc[,-which(colnames(produc)=="Date2")] 
 chl <- chl[,-which(colnames(chl)=="Date2")] 
 
+## take out all chl data that isn't from an integrated sample, as that's what we're working with
+##    (though worth thinking that surface could be played with since they're quite different!!)
+## FIXME: All 63micron samples are from 1997 - what is this sample, and should it be included?
+chlsub <- subset(chl, TreatmentNewLabel == "Integrated")
 
 ## split produc and chl for getting means for replicated production estimates
 prodsplit <- with(produc, split(produc, list(LAKE, Date), drop = TRUE))
@@ -109,7 +113,6 @@ mycolMeans <- function(df, cols) {
 
 ## choose columns we want means for
 ## FIXME: confirm with kerri that we want netoxy, and which respiration measure we want
-## FIXME: confirm with kerri whether we want integrated or surface chlorophyll!
 ## FIXME: chl columns: if we take "total chl", there are NAs where method only measured chla ...
 ##    so need to know if we are taking total or chl a ... and if we can replace missing data
 
