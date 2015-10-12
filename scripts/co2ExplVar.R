@@ -6,70 +6,53 @@
 ## ==================================================================================================
 
 ## urls, and filenames to use to save the data
-urls <- c("http://research.jisao.washington.edu/pdo/PDO.latest", 
-          "http://www.cpc.noaa.gov/data/indices/soi")
-fileIDs <- c("pdo", "soi")
-fnames <- paste0("data/", fileIDs, ".csv")
-nfiles <- length(fnames) # I don't think I need file.path here
-out <- vector(mode = "list", length = nfiles)
 
-for (i in length(urls)) {
-  curfile <- fnames[i]
-  # dload <- readLines(urls[1])
-  dload <- try(download.file(urls[1], destfile = fnames[1], quiet = TRUE)) 
-  cdata <- try(read.csv(fnames[1], skip = 27, encoding = "latin1"), silent = TRUE)
-  colnames(cdata) <- cdata[1,] #here it is still data frame
-  cdata <- cdata[-c(118:128),] #after this step it becomes a factor...
-  cdata <- as.data.frame(cdata) #colnames becomes "cdata", 2015 is not in the year column
-  colnames(cdata) <- cdata[1,] #here it is still data frame
-  
-  
-  ## Have we downloaded the file before?
-  if (inherits(dload, "try-error")) { # If problem, store failed URL...
-    out[[i]] <- URLS[i]
-    if (isTRUE(verbose)) {
-      setTxtProgressBar(pb, value = i) # update progress bar...
-    }
-    next                             # bail out of current iteration
-  }
+dload <- readLines("http://research.jisao.washington.edu/pdo/PDO.latest", n = 148)
+dload2 <- dload[-c(1:30, 32)]
+dload2[117] <- paste(dload2[117], " NA NA NA NA")
+dtable <- dload2
 
-  ## Must have downloaded, try to read file
-  ## skip first 19 rows of header stuff
-  ## encoding must be latin1 or will fail - may still be problems with character set
-  cdata <- try(read.csv(curfile, skip = 19, encoding = "latin1"), silent = TRUE)
-  cdata <- readLines(fnames[1])
-  cdata <- read.table(text = cdata, skip = 28, encoding = "latin1", nrows = nrow(cdata) - 15)
-  # !!! THIS IS AS FAR AS I GOT; check http://stackoverflow.com/questions/21192121/
-  #                                    r-import-csv-skip-first-and-last-lines
-  ## Did we have a problem reading the data?
-  if (inherits(cdata, "try-error")) { # yes handle read problem
-    ## try to fix the problem with dodgy characters
-    cdata <- readLines(curfile) # read all lines in file
-    cdata <- gsub("\x87", "x", cdata) # remove the dodgy symbol for partner data in Data Quality
-    cdata <- gsub("\xb0", "deg", cdata) # remove the dodgy degree symbol in column names
-    writeLines(cdata, curfile)          # write the data back to the file
-    ## try to read the file again, if still an error, bail out
-    cdata <- try(read.csv(curfile, skip = 19, encoding = "latin1"), silent = TRUE)
-      if (inherits(cdata, "try-error")) { # yes, still!, handle read problem
-        if (delete) {
-        file.remove(curfile) # remove file if a problem & deleting
-        }
-      out[[i]] <- URLS[i]    # record failed URL...
-      if (isTRUE(verbose)) {
-        setTxtProgressBar(pb, value = i) # update progress bar...
-        }
-    next                  # bail out of current iteration
-      }
-  }
+dtable2 <- lapply(dtable, gsub, pattern = "      ", replacement = " ")
+dtable2 <- lapply(dtable2, gsub, pattern = "     ", replacement = " ")
+dtable2 <- lapply(dtable2, gsub, pattern = "    ", replacement = " ")
+dtable2 <- lapply(dtable2, gsub, pattern = "   ", replacement = " ")
+dtable2 <- lapply(dtable2, gsub, pattern = "  ", replacement = " ")
 
-  ## Must have (eventually) read file OK
-  out[[i]] <- cdata
+dsplit <- lapply(dtable2, strsplit, " ")
+dvec <- unlist(dsplit)
+dmat <- matrix(dvec, ncol=13, byrow=TRUE)
+dframe <- as.data.frame(dmat)
 
-  if (isTRUE(verbose)) { # Update the progress bar
-  setTxtProgressBar(pb, value = i)
-    }
-  out  # return
-  }
+write.csv(dframe, "data/pdo.csv")
+
+## OR, as Jon found read.fwf:
+if (file.exists("data/pdo.txt")) { 
+  file <- read.fwf(file = "data/pdo.txt", skip = 30, n = 118, 
+                   widths = c(8, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7))
+} else {
+  download.file("http://research.jisao.washington.edu/pdo/PDO.latest", "data/pdo.txt")
+  file <- read.fwf(file = "data/pdo.txt", skip = 30, n = 118, 
+                   widths = c(8, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7))
+}
+
+colnames(file) <- unlist(file[1,])
+pdo <- file[-c(1, 2),]
+
+if (file.exists("data/soi.txt")) { 
+  all_data <- read.fwf(file = "data/soi.txt", skip = 3, widths = rep(6, 13))
+} else {
+  download.file("http://www.cpc.noaa.gov/data/indices/soi", "data/soi.txt")
+  all_data <- read.fwf(file = "data/soi.txt", skip = 3, widths = rep(6, 13))
+}
+table1 <- all_data[c(1:66),] # unstandardised
+colnames(table1) <- unlist(table1[1,])
+soinonst <- table1[-c(1),]
+
+table2 <- all_data[c(75:140),] # standardised
+colnames(table2) <- unlist(table2[1,])
+soist <- table2[-c(1),]
+## FIXME: do we want standardised or unstandardised?
+## FIXME: check that we can read all data as numeric etc.
 
 ## Part 2:
 ## ==================================================================================================
