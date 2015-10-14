@@ -1,6 +1,7 @@
 ## This script creates an rds that contains all relevant data for running regressions against pCO2
 ## 1. download weather pattern data from web: PDO, SOI, NAO
 ## 2. process routines sampling data tables
+## 3. get flow et al data from other sources
 
 ## Part 1:
 ## ==================================================================================================
@@ -84,7 +85,7 @@ chlsub <- subset(chl, TreatmentNewLabel == "Integrated")
 
 ## split produc and chl for getting means for replicated production estimates
 prodsplit <- with(produc, split(produc, list(LAKE, Date), drop = TRUE))
-chlsplit <- with(chl, split(chl, list(LAKE, Date), drop = TRUE))
+chlsplit <- with(chlsub, split(chlsub, list(LAKE, Date), drop = TRUE))
 
 ## create wrapper that does colmeans for the columns we want and spits out df we can merge
 mycolMeans <- function(df, cols) {
@@ -104,8 +105,7 @@ prodmeans <- do.call(rbind, prodmeans)
 rownames(prodmeans) <- NULL
 prodmeans <- prodmeans[with(prodmeans, order(LAKE, Date)),]
 
-chlmeans <- lapply(chlsplit, mycolMeans, cols = c("CHLC", "Total_chl")) # once chl issue is fixed, we 
-#   will need to change this and subset by TreatmentNewLabel (or Old... check if no difference)
+chlmeans <- lapply(chlsplit, mycolMeans, cols = c("CHLC", "Total_chl")) 
 chlmeans <- do.call(rbind, chlmeans)
 rownames(chlmeans) <- NULL
 chlmeans <- chlmeans[with(chlmeans, order(LAKE, Date)),]
@@ -116,3 +116,14 @@ co2explained <- merge(co2explained, routines)
 
 ## save output for later
 saveRDS(co2explained, "data/private/co2explained.rds")
+
+## Part 3:
+## ==========================================================================================
+
+## kerri emailed me this (in PhDPapers/Data..) pCO2_vars_yearlyaverageswithclimate.csv, but
+##    it has only a few years, so we need to supplement it.
+## flow data can be sourced from https://www.wsask.ca/Lakes-and-Rivers/
+##                               Stream-Flows-and-Lake-Levels/QuAppelle-River-Watershed/05JK007/
+## but FIXME: need to know which site for which lake
+
+## ice-out, some flow data, from Rich (.../fromRich). but generally only to 2009-2011. very patchy data
