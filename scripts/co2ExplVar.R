@@ -94,7 +94,7 @@ naoframe <- as.data.frame(naoframe)
 naoframe[naoframe <= -999] <- NA
 
 ## create rds for later
-saveRDS(naoframe, "naoseasonal.rds")
+saveRDS(naoframe, "data/naoseasonal.rds")
 
 ## Part 2: 939 rows, 375 rows of one or more NAs with variable selection FIXMEs 
 ## ==================================================================================================
