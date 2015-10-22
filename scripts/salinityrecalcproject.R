@@ -151,9 +151,24 @@ salcalcplot <- ggplot(data = params, aes(x= Date, y = SalCalc,
 
 salcalcplot
 
-## create pdf to show:
+diffplot <- ggplot(data = params, aes(x= Date, y = SalCalc - Salinity, 
+                                      group = Lake, colour = Lake)) +
+  geom_abline() +
+  geom_point( size = 1, shape= 21, fill="white") +
+  facet_wrap( "Lake" ) + 
+  ylab("Calculated - measured salinity (ppt)")
+
+diffplot
+
+
+
+## create pdfs to show:
 pdf("data/private/salcalcplot.pdf", width = 15)
 salcalcplot
+dev.off()
+
+pdf("data/private/salcalcdiffplot.pdf", width = 15)
+diffplot
 dev.off()
 
 
