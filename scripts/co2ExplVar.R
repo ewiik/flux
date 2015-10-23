@@ -193,6 +193,36 @@ co2expl <- merge(co2explained, oxtemp[,c('Date', 'LAKE', 'Temperature_deg_C','Ox
                  by = c('Date', 'LAKE'), all.x = TRUE)
 ## FIXME: this creates data frame shorter by 3 rows to co2explained for some reason?
 
+## airtemp, from env canada and weathermanipulations.R
+if (!file.exists("data/temperaturedata.rds")) {
+  source("scripts/weathermanipulations.R")
+}
+airtemp <- readRDS("data/temperaturedata.rds")
+## since we decided to use the regina station for all measurements, I will also here subset
+##    to regina
+airtemp <- subset(airtemp, Superstation == "regina", select = c(Year, Month, Temperature))
+airtemp <- airtemp[order(airtemp$Year, airtemp$Month),]
+rownames(airtemp) <- NULL #set new order for rows, otherwise in mixed order based on above command
+
+## create yearmeans for temperature, too
+## FIXME: check othervars (from kerri, downloaded below... loads and loads of different versions of
+##    temperature variable subsets....!!)
+airtemp$Year <- as.factor(Year) # was this necessary for splitting?
+airsplit <- with(airtemp, split(airtemp, list(Year)))
+airmeans <- lapply(airsplit, colMeans, na.rm = TRUE)
+airmeans <- do.call(rbind, airmeans)
+colnames(airmeans)[which(colnames(airmeans) == "Temperature")] <- "AirTempAnnual"
+airmeans <- airmeans[,-(which(colnames(airmeans) == "Month"))]
+airmeans <- as.data.frame(airmeans)
+airmeans$Year <- as.numeric(airmeans$Year)
+airtemp <- merge(airtemp, airmeans)
+colnames(airtemp)[which(colnames(airtemp) == "Temperature")] <- "AirTempMonthly"
+colnames(airtemp)[which(colnames(airtemp) == "Year")] <- "YEAR"
+
+## merge co2expl with monthly air temperature data....
+co2expl <- transform(co2expl, Month = as.numeric(format(Date, format = "%m")))
+co2expl <- merge(co2expl, airtemp)
+
 ## save output for later
 saveRDS(co2expl, "data/private/co2explained.rds")
 
@@ -205,12 +235,12 @@ nanumbers <- rowSums(is.na(dataloss))
 dataloss <- dataloss[rowSums(is.na(dataloss)) > 0,]
 nrow(dataloss)
 
-## Part 3: ice-out, inflow, ...
+## Part 3: ice-out, inflow, evaporation
 ## ==========================================================================================
 
 ## kerri emailed me this (in PhDPapers/Data..) pCO2_vars_yearlyaverageswithclimate.csv, but
 ##    it has only a few years, so we need to supplement it.
-## FIXME: need to know which site for which lake
+## FIXME: need to know which flow site for which lake
 ## other files downloaded at this point are from Rich. Go to 2010/2011
 ## kerri used the "old" way of calculating annual flows, but nicole and I checking what data
 ##    we can get to bring us up to 2015. probably will be the "new way"
@@ -234,4 +264,3 @@ othervars <- read.csv("data/private/pCO2_vars_yearlyaverageswithclimate.csv")
 ## this doesn't however indicate which vars interpolated and which real, but has the separate inflow
 ##    sites and inflow data
 
-met <- readRDS("data/met.rds")
