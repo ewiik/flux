@@ -113,6 +113,9 @@ produc <- transform(produc, Date = as.POSIXct(as.character(Date2), format = "%Y-
 chl <- read.csv("data/private/Chl.csv")
 chl <- transform(chl, Date = as.POSIXct(as.character(Date2), format = "%Y-%m-%d"))
 
+incub <- read.csv("data/private/qprodsupportdata.csv")
+incub <- transform(incub, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
+
 gasflux <- readRDS("data/private/gasFlux.rds") # from pressuremanipulations.R
 
 ## remove extra date column (originally retained in case wanna check that the date format
@@ -147,15 +150,23 @@ mycolMeans <- function(df, cols) {
 ##    method used for total chl and individual chlorophylls...!?
 ##    so need to know if we are taking total or chl a ... and if we can replace missing data
 
-prodmeans <- lapply(prodsplit, mycolMeans, cols = c("NetOxy_ppm", "Resp_mgC_m3_H")) 
-prodmeans <- do.call(rbind, prodmeans)
-rownames(prodmeans) <- NULL
-prodmeans <- prodmeans[with(prodmeans, order(LAKE, Date)),]
-
 chlmeans <- lapply(chlsplit, mycolMeans, cols = c("Chl_a_ug_L", "Total_chl")) 
 chlmeans <- do.call(rbind, chlmeans)
 rownames(chlmeans) <- NULL
 chlmeans <- chlmeans[with(chlmeans, order(LAKE, Date)),]
+
+prodmeans <- lapply(prodsplit, mycolMeans, cols = c("LIGHT_O2_ppm", "DARK_O2_ppm", "LIGHT_Pois_O2_ppm",
+                                                    "DARK_Pois_O2_ppm", "NetOxy_ppm", "RespOxy_ppm",
+                                                    "Net_mgC_m3_h", "Resp_mgC_m3_H", 
+                                                    "LightAzidemgCm3h", "DarkAzidemgCm3h")) 
+prodmeans <- do.call(rbind, prodmeans)
+rownames(prodmeans) <- NULL
+prodmeans <- prodmeans[with(prodmeans, order(LAKE, Date)),]
+
+## merge prodmeans with the other prod support data in another table
+proddf <- merge(prodmeans, incub, by = c("LAKE", "Date"))
+
+
 
 ## merge all dfs by LAKE and Date
 co2explained <- merge(chlmeans, prodmeans) ## FIXME: NAs are now NaN.. problem for later?
