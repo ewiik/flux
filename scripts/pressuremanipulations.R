@@ -4,38 +4,40 @@
 if (file.exists("data/pressuredata.rds")) {
   pressuredata <- readRDS("data/pressuredata.rds")  
 } else {
-  print("run weathermanipulations.R")
+  source("scripts/weathermanipulations.R")
+  pressuredata <- readRDS("data/pressuredata.rds") 
   }
 
 if (file.exists("data/windsdata.rds")) {
   windsdata <- readRDS("data/windsdata.rds")  
 } else {
-  print("run weathermanipulations.R")
+  source("scripts/weathermanipulations.R")
+  windsdata <- readRDS("data/windsdata.rds")
 }
 
 if (file.exists("data/private/fluxquery1.csv")) { # DIC, pH, wind
   surfd <- read.csv("data/private/fluxquery1.csv")
 } else {
-  print("get fluxquery1.csv from dropbox")
+  stop("get fluxquery1.csv from dropbox")
 }
 
 if (file.exists("data/private/fluxquery2.csv")) { # elevation and lake 
   # abbreviation data
   elevd <- read.csv("data/private/fluxquery2.csv")
 } else {
-  print("get fluxquery2.csv from dropbox")
+  stop("get fluxquery2.csv from dropbox")
 }
 
 if (file.exists("data/private/fluxquery3.csv")) { # T, cond, salinity
   tcsd <- read.csv("data/private/fluxquery3.csv")
 } else {
-  print("get fluxquery3.csv from dropbox")
+  stop("get fluxquery3.csv from dropbox")
 }
 
 if (file.exists("data/superstationz.csv")) { # links superstations with lakes
   superstations <- read.csv("data/superstationz.csv")
 } else {
-  print("get superstationz.csv from emma")
+  stop("get superstationz.csv from emma")
 }
 
 ## are we really removing all NA data? THERE'S LOTS! complete.cases, na.omit
