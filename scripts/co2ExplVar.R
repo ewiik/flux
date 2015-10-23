@@ -96,7 +96,7 @@ naoframe[naoframe <= -999] <- NA
 ## create rds for later
 saveRDS(naoframe, "data/naoseasonal.rds")
 
-## Part 2: 939 rows, 375 rows of one or more NAs with variable selection FIXMEs 
+## Part 2: 1039 rows, 415 rows of one or more NAs 
 ## ==================================================================================================
 
 ## read in supporting monitoring data tables grabbed from database
@@ -116,11 +116,16 @@ chl <- transform(chl, Date = as.POSIXct(as.character(Date2), format = "%Y-%m-%d"
 incub <- read.csv("data/private/qprodsupportdata.csv")
 incub <- transform(incub, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
 
+oxtemp <- read.csv("data/private/qprofilesoxtemp.csv")
+oxtemp <- rbind(oxtemp, read.csv("data/private/qprofilesextrarecordsoxtemp.csv"))
+oxtemp <- transform(oxtemp, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
+
+
 gasflux <- readRDS("data/private/gasFlux.rds") # from pressuremanipulations.R
 
 ## remove extra date column (originally retained in case wanna check that the date format
 ##    conversion worked in OpenOffice)
-routines <- routines[,-which(colnames(routines)=="Date2")] # wanted to avoid using numbers for columns
+routines <- routines[,-which(colnames(routines)=="Date2")] 
 produc <- produc[,-which(colnames(produc)=="Date2")] 
 chl <- chl[,-which(colnames(chl)=="Date2")] 
 
@@ -142,15 +147,11 @@ mycolMeans <- function(df, cols) {
 }
 
 ## choose columns we want means for
-## FIXME: confirm with kerri that we want netoxy, and which respiration measure we want; NP vs GPP?
-##    apparently this may be a macro that alain calculated in systat then R (see code that Nicole 
-##    commented and sent: AlainsCode.R in private/)
-## FIXME: is the variable O2 from the water column or the netoxy thing???
-## FIXME: chl columns: if we take "chl a" rather than total chl there are NAs --> implies different
-##    method used for total chl and individual chlorophylls...!?
-##    so need to know if we are taking total or chl a ... and if we can replace missing data
+## FIXME: assuming that variable O2 refers to water column O2
+## FIXME: chl columns: since we take "chl a" rather than total chl there are NAs; should we try 
+##    total chl too??
 
-chlmeans <- lapply(chlsplit, mycolMeans, cols = c("Chl_a_ug_L", "Total_chl")) 
+chlmeans <- lapply(chlsplit, mycolMeans, cols = c("Chl_a_ug_L")) # , "Total_chl"
 chlmeans <- do.call(rbind, chlmeans)
 rownames(chlmeans) <- NULL
 chlmeans <- chlmeans[with(chlmeans, order(LAKE, Date)),]
@@ -164,53 +165,73 @@ rownames(prodmeans) <- NULL
 prodmeans <- prodmeans[with(prodmeans, order(LAKE, Date)),]
 
 ## merge prodmeans with the other prod support data in another table
+## using AlainsCode.R in private/ which nicole sent me, to estimate P's and R.
+## FIXME: why are the poisoned ones not used for anything? Nicole says not used but she doesn't
+##    know why either; C columns in prodmeans were calculated based on a metabolic ratio 
 proddf <- merge(prodmeans, incub, by = c("LAKE", "Date"))
+proddf <- transform(proddf, photO2ppm = LIGHT_O2_ppm - ProdAssayO2Start_ppm)
+proddf <- transform(proddf, respO2ppm = DARK_O2_ppm - ProdAssayO2Start_ppm)
+proddf <- transform(proddf, NPP_h = photO2ppm/Hours_incubation)
+proddf <- transform(proddf, R_h = respO2ppm/Hours_incubation)
+proddf <- transform(proddf, GPP_h = NPP_h - R_h)
 
+## leave proddf for later if need to revisit calcs, select what we want
+prodsub <- subset(proddf, select = c(LAKE, Date, GPP_h, NPP_h, R_h))
 
+## nicole noticed an outlier and there it is: WW 2010-05-03 (GPP >15 cf mostly <1)
+## FIXME: changing this to NA for now but may want to keep it and actually deal with all outliers
+##    in one sitting?
+## FIXME: is the outlier just a typo? could follow up
+makena <- which(prodsub$GPP_h > 15)
+prodsub[makena, c('GPP_h', 'NPP_h', 'R_h')] <- NA
 
 ## merge all dfs by LAKE and Date
-co2explained <- merge(chlmeans, prodmeans) ## FIXME: NAs are now NaN.. problem for later?
-co2explained <- merge(co2explained, routines)
-names(gasflux)[which(names(gasflux) == 'Lake')] <- "LAKE"
-co2expl <- merge(co2explained, gasflux[,c('Date', 'LAKE', 'Temperature')], by = c('Date', 'LAKE'))
-# this creates shorter data frame cause co2explained had R, E, M, WC in it and gasflux not. though 
-#   FIXME: diff of 100 rows indicated by nrow() of the dfs vs 97 rows in co2explained when subsetting
-#   nrow(subset(co2explained, LAKE %in% c("R", "E", "WC", "M")))
+co2explained <- merge(chlmeans, prodsub) ## FIXME: chl NAs are now NaN.. problem for later?
+co2explained <- merge(co2explained, routines[,-which(names(routines) %in% 'RunNo')]) 
+# don't need this column which is cryptic anyway
+co2expl <- merge(co2explained, oxtemp[,c('Date', 'LAKE', 'Temperature_deg_C','Oxygen_ppm')], 
+                 by = c('Date', 'LAKE'), all.x = TRUE)
+## FIXME: this creates data frame shorter by 3 rows to co2explained for some reason?
 
 ## save output for later
 saveRDS(co2expl, "data/private/co2explained.rds")
 
-## bonus: let's see how many NAs in our data. though see FIXME about variable selection
-dataloss <- subset(co2expl, select = c("LAKE", "Date", "pH_surface", "TIC_mg_L", "Temperature", 
-                                       "SRP_ug_L", "TDN_ug_L", "NO3_ug_L", "NH4_ug_L", "DOC_mg_L", 
-                                       "Chl_a_ug_L", "NetOxy_ppm", "Resp_mgC_m3_H"))
+## bonus: let's see how many NAs in our data. (don't select Si and other optionals)
+dataloss <- subset(co2expl, select = c("LAKE", "Date", "pH_surface", "Oxygen_ppm", "TIC_mg_L", 
+                                       "Temperature_deg_C", "SRP_ug_L", "TDN_ug_L", "NO3_ug_L", 
+                                       "NH4_ug_L", "DOC_mg_L", "Chl_a_ug_L", "GPP_h"))
 
 nanumbers <- rowSums(is.na(dataloss))
 dataloss <- dataloss[rowSums(is.na(dataloss)) > 0,]
- 
+nrow(dataloss)
 
-## Part 3:
+## Part 3: ice-out, inflow, ...
 ## ==========================================================================================
 
 ## kerri emailed me this (in PhDPapers/Data..) pCO2_vars_yearlyaverageswithclimate.csv, but
 ##    it has only a few years, so we need to supplement it.
-## flow data summaries can be sourced from https://www.wsask.ca/Lakes-and-Rivers/
-##                               Stream-Flows-and-Lake-Levels/QuAppelle-River-Watershed/05JK007/
-## but FIXME: need to know which site for which lake
+## FIXME: need to know which site for which lake
+## other files downloaded at this point are from Rich. Go to 2010/2011
+## kerri used the "old" way of calculating annual flows, but nicole and I checking what data
+##    we can get to bring us up to 2015. probably will be the "new way"
+## "new way": monthly data set from rich (full csv in !git/fromrich, sensible csv in /private..)
+##    filled in a few missing annual totals in openoffice before saving as csv
+## "old way": annual data set from rich, full csv in !git/fromrich, sensible csv in /private..)
+##  FIXME: why does finlay et al 2009 say that inflow for crooked was regressed, since it exists
+##    in the data set that rich sent that should correspond to what kerri did?
 
-## ice-out, some flow data, from Rich (.../fromRich) and copied into git../private/. 
-##    but generally only to 2009-2011. very patchy data
+## ice-out
+iceout1 <- read.csv("data/private/IceOut.csv") # pending data to 2015
+icedataloss <- iceout1[is.na(iceout1$ICEOUTDOY),]
+nrow(iceout1) # 120
+nrow(icedataloss) # 45
 
-iceout1 <- read.csv("data/private/IceOut.csv") # pending data all the way to 2015
-icedataloss <- iceout1[rowSums(is.na(iceout1)) > 0,]
-nrow(iceout1)
-nrow(icedataloss)
-
-inflow1 <- read.csv("data/private/Monthly_Inflow_Estimates2.csv") # csv not currently in good format
-#   but just wanted to check how complete - data are complete.
+## inflow flows
+inflow1 <- read.csv("data/private/Monthly_Inflow_Estimates2.csv") # pending data to 2015
+inflowold <- read.csv("data/private/Lake_Inflows.csv") # 1994-2009
 
 othervars <- read.csv("data/private/pCO2_vars_yearlyaverageswithclimate.csv")
 ## this doesn't however indicate which vars interpolated and which real, but has the separate inflow
 ##    sites and inflow data
 
-
+met <- readRDS("data/met.rds")
