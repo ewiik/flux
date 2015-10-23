@@ -23,13 +23,13 @@ dmet$superstation[dmet$StationID == 2926 | dmet$StationID == 2925] <- "indhead"
 unique(dmet$superstation) # yes all appear, no NAs
 
 names(dmet)[2] <- "datetime" 
-dmet$Week
 
 take <- c("StationID","datetime","Year","Month","Day","Time","superstation","Stn Press (kPa)",
-          "Wind Spd (km/h)")
+          "Wind Spd (km/h)", "Temp (degC)")
 dmet <- dmet[take]
 names(dmet)[names(dmet) == "Stn Press (kPa)"] <- "Pressure"
 names(dmet)[names(dmet) == "Wind Spd (km/h)"] <- "Wind"
+names(dmet)[names(dmet) == "Temp (degC)"] <- "Temperature"
 
 ## Coerce datetime to the correct internal type
 dmet <- transform(dmet, 
@@ -121,6 +121,18 @@ meanWind <- function(df) {
                       Day = Day[1],
                       Wind = meanW))
 }
+meanTemp <- function(df) {
+  meanT <- if (NROW(df) == 0) {
+    NA
+  } else {
+    mean(df[["Temperature"]], na.rm = TRUE)
+  }
+  with(df, data.frame(Superstation = superstation[1],
+                      StationID = StationID[1],
+                      Year = Year[1],
+                      Month = Month[1],
+                      Temperature = meanT))
+}
 
 pressure <- na.omit(do.call("rbind", lapply(spldmet, meanPressure)))
 rownames(pressure) <- NULL
@@ -128,9 +140,13 @@ rownames(pressure) <- NULL
 winds <- na.omit(do.call("rbind", lapply(spldmet2, meanWind)))
 rownames(winds) <- NULL
 
+temperature <- na.omit(do.call("rbind", lapply(spldmet, meanTemp)))
+rownames(temperature) <- NULL
+
 pressure[order(pressure$Superstation),] # just looking
 winds[order(winds$Superstation),] # just looking
 
+## save for next script
 saveRDS(pressure[order(pressure$Superstation),], "data/pressuredata.rds")
 saveRDS(winds[order(winds$Superstation),], "data/windsdata.rds")
-# save for next script
+saveRDS(temperature[order(temperature$Superstation),], "data/temperaturedata.rds")
