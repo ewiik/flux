@@ -25,6 +25,7 @@ pdo[pdo == 99.9] <- NA
 pdo <- as.data.frame(pdo)
 names(pdo) <- c("year", "jan", "feb", "mar", "apr","may", "jun", "jul", "aug", "sep", "oct", "nov", 
                 "dec") # unlist() earlier maintained spaces in the names...
+# could've had month.abb here to c all months in a year
 allna <- which(is.na(pdo$year))
 pdo$year[allna] <- c(seq(from = 2002, length.out = length(allna), by = 1))
 
@@ -121,7 +122,11 @@ oxtemp <- rbind(oxtemp, read.csv("data/private/qprofilesextrarecordsoxtemp.csv")
 oxtemp <- transform(oxtemp, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
 
 
-gasflux <- readRDS("data/private/gasFlux.rds") # from pressuremanipulations.R
+secchi <- read.csv("data/private/qsecchietal.csv") 
+secchi <- transform(secchi, Date = as.POSIXct(as.character(Date), format = "%Y-%m-%d"))
+
+lakes <- read.csv("data/private/Lakes.csv") 
+colnames(lakes)[which(colnames(lakes) == "Abbreviation")] <- "LAKE"
 
 ## remove extra date column (originally retained in case wanna check that the date format
 ##    conversion worked in OpenOffice)
@@ -178,12 +183,20 @@ proddf <- transform(proddf, GPP_h = NPP_h - R_h)
 ## leave proddf for later if need to revisit calcs, select what we want
 prodsub <- subset(proddf, select = c(LAKE, Date, GPP_h, NPP_h, R_h))
 
-## nicole noticed an outlier and there it is: WW 2010-05-03 (GPP >15 cf mostly <1)
+### nicole noticed an outlier and there it is: WW 2010-05-03 (GPP >15 cf mostly <1)
 ## FIXME: changing this to NA for now but may want to keep it and actually deal with all outliers
 ##    in one sitting?
 ## FIXME: is the outlier just a typo? could follow up
 makena <- which(prodsub$GPP_h > 15)
 prodsub[makena, c('GPP_h', 'NPP_h', 'R_h')] <- NA
+
+## create lakewide estimates as per finlay et al though this is not what we will want to do...
+## it doesn't make sense to multiply integrated sample's prod with secchi depth
+prodsub <- merge(prodsub, lakes[,c('LAKE', 'Volume_m3')])
+prodsub <- merge(prodsub, secchi[c('LAKE', 'Date', 'Secchi_m')])
+prodsub <- transform(prodsub, lakeGPP = GPP_h*(Secchi_m/Volume_m3))
+prodsub <- transform(prodsub, lakeNPP = NPP_h*(Secchi_m/Volume_m3))
+prodsub <- transform(prodsub, lakeR = R_h*(Secchi_m/Volume_m3))
 
 ## merge all dfs by LAKE and Date
 co2explained <- merge(chlmeans, prodsub) ## FIXME: chl NAs are now NaN.. problem for later?
@@ -207,7 +220,6 @@ rownames(airtemp) <- NULL #set new order for rows, otherwise in mixed order base
 ## create yearmeans for temperature, too
 ## FIXME: check othervars (from kerri, downloaded below... loads and loads of different versions of
 ##    temperature variable subsets....!!)
-airtemp$Year <- as.factor(Year) # was this necessary for splitting?
 airsplit <- with(airtemp, split(airtemp, list(Year)))
 airmeans <- lapply(airsplit, colMeans, na.rm = TRUE)
 airmeans <- do.call(rbind, airmeans)
