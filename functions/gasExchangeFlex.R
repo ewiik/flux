@@ -5,8 +5,8 @@
 ## "either or" etc variables: Barometric pressure kP ("kpa") & Altitude (m) ("alt");   
 ##                        DIC uM ("dic") may be calculated from cond for kerri
 
-gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, salt = NULL, dic = NULL, 
-                            alt = NULL, kpa = NULL, pco2atm = NULL, trace = FALSE) { 
+gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, altnotkpa = FALSE, salt = NULL, 
+                            dic = NULL, alt = NULL, kpa = NULL, pco2atm = NULL, trace = FALSE) { 
   
   if(!kerri) {
     if(is.null(c(dic))) {
@@ -18,7 +18,7 @@ gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, salt = NULL, di
     if(is.null(salt)) {
       stop("provide salt")
     }
-    if(is.null(kpa)) {
+    if(is.null(kpa) & altnotkpa == FALSE) {
       stop("provide kpa")
     }
   } else {
@@ -91,7 +91,7 @@ gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, salt = NULL, di
   ##      EXP(-0.12806*(+J2/1000))*((+H2*0.000001)*10^(-Q2+6)))
   ## if no alt, use kpa
   ## when both available, use alt. But kpa actually better to default to (discussions with kerri)
-  if(kerri) {
+  if(altnotkpa) {
     co2eq <- exp(-0.12806*(alt/1000))*((pco2atm*0.000001)*10^(-pkh + 6)) 
   } else {
     co2eq <- (kpa/101.325) * ((pco2atm * 0.000001) * 10^(-pkh + 6))
