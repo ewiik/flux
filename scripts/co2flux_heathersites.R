@@ -1,5 +1,4 @@
 ## running CO2 flux calculations for heather's data too
-## FIXME: tidy up commentary, tidy up removal of carbonID --> run calcs
 
 ## download necessary files
 sites <- read.csv("data/private/qCO2fluxSites.csv")
@@ -19,7 +18,14 @@ vars$variableID[vars$variableID == "conductivitySLS"] <- "conductivity"
 sites <- sites[,-which(colnames(sites) == "comments")]
 
 ## the tables I've joined have incompatible columns... need to individualise lakeName
+## until database is fixed
 ## therefore renaming the second Little Manitou as Little Manitwo
+##############################################
+##############################################
+##                                          ##
+## FIX ME !!!!!!!!!!!!!!!!!!!!!!!           ##
+##                                          ##
+##############################################
 sites$lakeName <- as.character(sites$lakeName) 
 dups <- grep("Little Manitou", sites$lakeName)
 sites[dups[2],'lakeName'] <- "Little Manitwo"
@@ -41,6 +47,9 @@ dupstart <- length(dups)/2 + 1
 dupend <- length(dups)
 carbon[dups[dupstart:dupend],'sampleID'] <- "Little Manitwo"
 colnames(carbon)[which(colnames(carbon) == "sampleID")] <- "lakeName"
+############################################
+############################################
+############################################
 
 ## some data are long format, but with different lengths (nrow) so can't unstack (at least not
 ##    with my level of R. So, splitting by variableID to be merged....
@@ -80,6 +89,11 @@ allvars <- allvars[,-which(colnames(allvars) == "conductivitySLS")]
 
 ## need to change wind from km/h to m/s
 allvars <- transform(allvars, wind = wind * (1000/60/60))
+## Lenore pH was a typo - let's change to real value
+allvars$pH[allvars$lakeName == "Lenore"] <- 9.3
+## Arthur longitude is duplicate of its latitude - let's change to real value
+allvars$longitude[allvars$lakeName == "Arthur"] <- -105.443097
+## FIXME: Edouard high pH may be an anomaly, Heather will check
 
 ## how many NA? (first select only those vars that strictly needed for running gasflux)
 dataloss <- subset(allvars, select = c(lakeName, wind, conductivity, Altitude, 
