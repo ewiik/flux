@@ -275,4 +275,4 @@ inflowold <- read.csv("data/private/Lake_Inflows.csv") # 1994-2009
 othervars <- read.csv("data/private/pCO2_vars_yearlyaverageswithclimate.csv")
 ## this doesn't however indicate which vars interpolated and which real, but has the separate inflow
 ##    sites and inflow data
-
+evap <- subset(othervars, select = "evap" %in% colnames(othervars))
