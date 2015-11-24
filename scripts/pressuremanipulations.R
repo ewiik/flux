@@ -14,6 +14,12 @@ if (file.exists("data/windsdata.rds")) {
   source("scripts/weathermanipulations.R")
   windsdata <- readRDS("data/windsdata.rds")
 }
+if (file.exists("data/relhumdata.rds")) {
+  relhumdata <- readRDS("data/relhumdata.rds")  
+} else {
+  source("scripts/weathermanipulations.R")
+  relhumdata <- readRDS("data/relhumdata.rds") 
+}
 
 if (file.exists("data/private/fluxquery1.csv")) { # DIC, pH, wind
   surfd <- read.csv("data/private/fluxquery1.csv")
@@ -84,7 +90,7 @@ if (regina) {
   joined <- merge(joined, superstations, sort = FALSE)
 }
 
-## merge joined with pressure and wind data
+## merge joined with pressure and wind etc data
 ## add Year, Month and Day fields to aid the match
 ## FIXME: Still need to decide if and what to do with missing pressure data if using all stations
 joined <- transform(joined, Year = as.numeric(format(Date, format = "%Y")),
@@ -141,6 +147,8 @@ if(regina) {
 }
 
 joined <- merge(joined, winddf, by = c("Date", "Lake"), sort = FALSE, all.x = TRUE)
+
+joined <- merge(joined, relhumdata, sort = FALSE, all.x = TRUE)
 
 ## need to change wind from km/h to m/s
 joined <- transform(joined, Wind = Wind * (1000/60/60))
