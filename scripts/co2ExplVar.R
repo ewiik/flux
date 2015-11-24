@@ -152,7 +152,6 @@ mycolMeans <- function(df, cols) {
 }
 
 ## choose columns we want means for
-## FIXME: assuming that variable O2 refers to water column O2
 ## FIXME: chl columns: since we take "chl a" rather than total chl there are NAs; should we try 
 ##    total chl too??
 
@@ -190,8 +189,8 @@ prodsub <- subset(proddf, select = c(LAKE, Date, GPP_h, NPP_h, R_h))
 makena <- which(prodsub$GPP_h > 15)
 prodsub[makena, c('GPP_h', 'NPP_h', 'R_h')] <- NA
 
-## create lakewide estimates as per finlay et al though this is not what we will want to do...
-## it doesn't make sense to multiply integrated sample's prod with secchi depth
+## create lakewide estimates as per finlay et al though this may or may not be entirely
+##    appropriate
 prodsub <- merge(prodsub, lakes[,c('LAKE', 'Volume_m3')])
 prodsub <- merge(prodsub, secchi[c('LAKE', 'Date', 'Secchi_m')])
 prodsub <- transform(prodsub, lakeGPP = GPP_h*(Secchi_m/Volume_m3))
@@ -218,8 +217,6 @@ airtemp <- airtemp[order(airtemp$Year, airtemp$Month),]
 rownames(airtemp) <- NULL #set new order for rows, otherwise in mixed order based on above command
 
 ## create yearmeans for temperature, too
-## FIXME: check othervars (from kerri, downloaded below... loads and loads of different versions of
-##    temperature variable subsets....!!)
 airsplit <- with(airtemp, split(airtemp, list(Year)))
 airmeans <- lapply(airsplit, colMeans, na.rm = TRUE)
 airmeans <- do.call(rbind, airmeans)
@@ -259,8 +256,8 @@ nrow(dataloss)
 ## "new way": monthly data set from rich (full csv in !git/fromrich, sensible csv in /private..)
 ##    filled in a few missing annual totals in openoffice before saving as csv
 ## "old way": annual data set from rich, full csv in !git/fromrich, sensible csv in /private..)
-##  FIXME: why does finlay et al 2009 say that inflow for crooked was regressed, since it exists
-##    in the data set that rich sent that should correspond to what kerri did?
+##  Interestingly: why does finlay et al 2009 say that inflow for crooked was regressed, since it 
+##    exists in the data set that rich sent that should correspond to what kerri did?
 
 ## ice-out
 iceout1 <- read.csv("data/private/IceOut.csv") # pending data to 2015
