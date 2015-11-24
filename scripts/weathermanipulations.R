@@ -25,11 +25,12 @@ unique(dmet$superstation) # yes all appear, no NAs
 names(dmet)[2] <- "datetime" 
 
 take <- c("StationID","datetime","Year","Month","Day","Time","superstation","Stn Press (kPa)",
-          "Wind Spd (km/h)", "Temp (degC)")
+          "Wind Spd (km/h)", "Temp (degC)", "Rel Hum (%)")
 dmet <- dmet[take]
 names(dmet)[names(dmet) == "Stn Press (kPa)"] <- "Pressure"
 names(dmet)[names(dmet) == "Wind Spd (km/h)"] <- "Wind"
 names(dmet)[names(dmet) == "Temp (degC)"] <- "Temperature"
+names(dmet)[names(dmet) == "Rel Hum (%)"] <- "RelHum"
 
 ## Coerce datetime to the correct internal type
 dmet <- transform(dmet, 
@@ -108,6 +109,19 @@ meanPressure <- function(df) {
                       Month = Month[1],
                       Pressure = meanP))
 }
+meanHumidPC <- function(df) {
+  meanH <- if (NROW(df) == 0) {
+    NA
+  } else {
+    mean(df[["RelHum"]], na.rm = TRUE)
+  }
+  with(df, data.frame(Superstation = superstation[1],
+                      StationID = StationID[1],
+                      Year = Year[1],
+                      Month = Month[1],
+                      RelHum = meanH))
+}
+
 meanWind <- function(df) {
   meanW <- if (NROW(df) == 0) {
     NA
@@ -143,6 +157,9 @@ rownames(winds) <- NULL
 temperature <- na.omit(do.call("rbind", lapply(spldmet, meanTemp)))
 rownames(temperature) <- NULL
 
+relhum <- na.omit(do.call("rbind", lapply(spldmet, meanHumidPC)))
+rownames(relhum) <- NULL
+
 pressure[order(pressure$Superstation),] # just looking
 winds[order(winds$Superstation),] # just looking
 
@@ -150,3 +167,5 @@ winds[order(winds$Superstation),] # just looking
 saveRDS(pressure[order(pressure$Superstation),], "data/pressuredata.rds")
 saveRDS(winds[order(winds$Superstation),], "data/windsdata.rds")
 saveRDS(temperature[order(temperature$Superstation),], "data/temperaturedata.rds")
+saveRDS(relhum[order(relhum$Superstation),], "data/relhumdata.rds")
+
