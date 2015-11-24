@@ -232,6 +232,21 @@ colnames(airtemp)[which(colnames(airtemp) == "Year")] <- "YEAR"
 co2expl <- transform(co2expl, Month = as.numeric(format(Date, format = "%m")))
 co2expl <- merge(co2expl, airtemp)
 
+## relhum, from env canada and weathermanipulations.R
+if (!file.exists("data/relhumdata.rds")) {
+  source("scripts/weathermanipulations.R")
+}
+relhum <- readRDS("data/relhumdata.rds")
+## since we decided to use the regina station for all measurements, I will also here subset
+##    to regina
+relhum <- subset(relhum, Superstation == "regina", select = c(Year, Month, RelHum))
+relhum <- relhum[order(relhum$Year, relhum$Month),]
+names(relhum)[which(names(relhum) == "Year")] <- "YEAR"
+rownames(relhum) <- NULL #set new order for rows, otherwise in mixed order based on above command
+
+## merge co2expl with monthly relative humidity data
+co2expl <- merge(co2expl, relhum)
+
 ## save output for later
 saveRDS(co2expl, "data/private/co2explained.rds")
 
