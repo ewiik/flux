@@ -64,3 +64,6 @@ co2Flux <- switch(scenario,
                                              dic = TIC, kpa = Pressure, 
                                              alt = Elevation)))
 params$co2Flux <- co2Flux
+
+## save version of flux output
+saveRDS(params, "data/private/params-flux.rds")
