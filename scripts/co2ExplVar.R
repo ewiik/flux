@@ -196,6 +196,7 @@ prodsub[makena, c('GPP_h', 'NPP_h', 'R_h')] <- NA
 
 ## create lakewide estimates as per finlay et al though this may or may not be entirely
 ##    appropriate
+## FIXME: change merge options so that we don't lose 1994 and 1995 (bottles started in 1996)
 prodsub <- merge(prodsub, lakes[,c('LAKE', 'Volume_m3')])
 prodsub <- merge(prodsub, secchi[c('LAKE', 'Date', 'Secchi_m')])
 prodsub <- transform(prodsub, lakeGPP = GPP_h*(Secchi_m/Volume_m3))
@@ -203,12 +204,12 @@ prodsub <- transform(prodsub, lakeNPP = NPP_h*(Secchi_m/Volume_m3))
 prodsub <- transform(prodsub, lakeR = R_h*(Secchi_m/Volume_m3))
 
 ## merge all dfs by LAKE and Date
-co2explained <- merge(chlmeans, prodsub) ## FIXME: chl NAs are now NaN.. problem for later?
-co2explained <- merge(co2explained, routines[,-which(names(routines) %in% 'RunNo')]) 
+co2explained <- merge(chlmeans, prodsub, all = TRUE) ## FIXME: chl NAs are now NaN.. problem for later?
+co2explained <- merge(co2explained, routines[,-which(names(routines) %in% 'RunNo')], all = TRUE) 
 # don't need this column which is cryptic anyway
 co2expl <- merge(co2explained, oxtemp[,c('Date', 'LAKE', 'Temperature_deg_C','Oxygen_ppm')], 
-                 by = c('Date', 'LAKE'), all.x = TRUE)
-## FIXME: this creates data frame shorter by 3 rows to co2explained for some reason?
+                 by = c('Date', 'LAKE'), all = TRUE)
+## FIXME: minor discrepancies in nrow over merge steps... a few rows.. could check at some point
 
 ## airtemp, from env canada and weathermanipulations.R
 if (!file.exists("data/temperaturedata.rds")) {
