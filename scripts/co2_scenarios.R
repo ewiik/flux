@@ -47,7 +47,7 @@ replace <- which(names(params) %in% c("Wind", "Wind_ms"))
 names(params)[replace] <- c("measuredWind", "kerriWind") # first one is the wind of the *sampling date*      
 
 ## remove true outliers where pH > 12
-params <- subset(params, pH < 12)
+params <- subset(params, pH < 12 | is.na(pH)) # alone, pH<12 will also remove NA entries but I wanna keep
 
 ## source function that will run through the calculations
 source("functions/gasExchangeFlex.R") 
