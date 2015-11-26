@@ -194,14 +194,14 @@ prodsub <- subset(proddf, select = c(LAKE, Date, GPP_h, NPP_h, R_h))
 makena <- which(prodsub$GPP_h > 15)
 prodsub[makena, c('GPP_h', 'NPP_h', 'R_h')] <- NA
 
-## create lakewide estimates as per finlay et al though this may or may not be entirely
-##    appropriate
-## FIXME: change merge options so that we don't lose 1994 and 1995 (bottles started in 1996)
-prodsub <- merge(prodsub, lakes[,c('LAKE', 'Volume_m3')])
+## finlay et al lakewide estimate method doesn't make sense so doing this as alain and nicole have done
+##    (finlay et al imply that secchi divided by lake volume, but this gives a strange proportion rather
+##    than an upscaling to whole-lake NPP)
+prodsub <- merge(prodsub, lakes[,c('LAKE', 'LakeArea_km2')])
 prodsub <- merge(prodsub, secchi[c('LAKE', 'Date', 'Secchi_m')])
-prodsub <- transform(prodsub, lakeGPP = GPP_h*(Secchi_m/Volume_m3))
-prodsub <- transform(prodsub, lakeNPP = NPP_h*(Secchi_m/Volume_m3))
-prodsub <- transform(prodsub, lakeR = R_h*(Secchi_m/Volume_m3))
+prodsub <- transform(prodsub, lakeGPP = GPP_h*(Secchi_m * (LakeArea_km2 * 100000)))
+prodsub <- transform(prodsub, lakeNPP = NPP_h*(Secchi_m* (LakeArea_km2 * 100000)))
+prodsub <- transform(prodsub, lakeR = R_h*(Secchi_m* (LakeArea_km2 * 100000)))
 
 ## merge all dfs by LAKE and Date
 co2explained <- merge(chlmeans, prodsub, all = TRUE) ## FIXME: chl NAs are now NaN.. problem for later?
