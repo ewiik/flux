@@ -20,6 +20,9 @@
 ## ergo since we using only existing data, the CO2 stuff is ok. 
 
 ## get necessary data 
+if (!file.exists("data/maunaloa.csv")) {
+  source("scripts/getmaunaloa.R")
+}
 ml <- read.csv("data/maunaloa.csv") 
 
 if (file.exists("data/private/params.rds")) {
@@ -31,7 +34,7 @@ if (file.exists("data/private/params.rds")) {
 
 ## Create necessary values for starting parameters
 # insert pco2atm from Mauna Loa
-mlsub <- subset(ml, select = c('year', 'month', 'value'))
+mlsub <- subset(ml, select = c('Year', 'Month', 'pCO2'))
 names(mlsub) <- c("Year", "Month", "pco2atm")
 params <- merge(params, mlsub, by = c("Year", "Month"))
 
