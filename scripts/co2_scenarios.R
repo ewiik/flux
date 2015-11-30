@@ -50,7 +50,7 @@ params <- subset(params, pH < 12 | is.na(pH)) # alone, pH<12 will also remove NA
 
 ## source functions that will run through the calculations
 source("functions/gasExchangeFlex.R") 
-source("functions/salcalc.R")
+source("data/private/salcalc.R")
 
 ## create salcalc column to replace erratic salinity values 
 ## assuming 1m depth adds .1 bar to air pressure, can take rough mean of all sites 
