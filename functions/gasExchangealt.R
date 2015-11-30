@@ -12,9 +12,11 @@
 ##                                Atmospheric pCO2 ppm = blanket value of 370 (but Kerri recommended to
 ##    allow to change over time owing to increase due to HUMANS)
 
-## constants: r, q, z, t from Cole & Caraco -98 and Wanninkhof & Knox -96
-## equations from Stumm & Morgan book
-##      FIXME: these to be made more specific
+## constants: r, q, z, t from Cole & Caraco -98 (10.4319/lo.1998.43.4.0647) and 
+##   Wanninkhof, Rik, and Molly Knox. "Chemical 
+##    enhancement of CO, exchange in natural waters." Limnol. Oceanogr 41.4 (1996): 689-697.
+## equations from Stumm & Morgan book (ISBN: 978-0-471-51185-4)
+   
 
 gasExchangealt <- function(temp, cond, ph, dic, pco2atm, alt, wind, salt) { 
   r1a <- -2225.22 # all r1 are Khco3...

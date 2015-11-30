@@ -17,8 +17,6 @@
 ## † = Data for this day has undergone only preliminary quality checking
 ## ‡ = Partner data that is not subject to review by the National Climate Archives
 
-## FIXME: once we get heather's sites, if any weather stations in alberta, we will need to change this 
-##    code to account for PROV=AB or whatever the abbreviation is. 
 ## genURLS function
 genURLS <- function(id, start, end) {
   years <- seq(start, end, by = 1)
@@ -29,7 +27,7 @@ genURLS <- function(id, start, end) {
                  "&dlyRange=1970-05-01|2015-11-22&cmdB1=Go",
                  "&Year=",
                  years,
-                 "&Month=11", # FIXME?: hourly code had months object for target but tested one year's URL
+                 "&Month=11", # ps hourly code had months object for target but tested one year's URL
                  #    and the month set to 11 still brought in the whole year.. also timeframe = 1 vs 2
                  #    seems to have no effect on what happens..!?
                  "&Day=27",

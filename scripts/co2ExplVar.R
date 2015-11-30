@@ -36,7 +36,6 @@ pdo <- transform(pdo, mean = rowMeans(pdo[,-1], na.rm = TRUE))
 saveRDS(pdo, "data/pdo.rds")
 
 ## download SOI url and create data frames with numeric entries
-## FIXME: do we want standardised or unstandardised data?
 if (!file.exists("data/soi.txt")) { 
   download.file("http://www.cpc.noaa.gov/data/indices/soi", "data/soi.txt")
   }
@@ -134,14 +133,13 @@ routines <- routines[,-which(colnames(routines)=="Date2")]
 produc <- produc[,-which(colnames(produc)=="Date2")] 
 chl <- chl[,-which(colnames(chl)=="Date2")] 
 
-## !!!!!!! FIXME: In database: lake names other than WW/WC *at least* in 2012 have been entered
+## !!!!!!! In database: lake names other than WW/WC *at least* in 2012 have been entered
 ##    with a trailing space which means that merges won't work!
 chl <- transform(chl, LAKE = gsub(" ", "", LAKE))
 
 
 ## take out all chl data that isn't from an integrated sample, as that's what we're working with
 ##    (though worth thinking that surface could be played with since they're quite different!!)
-## FIXME: All 63micron samples are from 1997 - what is this sample, and should it be included?
 chlsub <- subset(chl, TreatmentNewLabel == "Integrated")
 
 ## split produc and chl for getting means for replicated production estimates
@@ -157,9 +155,6 @@ mycolMeans <- function(df, cols) {
 }
 
 ## choose columns we want means for
-## FIXME: chl columns: since we take "chl a" rather than total chl there are NAs; should we try 
-##    total chl too??
-
 chlmeans <- lapply(chlsplit, mycolMeans, cols = c("Chl_a_ug_L")) # , "Total_chl"
 chlmeans <- do.call(rbind, chlmeans)
 rownames(chlmeans) <- NULL
@@ -175,8 +170,6 @@ prodmeans <- prodmeans[with(prodmeans, order(LAKE, Date)),]
 
 ## merge prodmeans with the other prod support data in another table
 ## using AlainsCode.R in private/ which nicole sent me, to estimate P's and R.
-## FIXME: why are the poisoned ones not used for anything? Nicole says not used but she doesn't
-##    know why either; C columns in prodmeans were calculated based on a metabolic ratio 
 proddf <- merge(prodmeans, incub, by = c("LAKE", "Date"))
 proddf <- transform(proddf, photO2ppm = LIGHT_O2_ppm - ProdAssayO2Start_ppm)
 proddf <- transform(proddf, respO2ppm = DARK_O2_ppm - ProdAssayO2Start_ppm)
@@ -188,9 +181,7 @@ proddf <- transform(proddf, GPP_h = NPP_h - R_h)
 prodsub <- subset(proddf, select = c(LAKE, Date, GPP_h, NPP_h, R_h))
 
 ### nicole noticed an outlier and there it is: WW 2010-05-03 (GPP >15 cf mostly <1)
-## FIXME: changing this to NA for now but may want to keep it and actually deal with all outliers
-##    in one sitting?
-## FIXME: is the outlier just a typo? could follow up
+## changing this to NA for now 
 makena <- which(prodsub$GPP_h > 15)
 prodsub[makena, c('GPP_h', 'NPP_h', 'R_h')] <- NA
 
@@ -204,7 +195,7 @@ prodsub <- transform(prodsub, lakeNPP = NPP_h*(Secchi_m* (LakeArea_km2 * 100000)
 prodsub <- transform(prodsub, lakeR = R_h*(Secchi_m* (LakeArea_km2 * 100000)))
 
 ## merge all dfs by LAKE and Date
-co2explained <- merge(chlmeans, prodsub, all = TRUE) ## FIXME: chl NAs are now NaN.. problem for later?
+co2explained <- merge(chlmeans, prodsub, all = TRUE)
 co2explained <- merge(co2explained, routines[,-which(names(routines) %in% 'RunNo')], all = TRUE) 
 # don't need this column which is cryptic anyway
 co2expl <- merge(co2explained, oxtemp[,c('Date', 'LAKE', 'Temperature_deg_C','Oxygen_ppm')], 
@@ -270,7 +261,6 @@ nrow(dataloss)
 
 ## kerri emailed me this (in PhDPapers/Data..) pCO2_vars_yearlyaverageswithclimate.csv, but
 ##    it has only a few years, so we need to supplement it.
-## FIXME: need to know which flow site for which lake
 ## other files downloaded at this point are from Rich. Go to 2010/2011
 ## kerri used the "old" way of calculating annual flows, but nicole and I checking what data
 ##    we can get to bring us up to 2015. probably will be the "new way"

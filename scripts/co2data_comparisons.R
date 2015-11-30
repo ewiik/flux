@@ -34,9 +34,6 @@ co2kerrisub <- subset(co2kerri, select = c('Lake', 'Date', 'Year', 'Month', 'Flu
 # Wind: is the annual average value of each site (though in fact is constant 4.06 m/s for this practice run)
 # Salinity: 0 entered for all rows. Not calculated from cond relationship either
 
-## FIXME: Still need to look into the discrepancies between the assumptions above and Kerri's original 
-##        calculations as indicated in pressuremanipulations.R and notebook (meeting to be had)
-
 ## Grab my flux calculations and check whether dates can be matched 
 original <- readRDS("data/private/gasFlux.rds") # (pco2atm = 370) (see pressuremanipulations.R)
 joined <- merge(co2kerrisub, original, by = c("Lake", "Date"), all.x = TRUE)

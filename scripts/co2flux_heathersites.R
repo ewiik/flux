@@ -93,7 +93,10 @@ allvars <- transform(allvars, wind = wind * (1000/60/60))
 allvars$pH[allvars$lakeName == "Lenore"] <- 9.3
 ## Arthur longitude is duplicate of its latitude - let's change to real value
 allvars$longitude[allvars$lakeName == "Arthur"] <- -105.443097
-## FIXME: Edouard high pH may be an anomaly, Heather will check
+## Edouard high pH is an anomaly, Heather checked: "August 2013 was when the pH probe was 
+##    malfunctioning and I took additional readings with the handheld meter. 
+##    I would use the handheld values, so for Ed, Aug was 9.4."
+allvars$pH[allvars$lakeName == "Edouard"] <- 9.4
 
 ## how many NA? (first select only those vars that strictly needed for running gasflux)
 dataloss <- subset(allvars, select = c(lakeName, wind, conductivity, Altitude, 

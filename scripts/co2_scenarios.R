@@ -8,7 +8,6 @@
 ##    conclusions of regressions run with different options. Therefore necessary columns have been added
 ##    to params (wind and altitude) or embedded in gasExchangeFlex.R (salt = 0, missing DIC, pco2atm)
 ## altitude values from /fromkerri 2007 dic based on cond xls are identical to Elevation in params
-## FIXME: still need to sort out removing outliers consistently across scripts (incl. conductivity, salinity)
 
 ## NOTE: *DIC values*: Kerri did DIC (mg/L) = 26.57 + 0.018 * Conductivity (see email 1st June 2015)
 ##    for missing DIC data points! 
@@ -28,9 +27,9 @@ ml <- read.csv("data/maunaloa.csv")
 if (file.exists("data/private/params.rds")) {
   params <- readRDS("data/private/params.rds")  
 } else {
-  stop("run pressuremanipulations.R first as 'params.rds' doesn't exist")
-  # FIXME this should really source("pressuremanipulations.R")
-}
+  source("scripts/pressuremanipulations.R")
+  params <- readRDS("data/private/params.rds")
+  }
 
 ## Create necessary values for starting parameters
 # insert pco2atm from Mauna Loa
@@ -49,19 +48,26 @@ names(params)[replace] <- c("measuredWind", "kerriWind") # first one is the wind
 ## remove true outliers where pH > 12
 params <- subset(params, pH < 12 | is.na(pH)) # alone, pH<12 will also remove NA entries but I wanna keep
 
-## source function that will run through the calculations
+## source functions that will run through the calculations
 source("functions/gasExchangeFlex.R") 
+source("functions/salcalc.R")
+
+## create salcalc column to replace erratic salinity values 
+## assuming 1m depth adds .1 bar to air pressure, can take rough mean of all sites 
+##    and add that value for dbar; converted kpa to dbar (see also salinityrecalcproject.R)
+kpa <- mean(params$Pressure)
+dbar <- kpa/10 + 1
+params <- transform(params, SalCalc = salcalc(Temperature, Conductivity, dbar))
 
 ## create our two scenarios; parameters in function = temp, cond, ph, wind, kerri = FALSE, salt = NULL, 
 ##    dic = NULL, alt = NULL, kpa = NULL, pco2atm = NULL, trace = FALSE
-## FIXME: test more scenarios, double check code, tweak.
 ## CHECKED: ran co2data_comparisons.R, took joined object, plotted co2Flux from joined and params 
 ##    (scenario = new) and the data are nearly reproducing!! (with the archaic flux rds, i.e. different
 ##    wind data)
 scenario <- "new"
 co2Flux <- switch(scenario,
                   new      = with(params, gasExchangeFlex(Temperature, Conductivity, pH, meanWind, kerri= FALSE, 
-                                             salt = Salinity, dic = TIC, kpa = Pressure, 
+                                             salt = SalCalc, dic = TIC, kpa = Pressure, 
                                              pco2atm = pco2atm)),
                   original = with(params, gasExchangeFlex(Temperature, Conductivity, pH, kerriWind, kerri= TRUE, 
                                              dic = TIC, kpa = Pressure, 
