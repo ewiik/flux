@@ -4,6 +4,7 @@
 
 ## get necessary packages
 library("ggplot2")
+library("reshape2")
 
 ## get necessary explanatory data sets
 co2expl <- readRDS("data/private/co2explained.rds") # YEAR, Month, LAKE, each sampling date
