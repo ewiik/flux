@@ -2,6 +2,9 @@
 ## FIXME: do we want precip even when we have humidity? ALSO: still need to decide on what to replace 
 ##    ice-off with... Do we want March precip/snow AND temperature and do another interaction term?
 
+## get necessary packages
+library("ggplot2")
+
 ## get necessary explanatory data sets
 co2expl <- readRDS("data/private/co2explained.rds") # YEAR, Month, LAKE, each sampling date
 precip <- readRDS("data/precip.rds") # Year, Month, for snow and rain and both
@@ -17,8 +20,10 @@ fluxes <- readRDS("data/private/params-flux.rds")
 ## choose params that we want in model from co2expl offerings
 ## at the mo, relative humidity is in as a proxy for evaporation effects.. Considered this better than using
 ##    just precipitation since that may not be directly linked due to advective-dominated precip
-regvars <- subset(co2expl, select = c("YEAR", "Month", "Date","DOY", "LAKE", "Chl_a_ug_L", "lakeNPP",
-                                      "lakeR", "TDN_ug_L", "pH_surface", "DOC_mg_L", "Oxygen_ppm",
+## Further, NPP and R so neatly related that I will use GPP rather than the two. Might add that the bias in
+##    1:1 is generally in favour of NPP
+regvars <- subset(co2expl, select = c("YEAR", "Month", "Date","DOY", "LAKE", "Chl_a_ug_L", "lakeGPP",
+                                      "TDN_ug_L", "pH_surface", "DOC_mg_L", "Oxygen_ppm",
                                       "AirTempMonthly", "RelHum"))
 
 ## do whatever needs to be done with precip data. and March things
@@ -72,28 +77,99 @@ colnames(soistack)[which(colnames(soistack) == "values")] <- "SOI"
 ## check NA situation
 fluxna <- which(is.na(fluxes$co2Flux))
 nrow(fluxes[fluxna,]) # due to missing DIC mostly
-nrow(fluxes) # 295 NA out of 1066
+nrow(fluxes) # 360 NA out of 1139
 
 nanumbers <- rowSums(is.na(regvars)) 
 dataloss <- regvars[nanumbers > 0,]
-nrow(dataloss) # 278 out of 1094
+nrow(dataloss) # 448 out of 1264
 
-## merge harmonised tables; start: 1094 rows in regvars
-regvars <- merge(regvars, pdostack) # 1094
-regvars <- merge(regvars, soistack) # 1094
-regvars <- merge(regvars, marchtemp) # 1094
-regvars <- merge(regvars, snowtotal) # 1094
+Nna <- which(is.na(regvars$TDN_ug_L)) #214
+DOCna <- which(is.na(regvars$DOC_mg_L)) #120
+
+## merge harmonised tables; start: 1264 rows in regvars
+regvars <- merge(regvars, pdostack) # 1264
+regvars <- merge(regvars, soistack) # 1264
+regvars <- merge(regvars, marchtemp) # 1264
+regvars <- merge(regvars, snowtotal) # 1264
 
 vardiff <- regvars$Date[regvars$Date %in% fluxes$Date == FALSE]
 fluxdiff <- fluxes$Date[fluxes$Date %in% regvars$Date == FALSE]
-vardiff[order(vardiff)]
+vardiff[order(vardiff)] # 26 dates not in fluxes
 fluxdiff[order(fluxdiff)]
-# seems that we don't have 1994 and 1995 in regvars --> AHH!!! production estimates only started in 1996
-#   so if want those in, need to rethink....! also need to create merges that allow for this...
-## FIXME: change co2explvar script merge options when doing produc + the others!!!
-regvars <- merge(regvars, fluxes[,c('Lake', 'Date', 'co2Flux')])
+# bottle production estimates only started in 1996.... so if we want -94 and -95 we can't use NPP, R.
+regvars <- merge(regvars, fluxes[,c('Lake', 'Date', 'co2Flux', 'meanWind')], all = TRUE)
 
+## subset to lakes we want
+regvars <- subset(regvars, Lake %in% c("K", "L", "B", "C", "D", "WW", "P"))
 
+## deal with outliers and other data issues; see also FIXME in database metadata
+## =============================================================================
+## pH already dealt with with <12 clause in co2_scenarios.R, and GPP high outlier 
+##    dealt with in co2ExplVar.R
+fluxtona <- which(regvars$co2Flux > 500)
+regvars$co2Flux[fluxtona] <- NA
+
+## make -ve DOC into NA (although I suspect this is a typo i.e. - sign added by accident)
+lowdoc <- which(regvars$DOC_mg_L < -60)
+regvars$DOC_mg_L[lowdoc] <- NA
+
+## change NaN chlorophylls to NA
+chlnan <- which(is.nan(regvars$Chl_a_ug_L))
+regvars$Chl_a_ug_L[chlnan] <- NA
+
+## check if we still have some true flux outliers based on predictor outliers:
+##    for this iteration we use the metadata FIXME sheet from 30th Nov 15
+checkdates <- read.csv("data/private/db_metadata_outliers.csv")
+checkdates <- transform(checkdates, Date = as.POSIXct(Date, format = "%m/%d/%Y"))
+fluxes[fluxes$Date %in% c(checkdates$Date),c("Lake", "Date", "pH", "Conductivity", 
+                                             "Salinity", "co2Flux")]
+fluxtona <- which(regvars$Date %in% c(checkdates$Date))
+regvars$co2Flux[fluxtona] <- NA
+
+## any outliers left?
+drops <- c("Month", "Year", "Lake", "DOY")
+dropna <- which(is.na(regvars$co2Flux))
+regmelt <- regvars[-dropna,]
+regmelt <- regmelt[,!(names(regvars) %in% drops)]
+regmelt <- melt(regmelt, id = "Date")
+
+outplot <- ggplot(data = regmelt, aes(x= Date, y = value, group = variable)) +
+  ylab("vars") +
+  geom_point() +
+  facet_wrap( "variable", scales = "free") +
+  theme(legend.position = "top")
+outplot # may be something funky going on with lakeGPP but might just keep those...
+#   no real reason to suspect but FIXME: check with Nicole what she's found!
+
+## save output for rmd and model development
+saveRDS(regvars, "data/private/regvars.rds")
 
 ## look at relationships etc.
+with(regvars, plot(MarchTemp ~ MarchSnowFallcm))
+with(regvars, plot(lakeGPP ~ pH_surface)) 
+with(regvars, plot(RelHum ~ PDO)) 
+with(regvars, plot(pH_surface ~ MarchTemp)) 
+with(regvars, plot(PDO ~ SOI))
+with(regvars, plot(pH_surface ~ DOC_mg_L)) 
+with(regvars[regvars$Lake == "K" | regvars$Lake == "P",], plot(pH_surface ~ format(Date, "%m")))
+with(regvars, plot(pH_surface ~ AirTempMonthly))
+
+## some lake diffs
+co2plot <- ggplot(data = regvars, aes(x= Date, y = co2Flux, group = Lake)) +
+  ylab("CO2 flux") +
+  geom_point() +
+  facet_wrap( "Lake" ) +
+  theme(legend.position = "top")
+co2plot
+pdf("data/private/CO2fluxroutines.pdf")
+co2plot
+dev.off()
+co2plot <- ggplot(data = regvars, aes(x= format(Date, "%m"), y = co2Flux, group = Lake)) +
+  ylab("CO2 flux") +
+  geom_point() +
+  facet_wrap( "Lake" ) +
+  theme(legend.position = "top")
+co2plot
+
+
 
