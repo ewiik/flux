@@ -49,6 +49,6 @@ dev.off()
 
 ## subset by depth <= 2.5 for kerri
 puddles <- subset(alldat, select = c("Date", "lakeName", "latitude", "longitude", "sampleDepth",
-                                     "Altitude", "co2flux"), subset = "sampleDepth" <= 2.5)
+                                     "Altitude", "co2flux"), subset = sampleDepth <= 2.5)
 write.csv(puddles, "data/private/co2fluxheathersubset.csv")
 
