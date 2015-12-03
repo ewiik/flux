@@ -46,3 +46,9 @@ legend("bottomright", cex = 0.8, legend = c("lake location", "salinity", "CO2 in
 # could also do as per symbols(x=dfx$ev1, y=dfx$ev2, circles=dfx$ev3, inches=1/3,
 # ann=F, bg="steelblue2", fg=NULL)
 dev.off()
+
+## subset by depth <= 2.5 for kerri
+puddles <- subset(alldat, select = c("Date", "lakeName", "latitude", "longitude", "sampleDepth",
+                                     "Altitude", "co2flux"), subset = "sampleDepth" <= 2.5)
+write.csv(puddles, "data/private/co2fluxheathersubset.csv")
+
