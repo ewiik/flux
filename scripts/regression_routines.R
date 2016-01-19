@@ -23,7 +23,7 @@ fluxes <- readRDS("data/private/params-flux.rds")
 ##    just precipitation since that may not be directly linked due to advective-dominated precip
 ## Further, NPP and R so neatly related that I will use GPP rather than the two. Might add that the bias in
 ##    1:1 is generally in favour of NPP
-regvars <- subset(co2expl, select = c("YEAR", "Month", "Date","DOY", "LAKE", "Chl_a_ug_L", "lakeGPP",
+regvars <- subset(co2expl, select = c("YEAR", "Month", "Date","DOY", "LAKE", "Chl_a_ug_L", "GPP_h",
                                       "TDN_ug_L", "pH_surface", "DOC_mg_L", "Oxygen_ppm",
                                       "AirTempMonthly", "RelHum"))
 
@@ -139,8 +139,7 @@ outplot <- ggplot(data = regmelt, aes(x= Date, y = value, group = variable)) +
   geom_point() +
   facet_wrap( "variable", scales = "free") +
   theme(legend.position = "top")
-outplot # may be something funky going on with lakeGPP but might just keep those...
-#   no real reason to suspect but FIXME: check with Nicole what she's found!
+outplot 
 
 ## save output for rmd and model development
 saveRDS(regvars, "data/private/regvars.rds")
