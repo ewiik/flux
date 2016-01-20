@@ -72,4 +72,32 @@ pdf("data/private/dieltrial.pdf", width = 15)
 p
 dev.off()
 
+## let's chech how CO2 flux gets modelled by this.
+source("functions/gasExchangeFlex.R")
+if (!file.exists("data/maunaloa.csv")) {
+  source("scripts/getmaunaloa.R")
+}
 
+## mauna loa stuff online has been updated from my getmaunaloa script, and since I need
+##    2015....
+download.file("ftp://aftp.cmdl.noaa.gov/products/trends/co2/co2_mm_mlo.txt", 
+              destfile = "data/maunaloa2.csv")
+ml <- read.csv("data/maunaloa2.csv", skip = 72, sep = "", encoding = "latin1", header = FALSE,
+               col.names = c("Year", "Month", "DecimalDate", "pCO2ave", "pCO2interp", 
+                             "trend", "hashdays"))
+write.csv(ml, "data/maunaloa2.csv", row.names = FALSE)
+
+## grab Sep 2015 value
+pco2atm <- ml[ml$Month == 9 & ml$Year == 2015, 'pCO2interp']
+
+## need to create DIC from conductivity since we don't have instantaneous DIC or alk measures
+## using the equation used by kerri for missing DIC values.
+dic <- 26.57 + 0.018 * diel$Cond  # (mg/L)
+dic <- dic / 0.012 # --> uM
+
+## run gasExchangeFlex, using mean wind (from kerri's means) and Wascana's altitude
+CO2Flux <- with(diel, gasExchangeFlex(Temp, Cond, pH, wind = 2.8, kerri = FALSE, altnotkpa = TRUE,
+                                                  salt = Sal, dic = dic, alt = 570.5, pco2atm = pco2atm))
+diel <- transform(diel, CO2Flux = CO2Flux)
+
+with(diel, plot(CO2Flux ~ Date.Time, col = ifelse(Day, "red", "black")))
