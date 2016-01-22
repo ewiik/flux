@@ -1,0 +1,78 @@
+---
+title: "Rationale and diagnostics --- Routines CO2 flux"
+author: "Emma"
+date: "November 30, 2015"
+output: pdf_document
+---
+```{r, echo=FALSE}
+## source necessary packages
+library("ggplot2")
+library("mgcv")
+library("car")
+
+## source necessary script
+if (!file.exists("scripts/regression_routines_models.R") | 
+    !file.exists("scripts/regression_routines_pH.R")) {
+  stop("Regression scripts are missing.") } else {
+    source("scripts/regression_routines_models.R")
+    source("scripts/regression_routines_pH.R")
+}
+```
+
+This document outlines the process used to develop the regression of fully resolved temporal series of all routines sites, including treatment of missing variables and difference in temporal series length between sites (e.g. Pasqua only started in 2006).
+
+## Regression model for CO2 ~ .
+
+### Model development
+
+All lakes were included in modeling CO$_2$. Missing data values from the database were not interpolated. Variable selection was based on results from previous analyses, indicating that on an annual resolution, climate, pH, and for between-lake differences, production, were the most important drivers of flux. 
+
+In order to avoid covariance and interpolation, some variables were dropped from the new, higher-resolution analysis. For example, while ice-off was found important in determining pH and therefore flux, almost a third of the values for ice-off had been interpolated. Further, the new analysis added multiple years to the data set for which no ice-off data were available. Since ice-off was largely interpolated from climate variables (!! check which again), and SOI and PDO were previously found significant in determining flux, both indices were selected. Furthermore, since SOI and PDO are known to interact (if coincidence of both positive|| negative, check!! --> result), they were modeled as a tensor product. 
+
+Several measures of lake production were collinear, including NPP-GPP-R, and P-N. GPP and N were selected for the model, N was selected over P as these lakes are primarily N-limited and therefore a unique effect of N (rather than P) on production is more expected.
+
+pH has a dominant control over flux owing to its use in the calculations. Therefore, the modeling process was divided into two steps. One model with flux ~ pH, and the second with the residuals of this model against the rest of the parameters.
+
+The final variables in the second model were: PRODUCTION: chl a, oxygen, GPP, CLIMATE: SOI~PDO, OTHER: DOC (since a lot of DOC can be metabolised and released as CO2), lake (added as a random effect to account for between-lake differences). Shrinkage was allowed within the model to minimise variables with no effect on flux.
+
+### Model results
+pH explained 67% of the CO2 flux with p < 0.0001. Residuals did not show an autocorrelation pattern...?
+```{r, echo=TRUE}
+plot(phmod, pers = TRUE, pages = 1)
+```
+## Regression model for pH ~ .
+
+### Model development
+
+Since pH was determined the biggest control of flux, a further model was developed to understand what drives the variation in pH. Previous results indicated ice-off to be most important, owing to its effect on the beginning-of-year pH starting point, in turn determining the maximum attainable pH over the productive season (and the higher the pH, the more influx).
+
+An initial model included the same terms as used for modeling CO2 flux, in addition to the term Year as a random effect (knowing the intercept-change effect of the starting point of pH each year). Owing to the tight correlation of pH and flux, it was expected that many terms would come out as significant. 
+
+### Model results
+!! Add this section when back with computer that manages to install packages.
+
+### Things to think about:
+If year is already a factor... if SOI PDO significant still, it means they have within-year effects!? and this something to think about for the production estimates for flux too, when lake is already considered.
+Should I add year into the co2 model too??
+
+## Discussion
+Night-time flux for Wascana, based on running gas exchange equations with mean wind, and using altitude instead of pressure (initial quick run), and calculating DIC from conductivity (DIC or alkalinity not measured by sonde), indicates that no significant release of CO$_2$ occurs at night to offset daytime influx. pH stays above 8.6. The most positive flux occurred in late September when both day- and night-time pH dropped below 8.6.
+These initial data suggest that it is plausible to assume that, during summer time, the net negative flux balance holds.
+However, if the lakes have a long ice-free period through September into November, larger fluxes can occur.
+
+PS something to be said about the fact that a few of these predictors ARE NOT correlated with each other! Pretty interesting!
+
+
+```{r, echo=FALSE}
+## source necessary packages
+library("ggplot2")
+library("mgcv")
+library("car")
+
+## source necessary data
+if (!file.exists("data/private/regvars.rds")) {
+  source("scripts/regression_routines.R")
+}
+regvars <- readRDS("data/private/regvars.rds")
+```
+
