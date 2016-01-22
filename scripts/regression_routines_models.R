@@ -1,9 +1,6 @@
 ## This document outlines the process used to develop the regression of fully 
-##    resolved temporal series of all routines sites, including treatment of 
-##    missing variables and difference in temporal series length between sites 
-##    (e.g. Pasqua only started in 2006).
-##  FIXME: replace GPP_h with hourly GPP since otherwise we are adding a hidden lake
-##    effect that will make it obvious that there are between-lake differences
+##    resolved temporal series of all routines sites
+## FIXME: rerun once checkdates..csv is loaded in from work private/
 
 ## read in data set with all variables of interest
 if (!file.exists("data/private/regvars.rds")) {
@@ -83,12 +80,14 @@ summary(gamlake2)
 ##    and model those based on the rest of the variables
 ## 1
 phmod <- gam(co2Flux ~ s(pH_surface, k = 20), data = regvars,
-             select = TRUE, method = "REML", family = scat(),
+             select = TRUE, method = "ML", family = scat(),
              na.action = na.exclude)
 res <- resid(phmod, type = "pearson")
 gam.check(phmod)
-plot(phmod, pers = TRUE, pages = 1)
-## FIXME: "Fitting terminated with step failure - check results carefully"
+plot(phmod, pers = TRUE, pages = 1) # What does the y axis numbering mean?
+plot(resid(phmod) ~ regvars$Date) # what is the "Index"?
+## FIXME: "Fitting terminated with step failure - check results carefully" occurred when
+##    using REML, so changed to ML. However, k-index and p-value still NA
 
 ##2
 mod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
@@ -103,6 +102,28 @@ gam.check(mod)
 ## FIXME: something is strange since only NAs for k-index and p-value
 ##    does gam stuff retain some form of mother index? since NA rows differ betwen 
 ##    pH and other variables
+## also: "1: In rsd - rsd[ni[, 1]] :
+##    longer object length is not a multiple of shorter object length"
+
+## Should I actually include Year as a re as well seeing as we're interested specifically
+##    in looking into the high-res, to go beyond what was done before on yearly reso?
+regvarf <- regvars
+mod2 <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
+             s(DOC_mg_L) + s(Oxygen_ppm) + 
+             te(PDO, SOI) + s(Lake, bs = "re") + s(Year, bs = "re"), data = regvarf,
+           select = TRUE, method = "REML", family = scat(),
+           na.action = na.exclude)
+summary(mod2) # Year highly significant
+plot(mod2, pages = 1, pers = TRUE)
+
+anova(mod, mod2)
+## however, no p value given, simpler model actually has lower deviance so no p given
+## see this: http://r.789695.n4.nabble.com/mgcv-inclusion-of-random-intercept-in-model-
+##    based-on-p-value-of-smooth-or-anova-td4617585.html
+##    Could check that stuff but not quite sure what it means to be "bounded well away 
+##    from zero e.g. WHAT?
+## gam.vcomp(mod2)
+
 
 ## check residuals for temporal autocorrelation
 regplus <- cbind(regvars, resid(mod))
@@ -131,7 +152,7 @@ plot(mod2, pages=1, residuals=TRUE, pch=19, cex=0.25,
 varmeans <- data.frame(t(colMeans(mod$model[,2:8])))
 varlist <- names(varmeans)
 varlist
-varying <- "GPP_h"
+varying <- "Chl_a_ug_L"
 varindexv <- which(names(varmeans) == varying)
 varindexm <- which(names(mod$model) == varying)
 

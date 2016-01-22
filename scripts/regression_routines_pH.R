@@ -31,7 +31,34 @@ phmod <- gam(pH_surface ~ s(Lake, bs = "re") + s(Year, bs = "re") + s(Chl_a_ug_L
                s(TDN_ug_L) + s(DOC_mg_L) + s(Oxygen_ppm) + te(PDO, SOI), data = regvarf,
              select = TRUE, method = "REML", family = scat()) 
 summary(phmod)
+plot(phmod, pages = 1, pers = TRUE)
 
+## A miniscript that will run the plots for each individual variable's effect keeping
+##    all other variables constant (at their mean)
+## Note that ..$model is the data that was used in the modeling process
+varmeans <- data.frame(t(colMeans(phmod$model[,4:10])))
+varlist <- names(varmeans)
+varlist
+varying <- "DOC_mg_L"
+varindexv <- which(names(varmeans) == varying)
+varindexm <- which(names(phmod$model) == varying)
+
+testdata <- data.frame(cbind(varmeans[,-varindexv], phmod$model[,varindexm]))
+names(testdata)[length(testdata)] <- varying
+
+testdata$pH_surface <- phmod$model$pH_surface
+testdata$Lake <- phmod$model$Lake
+testdata$Year <- phmod$model$Year
+fits  <-  predict(phmod, newdata=testdata, type='response', se = TRUE)
+predicts  <-  data.frame(testdata, fits)
+names(predicts)[names(predicts) == varying]
+fit <- "fit"
+ggplot(aes_string(x=varying,y=fit), data=predicts) + # aes_string means it takes the colname
+  #   indicated by the string that varying refers to!!
+  geom_smooth(aes(ymin = fit - 1.96*se.fit, ymax=fit + 1.96*se.fit),
+              fill='gray80', size=1,stat='identity') +
+  xlab(varying)
+## FIXME: discuss plots with Gavin, especially the zigzag ones
 
 ## create crude correlate of previous year's autumn productivity to see if signif
 ##    using chl a
