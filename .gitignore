@@ -4,7 +4,7 @@ data/private/*
 docs/CO2_comparisons.pdf
 docs/CO2_comparisons_cache/*
 docs/CO2_comparisons_files/*
-docs/routines-rationale-diagnostics.rmd
+docs/routines-rationale-diagnostics.pdf
 
 .Rhistory
 .directory
