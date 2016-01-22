@@ -8,11 +8,11 @@
 ## ==================================================================================================
 
 ## download PDO url and create data frame structure with numerics
-if (!file.exists("data/pdo.txt")) { 
+if (!file.exists("../data/pdo.txt")) {
   download.file("http://research.jisao.washington.edu/pdo/PDO.latest", "data/pdo.txt")
   }
 
-file <- read.fwf(file = "data/pdo.txt", skip = 30, n = 118, 
+file <- read.fwf(file = "../data/pdo.txt", skip = 30, n = 118,
                    widths = c(8, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7))
 
 colnames(file) <- unlist(file[1,])
@@ -23,7 +23,7 @@ pdo <- lapply(pdo, as.numeric) #though this makes NA out of the years that have 
 pdo <- do.call(cbind, pdo)
 pdo[pdo == 99.9] <- NA
 pdo <- as.data.frame(pdo)
-names(pdo) <- c("year", "jan", "feb", "mar", "apr","may", "jun", "jul", "aug", "sep", "oct", "nov", 
+names(pdo) <- c("year", "jan", "feb", "mar", "apr","may", "jun", "jul", "aug", "sep", "oct", "nov",
                 "dec") # unlist() earlier maintained spaces in the names...
 # could've had month.abb here to c all months in a year
 allna <- which(is.na(pdo$year))
@@ -33,17 +33,17 @@ pdo$year[allna] <- c(seq(from = 2002, length.out = length(allna), by = 1))
 pdo <- transform(pdo, mean = rowMeans(pdo[,-1], na.rm = TRUE))
 
 ## create rds for later
-saveRDS(pdo, "data/pdo.rds")
+saveRDS(pdo, "../data/pdo.rds")
 
 ## download SOI url and create data frames with numeric entries
-if (!file.exists("data/soi.txt")) { 
-  download.file("http://www.cpc.noaa.gov/data/indices/soi", "data/soi.txt")
+if (!file.exists("../data/soi.txt")) {
+  download.file("http://www.cpc.noaa.gov/data/indices/soi", "../data/soi.txt")
   }
 
-all_data <- read.fwf(file = "data/soi.txt", skip = 3, widths = rep(6, 13))
+all_data <- read.fwf(file = "../data/soi.txt", skip = 3, widths = rep(6, 13))
 
 ## create separate df for the unstandardised data
-table1 <- all_data[c(1:66),] 
+table1 <- all_data[c(1:66),]
 colnames(table1) <- unlist(table1[1,])
 soinonst <- table1[-c(1),] # all as factors and straight to numeric gives gibberish
 soinonst <- lapply(soinonst, as.character)
@@ -53,10 +53,10 @@ soinonst[soinonst == 99.9] <- NA
 soinonst <- as.data.frame(soinonst)
 
 ## create rds for later
-saveRDS(soinonst, "data/soi_nonstand.rds")
+saveRDS(soinonst, "../data/soi_nonstand.rds")
 
 ## create separate df for the standardised data
-table2 <- all_data[c(75:140),] 
+table2 <- all_data[c(75:140),]
 colnames(table2) <- unlist(table2[1,])
 soist <- table2[-c(1),] # all as factors and straight to numeric gives gibberish
 soist <- lapply(soist, as.character)
@@ -66,16 +66,16 @@ soist[soist == 99.9] <- NA
 soist <- as.data.frame(soist)
 
 ## create rds for later
-saveRDS(soist, "data/soi_stand.rds")
+saveRDS(soist, "../data/soi_stand.rds")
 
 
 ## download NAO url and make data frame with numeric entries
-if (!file.exists("data/nao.txt")) {
+if (!file.exists("../data/nao.txt")) {
   download.file("https://climatedataguide.ucar.edu/sites/default/files/nao_station_seasonal.txt",
-                "data/nao.txt")
+                "../data/nao.txt")
 }
 
-naos <- readLines("data/nao.txt")
+naos <- readLines("../data/nao.txt")
 naos <- naos[-c(1:2)]
 naos <- lapply(naos, gsub, pattern = "    ", replacement = " ")
 naos <- lapply(naos, gsub, pattern = "   ", replacement = " ")
@@ -85,7 +85,7 @@ naosplit <- lapply(naos, strsplit, " ")
 naovec <- unlist(naosplit)
 naomat <- matrix(naovec, ncol=13, byrow=TRUE)
 naoframe <- as.data.frame(naomat)
-colnames(naoframe) <- c("year", "djf", "jfm", "fma", "mam", "amj", "mjj", "jja", "jas", "aso", 
+colnames(naoframe) <- c("year", "djf", "jfm", "fma", "mam", "amj", "mjj", "jja", "jas", "aso",
                       "son", "ond", "ndj")
 naoframe <- lapply(naoframe, as.character)
 naoframe <- lapply(naoframe, as.numeric)
@@ -94,44 +94,44 @@ naoframe <- as.data.frame(naoframe)
 naoframe[naoframe <= -999] <- NA
 
 ## create rds for later
-saveRDS(naoframe, "data/naoseasonal.rds")
+saveRDS(naoframe, "../data/naoseasonal.rds")
 
-## Part 2: 1039 rows, 415 rows of one or more NAs 
+## Part 2: 1039 rows, 415 rows of one or more NAs
 ## ==================================================================================================
 
 ## read in supporting monitoring data tables grabbed from database
 ## I created a Date2 column in OpenOffice to convert the current display of month as character to month
 ##    as numeric (former is how it came from database into excel)
 
-routines <- read.csv("data/private/qpco2supportdata.csv")
+routines <- read.csv("../data/private/qpco2supportdata.csv")
 routines <- transform(routines, Date = as.POSIXct(as.character(Date2), format = "%Y-%m-%d"))
 routines <- routines[with(routines, order(LAKE, Date)),]
 
-produc <- read.csv("data/private/Production.csv")
+produc <- read.csv("../data/private/Production.csv")
 produc <- transform(produc, Date = as.POSIXct(as.character(Date2), format = "%Y-%m-%d"))
 
-chl <- read.csv("data/private/Chl.csv")
+chl <- read.csv("../data/private/Chl.csv")
 chl <- transform(chl, Date = as.POSIXct(as.character(Date2), format = "%Y-%m-%d"))
 
-incub <- read.csv("data/private/qprodsupportdata.csv")
+incub <- read.csv("../data/private/qprodsupportdata.csv")
 incub <- transform(incub, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
 
-oxtemp <- read.csv("data/private/qprofilesoxtemp.csv")
-oxtemp <- rbind(oxtemp, read.csv("data/private/qprofilesextrarecordsoxtemp.csv"))
+oxtemp <- read.csv("../data/private/qprofilesoxtemp.csv")
+oxtemp <- rbind(oxtemp, read.csv("../data/private/qprofilesextrarecordsoxtemp.csv"))
 oxtemp <- transform(oxtemp, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
 
 
-secchi <- read.csv("data/private/qsecchietal.csv") 
+secchi <- read.csv("../data/private/qsecchietal.csv")
 secchi <- transform(secchi, Date = as.POSIXct(as.character(Date), format = "%Y-%m-%d"))
 
-lakes <- read.csv("data/private/Lakes.csv") 
+lakes <- read.csv("../data/private/Lakes.csv")
 colnames(lakes)[which(colnames(lakes) == "Abbreviation")] <- "LAKE"
 
 ## remove extra date column (originally retained in case wanna check that the date format
 ##    conversion worked in OpenOffice)
-routines <- routines[,-which(colnames(routines)=="Date2")] 
-produc <- produc[,-which(colnames(produc)=="Date2")] 
-chl <- chl[,-which(colnames(chl)=="Date2")] 
+routines <- routines[,-which(colnames(routines)=="Date2")]
+produc <- produc[,-which(colnames(produc)=="Date2")]
+chl <- chl[,-which(colnames(chl)=="Date2")]
 
 ## !!!!!!! In database: lake names other than WW/WC *at least* in 2012 have been entered
 ##    with a trailing space which means that merges won't work!
@@ -162,8 +162,8 @@ chlmeans <- chlmeans[with(chlmeans, order(LAKE, Date)),]
 
 prodmeans <- lapply(prodsplit, mycolMeans, cols = c("LIGHT_O2_ppm", "DARK_O2_ppm", "LIGHT_Pois_O2_ppm",
                                                     "DARK_Pois_O2_ppm", "NetOxy_ppm", "RespOxy_ppm",
-                                                    "Net_mgC_m3_h", "Resp_mgC_m3_H", 
-                                                    "LightAzidemgCm3h", "DarkAzidemgCm3h")) 
+                                                    "Net_mgC_m3_h", "Resp_mgC_m3_H",
+                                                    "LightAzidemgCm3h", "DarkAzidemgCm3h"))
 prodmeans <- do.call(rbind, prodmeans)
 rownames(prodmeans) <- NULL
 prodmeans <- prodmeans[with(prodmeans, order(LAKE, Date)),]
@@ -181,7 +181,7 @@ proddf <- transform(proddf, GPP_h = NPP_h - R_h)
 prodsub <- subset(proddf, select = c(LAKE, Date, GPP_h, NPP_h, R_h))
 
 ### nicole noticed an outlier and there it is: WW 2010-05-03 (GPP >15 cf mostly <1)
-## changing this to NA for now 
+## changing this to NA for now
 makena <- which(prodsub$GPP_h > 15)
 prodsub[makena, c('GPP_h', 'NPP_h', 'R_h')] <- NA
 
@@ -196,17 +196,17 @@ prodsub <- transform(prodsub, lakeR = R_h*(Secchi_m* (LakeArea_km2 * 100000)))
 
 ## merge all dfs by LAKE and Date
 co2explained <- merge(chlmeans, prodsub, all = TRUE)
-co2explained <- merge(co2explained, routines[,-which(names(routines) %in% 'RunNo')], all = TRUE) 
+co2explained <- merge(co2explained, routines[,-which(names(routines) %in% 'RunNo')], all = TRUE)
 # don't need this column which is cryptic anyway
-co2expl <- merge(co2explained, oxtemp[,c('Date', 'LAKE', 'Temperature_deg_C','Oxygen_ppm')], 
+co2expl <- merge(co2explained, oxtemp[,c('Date', 'LAKE', 'Temperature_deg_C','Oxygen_ppm')],
                  by = c('Date', 'LAKE'), all = TRUE)
 ## FIXME: minor discrepancies in nrow over merge steps... a few rows.. could check at some point
 
 ## airtemp, from env canada and weathermanipulations.R
-if (!file.exists("data/temperaturedata.rds")) {
-  source("scripts/weathermanipulations.R")
+if (!file.exists("../data/temperaturedata.rds")) {
+  source("../scripts/weathermanipulations.R")
 }
-airtemp <- readRDS("data/temperaturedata.rds")
+airtemp <- readRDS("../data/temperaturedata.rds")
 ## since we decided to use the regina station for all measurements, I will also here subset
 ##    to regina
 airtemp <- subset(airtemp, Superstation == "regina", select = c(Year, Month, Temperature))
@@ -230,10 +230,10 @@ co2expl <- transform(co2expl, Month = as.numeric(format(Date, format = "%m")))
 co2expl <- merge(co2expl, airtemp)
 
 ## relhum, from env canada and weathermanipulations.R
-if (!file.exists("data/relhumdata.rds")) {
-  source("scripts/weathermanipulations.R")
+if (!file.exists("../data/relhumdata.rds")) {
+  source("../scripts/weathermanipulations.R")
 }
-relhum <- readRDS("data/relhumdata.rds")
+relhum <- readRDS("../data/relhumdata.rds")
 ## since we decided to use the regina station for all measurements, I will also here subset
 ##    to regina
 relhum <- subset(relhum, Superstation == "regina", select = c(Year, Month, RelHum))
@@ -245,11 +245,11 @@ rownames(relhum) <- NULL #set new order for rows, otherwise in mixed order based
 co2expl <- merge(co2expl, relhum)
 
 ## save output for later
-saveRDS(co2expl, "data/private/co2explained.rds")
+saveRDS(co2expl, "../data/private/co2explained.rds")
 
 ## bonus: let's see how many NAs in our data. (don't select Si and other optionals)
-dataloss <- subset(co2expl, select = c("LAKE", "Date", "pH_surface", "Oxygen_ppm", "TIC_mg_L", 
-                                       "Temperature_deg_C", "SRP_ug_L", "TDN_ug_L", "NO3_ug_L", 
+dataloss <- subset(co2expl, select = c("LAKE", "Date", "pH_surface", "Oxygen_ppm", "TIC_mg_L",
+                                       "Temperature_deg_C", "SRP_ug_L", "TDN_ug_L", "NO3_ug_L",
                                        "NH4_ug_L", "DOC_mg_L", "Chl_a_ug_L", "GPP_h"))
 
 nanumbers <- rowSums(is.na(dataloss))
@@ -267,20 +267,20 @@ nrow(dataloss)
 ## "new way": monthly data set from rich (full csv in !git/fromrich, sensible csv in /private..)
 ##    filled in a few missing annual totals in openoffice before saving as csv
 ## "old way": annual data set from rich, full csv in !git/fromrich, sensible csv in /private..)
-##  Interestingly: why does finlay et al 2009 say that inflow for crooked was regressed, since it 
+##  Interestingly: why does finlay et al 2009 say that inflow for crooked was regressed, since it
 ##    exists in the data set that rich sent that should correspond to what kerri did?
 
 ## ice-out
-iceout1 <- read.csv("data/private/IceOut.csv") # pending data to 2015
+iceout1 <- read.csv("../data/private/IceOut.csv") # pending data to 2015
 icedataloss <- iceout1[is.na(iceout1$ICEOUTDOY),]
 nrow(iceout1) # 120
 nrow(icedataloss) # 45
 
 ## inflow flows
-inflow1 <- read.csv("data/private/Monthly_Inflow_Estimates2.csv") # pending data to 2015
-inflowold <- read.csv("data/private/Lake_Inflows.csv") # 1994-2009
+inflow1 <- read.csv("../data/private/Monthly_Inflow_Estimates2.csv") # pending data to 2015
+inflowold <- read.csv("../data/private/Lake_Inflows.csv") # 1994-2009
 
-othervars <- read.csv("data/private/pCO2_vars_yearlyaverageswithclimate.csv")
+othervars <- read.csv("../data/private/pCO2_vars_yearlyaverageswithclimate.csv")
 ## this doesn't however indicate which vars interpolated and which real, but has the separate inflow
 ##    sites and inflow data
 evap <- subset(othervars, select = "evap" %in% colnames(othervars))

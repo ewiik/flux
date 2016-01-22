@@ -1,12 +1,12 @@
-## This document outlines the process used to develop the regression of fully 
+## This document outlines the process used to develop the regression of fully
 ##    resolved temporal series of all routines sites
 ## FIXME: rerun once checkdates..csv is loaded in from work private/
 
 ## read in data set with all variables of interest
-if (!file.exists("data/private/regvars.rds")) {
-  source("scripts/regression_routines.R")
+if (!file.exists("../data/private/regvars.rds")) {
+  source("../scripts/regression_routines.R")
 }
-regvars <- readRDS("data/private/regvars.rds")
+regvars <- readRDS("../data/private/regvars.rds")
 
 ## load necessary packages
 library("car")
@@ -16,10 +16,10 @@ library("mgcv")
 
 ## basic looking at data stuff
 ## ===========================
-scatterplotMatrix(regvars[,-c(1:5)],pch=19,cex=.5,reg.line=F, 
+scatterplotMatrix(regvars[,-c(1:5)],pch=19,cex=.5,reg.line=F,
                   spread=F,ellipse=F, col=c('gray60','#2957FF','#FF8000'),
                   col.axis='gray50')
-scatterplotMatrix(scale(regvars[,-c(1:5)]),pch=19,cex=.5,reg.line=F, 
+scatterplotMatrix(scale(regvars[,-c(1:5)]),pch=19,cex=.5,reg.line=F,
                   spread=F,ellipse=F, col=c('gray60','#2957FF','#FF8000'),
                   col.axis='gray50')
 ## can't see any strong correlations between variables chosen; PS TDP and TDN are rather tightly
@@ -27,9 +27,9 @@ scatterplotMatrix(scale(regvars[,-c(1:5)]),pch=19,cex=.5,reg.line=F,
 ##    rather than the effect of N uniquely.
 
 ## order lakes in prep for ggplot by water flow chain:
-levels(regvars$Lake) 
-# [1] "K"  "L"  "B"  "C"  "D"  "WW" "P"  "WC" "R"  "E"  "M"  "k" 
-plotfactor <- data.frame(Lake = as.character(levels(regvars$Lake)), 
+levels(regvars$Lake)
+# [1] "K"  "L"  "B"  "C"  "D"  "WW" "P"  "WC" "R"  "E"  "M"  "k"
+plotfactor <- data.frame(Lake = as.character(levels(regvars$Lake)),
                          Level = c(5,3,2,6,1,7,4,8,9,10,11,12))
 regvars <- merge(plotfactor, regvars)
 regvars$Lake=factor(regvars$Lake, unique(regvars$Lake)[order(unique(regvars$Level))])
@@ -50,8 +50,8 @@ outplot <- ggplot(data = regmelt, aes(x= co2Flux, y = value, group = variable)) 
 outplot # what up pH
 
 ## one model for all lakes, lake not added as factor
-gamall <- gam(co2Flux ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
-                s(pH_surface, k = 20) + s(DOC_mg_L) + s(Oxygen_ppm) + 
+gamall <- gam(co2Flux ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) +
+                s(pH_surface, k = 20) + s(DOC_mg_L) + s(Oxygen_ppm) +
                 te(PDO, SOI), data = regvars,
               select = TRUE, method = "ML", family = scat(link = "identity"))
 
@@ -59,17 +59,18 @@ gam.check(gamall)
 summary(gamall)
 
 ## one model for all lakes, lake added as factor
-gamlake <- gam(co2Flux ~ Lake + s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
-                 s(pH_surface, k = 20) + s(DOC_mg_L) + s(Oxygen_ppm) + 
+gamlake <- gam(co2Flux ~ Lake + s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) +
+                 s(pH_surface, k = 20) + s(DOC_mg_L) + s(Oxygen_ppm) +
                  te(PDO, SOI), data = regvars,
                select = TRUE, method = "ML", family = scat())
 gam.check(gamlake)
 
 ## one model for all lakes, lake added as random effect
-gamlake2 <- gam(co2Flux ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
-                 s(pH_surface, k = 20) + s(DOC_mg_L) + s(Oxygen_ppm) + 
+gamlake2 <- gam(co2Flux / 1000 ~ #s(Chl_a_ug_L) +
+                    s(GPP_h) + s(TDN_ug_L) +
+                 s(pH_surface, k = 20) + s(DOC_mg_L) + #s(Oxygen_ppm) +
                  te(PDO, SOI) + s(Lake, bs = "re"), data = regvars,
-               select = TRUE, method = "ML", family = scat())
+                method = "REML", family = scat)
 gam.check(gamlake2)
 summary(gamlake2)
 ## FIXME: are my k too low? some k-index just under 1, but only just
@@ -90,8 +91,8 @@ plot(resid(phmod) ~ regvars$Date) # what is the "Index"?
 ##    using REML, so changed to ML. However, k-index and p-value still NA
 
 ##2
-mod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
-             s(DOC_mg_L) + s(Oxygen_ppm) + 
+mod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) +
+             s(DOC_mg_L) + s(Oxygen_ppm) +
              te(PDO, SOI) + s(Lake, bs = "re"), data = regvars,
            select = TRUE, method = "REML", family = scat(),
            na.action = na.exclude)
@@ -100,7 +101,7 @@ plot(mod, pages = 1, pers = TRUE)
 summary(mod)
 gam.check(mod)
 ## FIXME: something is strange since only NAs for k-index and p-value
-##    does gam stuff retain some form of mother index? since NA rows differ betwen 
+##    does gam stuff retain some form of mother index? since NA rows differ betwen
 ##    pH and other variables
 ## also: "1: In rsd - rsd[ni[, 1]] :
 ##    longer object length is not a multiple of shorter object length"
@@ -108,11 +109,13 @@ gam.check(mod)
 ## Should I actually include Year as a re as well seeing as we're interested specifically
 ##    in looking into the high-res, to go beyond what was done before on yearly reso?
 regvarf <- regvars
-mod2 <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
-             s(DOC_mg_L) + s(Oxygen_ppm) + 
-             te(PDO, SOI) + s(Lake, bs = "re") + s(Year, bs = "re"), data = regvarf,
-           select = TRUE, method = "REML", family = scat(),
-           na.action = na.exclude)
+mod2 <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) +
+                s(DOC_mg_L) + s(Oxygen_ppm) +
+                    te(PDO, SOI) +
+                        s(Lake, bs = "re") + s(Year, bs = "re"), # try s(Lake, Year, bs = "re") instead of separate
+            data = regvarf,
+            select = TRUE, method = "REML", family = scat(),
+            na.action = na.exclude)
 summary(mod2) # Year highly significant
 plot(mod2, pages = 1, pers = TRUE)
 
@@ -120,7 +123,7 @@ anova(mod, mod2)
 ## however, no p value given, simpler model actually has lower deviance so no p given
 ## see this: http://r.789695.n4.nabble.com/mgcv-inclusion-of-random-intercept-in-model-
 ##    based-on-p-value-of-smooth-or-anova-td4617585.html
-##    Could check that stuff but not quite sure what it means to be "bounded well away 
+##    Could check that stuff but not quite sure what it means to be "bounded well away
 ##    from zero e.g. WHAT?
 ## gam.vcomp(mod2)
 
@@ -130,8 +133,8 @@ regplus <- cbind(regvars, resid(mod))
 names(regplus)[which(names(regplus) == "resid(mod)")] <- "resids"
 ggplot(data = regplus, aes(x = format(Date, "%Y"), y = resids, group = Lake)) +
   ylab("residuals of 'mod'") +
-  geom_point() + 
-  #geom_line() + 
+  geom_point() +
+  #geom_line() +
   facet_wrap( "Lake", scales = "free") +
   theme(legend.position = "top")
 ## doesn't seem to be any but could check formally!
@@ -176,7 +179,7 @@ ggplot(aes_string(x=varying,y=fit), data=predicts) + # aes_string means it takes
 ## evidence for DOC declining with the progression of summer?
 ggplot(data = regvars, aes(x= Date, y = DOC_mg_L, group = Lake)) +
   ylab("DOC (mg/L)") +
-  geom_point() + 
+  geom_point() +
   facet_wrap( "Lake", scales = "free") +
   geom_smooth(se=F, method='gam', formula=y~s(x), color='#2957FF') + # lulz
   theme(legend.position = "top")

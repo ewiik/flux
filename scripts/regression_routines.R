@@ -1,5 +1,5 @@
 ## regression model development for routines CO2 flux
-## FIXME: do we want precip even when we have humidity? ALSO: still need to decide on what to replace 
+## FIXME: do we want precip even when we have humidity? ALSO: still need to decide on what to replace
 ##    ice-off with... Do we want March precip/snow AND temperature and do another interaction term?
 
 ## get necessary packages
@@ -7,25 +7,26 @@ library("ggplot2")
 library("reshape2")
 
 ## get necessary explanatory data sets
-co2expl <- readRDS("data/private/co2explained.rds") # YEAR, Month, LAKE, each sampling date
-precip <- readRDS("data/precip.rds") # Year, Month, for snow and rain and both
-nao <- readRDS("data/naoseasonal.rds") # trimonth subsets for a whole year; all colnames lowercase
+co2expl <- readRDS("../data/private/co2explained.rds") # YEAR, Month, LAKE, each sampling date
+precip <- readRDS("../data/precip.rds") # Year, Month, for snow and rain and both
+nao <- readRDS("../data/naoseasonal.rds") # trimonth subsets for a whole year; all colnames lowercase
 #   nao not in model right now
-soistand <- readRDS("data/soi_stand.rds") # monthly; all colnames uppercase
-pdo <- readRDS("data/pdo.rds") # monthly, and annual mean: all colnames lowercase
-temp <- readRDS("data/temperaturedata.rds")# Year, Month, Superstation...
+soistand <- readRDS("../data/soi_stand.rds") # monthly; all colnames uppercase
+pdo <- readRDS("../data/pdo.rds") # monthly, and annual mean: all colnames lowercase
+temp <- readRDS("../data/temperaturedata.rds")# Year, Month, Superstation...
 
 ## get CO2 flux estimates (alter calculation arguments in co2_scenarios.R)
-fluxes <- readRDS("data/private/params-flux.rds")
+fluxes <- readRDS("../data/private/params-flux.rds")
 
 ## choose params that we want in model from co2expl offerings
 ## at the mo, relative humidity is in as a proxy for evaporation effects.. Considered this better than using
 ##    just precipitation since that may not be directly linked due to advective-dominated precip
 ## Further, NPP and R so neatly related that I will use GPP rather than the two. Might add that the bias in
 ##    1:1 is generally in favour of NPP
-regvars <- subset(co2expl, select = c("YEAR", "Month", "Date","DOY", "LAKE", "Chl_a_ug_L", "GPP_h",
-                                      "TDN_ug_L", "pH_surface", "DOC_mg_L", "Oxygen_ppm",
-                                      "AirTempMonthly", "RelHum"))
+regvars <- subset(co2expl,
+                  select = c("YEAR", "Month", "Date", "DOY", "LAKE", "Chl_a_ug_L", "GPP_h",
+                  "TDN_ug_L", "pH_surface", "DOC_mg_L", "Oxygen_ppm",
+                  "AirTempMonthly", "RelHum"))
 
 ## do whatever needs to be done with precip data. and March things
 ## ============================================================================
@@ -38,7 +39,7 @@ mycolSums <- function(df, cols) {
 
 # grab total snow fall in march
 snowsplit <- with(precip, split(precip, list(Year, Month), drop = TRUE))
-snowtotal <- lapply(snowsplit, mycolSums, cols = c("Total Snow (cm)")) 
+snowtotal <- lapply(snowsplit, mycolSums, cols = c("Total Snow (cm)"))
 snowtotal <- do.call("rbind", snowtotal)
 rownames(snowtotal) <- NULL
 snowtotal <- subset(snowtotal, select = c(Year, Total.Snow..cm.), df..Month...1... == 3)
@@ -47,12 +48,12 @@ colnames(snowtotal)[which(colnames(snowtotal) == "Total.Snow..cm.")] <- "MarchSn
 
 # grab total precip in march.. FIXME: snow-specific better?
 monthsplit <- with(precip, split(precip, list(Year, Month), drop = TRUE))
-monthtotal <- lapply(monthsplit, mycolSums, cols = c("Total Precip (mm)")) 
+monthtotal <- lapply(monthsplit, mycolSums, cols = c("Total Precip (mm)"))
 monthtotal <- do.call("rbind", monthtotal)
 rownames(monthtotal) <- NULL
 
 # grab march values for temp
-marchtemp <- subset(temp, select = c(Year, Temperature), 
+marchtemp <- subset(temp, select = c(Year, Temperature),
                                   subset = Month == 3 & Superstation == "regina")
 colnames(marchtemp)[which(colnames(marchtemp) == "Temperature")] <- "MarchTemp"
 ## ============================================================================
@@ -62,7 +63,7 @@ colnames(regvars)[which(colnames(regvars) == "YEAR")] <- "Year"
 colnames(regvars)[which(colnames(regvars) == "LAKE")] <- "Lake"
 
 colnames(pdo)[which(colnames(pdo) == "year")] <- "Year"
-pdostack <- stack(pdo, select = c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", 
+pdostack <- stack(pdo, select = c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug",
                                   "sep", "oct", "nov", "dec"))
 pdostack$Year <- rep(pdo$Year, times = 12)
 colnames(pdostack)[which(colnames(pdostack) == "ind")] <- "Month"
@@ -80,7 +81,7 @@ fluxna <- which(is.na(fluxes$co2Flux))
 nrow(fluxes[fluxna,]) # due to missing DIC mostly
 nrow(fluxes) # 360 NA out of 1139
 
-nanumbers <- rowSums(is.na(regvars)) 
+nanumbers <- rowSums(is.na(regvars))
 dataloss <- regvars[nanumbers > 0,]
 nrow(dataloss) # 448 out of 1264
 
@@ -105,7 +106,7 @@ regvars <- subset(regvars, Lake %in% c("K", "L", "B", "C", "D", "WW", "P"))
 
 ## deal with outliers and other data issues; see also FIXME in database metadata
 ## =============================================================================
-## pH already dealt with with <12 clause in co2_scenarios.R, and GPP high outlier 
+## pH already dealt with with <12 clause in co2_scenarios.R, and GPP high outlier
 ##    dealt with in co2ExplVar.R
 fluxtona <- which(regvars$co2Flux > 500)
 regvars$co2Flux[fluxtona] <- NA
@@ -120,9 +121,9 @@ regvars$Chl_a_ug_L[chlnan] <- NA
 
 ## check if we still have some true flux outliers based on predictor outliers:
 ##    for this iteration we use the metadata FIXME sheet from 30th Nov 15
-checkdates <- read.csv("data/private/db_metadata_outliers.csv")
+checkdates <- read.csv("../data/private/db_metadata_outliers.csv")
 checkdates <- transform(checkdates, Date = as.POSIXct(Date, format = "%m/%d/%Y"))
-fluxes[fluxes$Date %in% c(checkdates$Date),c("Lake", "Date", "pH", "Conductivity", 
+fluxes[fluxes$Date %in% c(checkdates$Date),c("Lake", "Date", "pH", "Conductivity",
                                              "Salinity", "co2Flux")]
 fluxtona <- which(regvars$Date %in% c(checkdates$Date))
 regvars$co2Flux[fluxtona] <- NA
@@ -139,18 +140,18 @@ outplot <- ggplot(data = regmelt, aes(x= Date, y = value, group = variable)) +
   geom_point() +
   facet_wrap( "variable", scales = "free") +
   theme(legend.position = "top")
-outplot 
+outplot
 
 ## save output for rmd and model development
-saveRDS(regvars, "data/private/regvars.rds")
+saveRDS(regvars, "../data/private/regvars.rds")
 
 ## look at relationships etc.
 with(regvars, plot(MarchTemp ~ MarchSnowFallcm))
-with(regvars, plot(lakeGPP ~ pH_surface)) 
-with(regvars, plot(RelHum ~ PDO)) 
-with(regvars, plot(pH_surface ~ MarchTemp)) 
+with(regvars, plot(lakeGPP ~ pH_surface))
+with(regvars, plot(RelHum ~ PDO))
+with(regvars, plot(pH_surface ~ MarchTemp))
 with(regvars, plot(PDO ~ SOI))
-with(regvars, plot(pH_surface ~ DOC_mg_L)) 
+with(regvars, plot(pH_surface ~ DOC_mg_L))
 with(regvars[regvars$Lake == "K" | regvars$Lake == "P",], plot(pH_surface ~ format(Date, "%m")))
 with(regvars, plot(pH_surface ~ AirTempMonthly))
 
@@ -161,7 +162,7 @@ co2plot <- ggplot(data = regvars, aes(x= Date, y = co2Flux, group = Lake)) +
   facet_wrap( "Lake" ) +
   theme(legend.position = "top")
 co2plot
-pdf("data/private/CO2fluxroutines.pdf")
+pdf("../data/private/CO2fluxroutines.pdf")
 co2plot
 dev.off()
 co2plot <- ggplot(data = regvars, aes(x= format(Date, "%m"), y = co2Flux, group = Lake)) +

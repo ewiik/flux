@@ -11,7 +11,7 @@ library("mgcv")
 library("car")
 
 ## source necessary script
-if (!file.exists("../scripts/regression_routines_models.R") | 
+if (!file.exists("../scripts/regression_routines_models.R") || 
     !file.exists("../scripts/regression_routines_pH.R")) {
   stop("Regression scripts are missing.") } else {
     source("../scripts/regression_routines_models.R")

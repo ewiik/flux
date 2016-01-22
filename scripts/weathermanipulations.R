@@ -1,28 +1,28 @@
 ## we have 1080 dfs in total; in met, they do not have the first 9 lines
 ## grab met from gasexchange_pressuredata.R
 
-library("reshape")
+## library("reshape")
 
-if (file.exists("data/dmet.rds")) {
-  dmet <- readRDS("data/dmet.rds")  
+if (file.exists("../data/dmet.rds")) {
+  dmet <- readRDS("../data/dmet.rds")
 } else {
   dmet <- do.call("rbind", met)
-  saveRDS(dmet, "data/dmet.rds")
+  saveRDS(dmet, "../data/dmet.rds")
 }
 
 
 ## get station details
-stations <- read.csv("data/weatherstations.csv")
+stations <- read.csv("../data/weatherstations.csv")
 
 ## Combine stations
 dmet$superstation[dmet$StationID == 3002 | dmet$StationID == 51441] <- "regina"
-dmet$superstation[dmet$StationID == 3062 | dmet$StationID == 44203 | 
+dmet$superstation[dmet$StationID == 3062 | dmet$StationID == 44203 |
                     dmet$StationID == 48977] <- "yorkton"
 dmet$superstation[dmet$StationID == 3318] <- "outlook"
 dmet$superstation[dmet$StationID == 2926 | dmet$StationID == 2925] <- "indhead"
 unique(dmet$superstation) # yes all appear, no NAs
 
-names(dmet)[2] <- "datetime" 
+names(dmet)[2] <- "datetime"
 
 take <- c("StationID","datetime","Year","Month","Day","Time","superstation","Stn Press (kPa)",
           "Wind Spd (km/h)", "Temp (degC)", "Rel Hum (%)")
@@ -33,7 +33,7 @@ names(dmet)[names(dmet) == "Temp (degC)"] <- "Temperature"
 names(dmet)[names(dmet) == "Rel Hum (%)"] <- "RelHum"
 
 ## Coerce datetime to the correct internal type
-dmet <- transform(dmet, 
+dmet <- transform(dmet,
                   datetime = as.POSIXct(as.character(datetime), format = "%Y-%m-%d %H:%M"),
                   superstation = as.factor(superstation))
 
@@ -44,7 +44,7 @@ dmet$datetimepos <-as.POSIXlt(dmet$datetime) # note that year is expressed since
   # yday starts at 0 (so leap year max = 365)
 
 leaptest <- function(year) {
-  if (year %% 4 != 0) { 
+  if (year %% 4 != 0) {
     print("not leap") # remaining contenders move on
   }
   else if (year %% 100 == 0 & year %% 400 != 0) { # exclude those that are divisible by both
@@ -53,16 +53,16 @@ leaptest <- function(year) {
   else {print("is leap")}
 } # --> http://disc.gsfc.nasa.gov/julian_calendar.shtml
 
-dmet <- dmet[!(dmet$datetimepos$year == 113 & dmet$datetimepos$yday > 281 & dmet$StationID == 3002),] 
+dmet <- dmet[!(dmet$datetimepos$year == 113 & dmet$datetimepos$yday > 281 & dmet$StationID == 3002),]
   # excludes all from and including 10.10 i.e. runs to 09.10.
-dmet <- dmet[!(dmet$datetimepos$year == 113 & dmet$datetimepos$yday < 282 & dmet$StationID == 51441),] 
+dmet <- dmet[!(dmet$datetimepos$year == 113 & dmet$datetimepos$yday < 282 & dmet$StationID == 51441),]
   # excludes all up to and including 09.10 i.e. runs from 10.10.
 
 dmet <- dmet[!(dmet$datetimepos$year == 105 & dmet$datetimepos$yday > 276 & dmet$StationID == 3062),]
   # excludes all from and including 05.10 i.e. runs to 04.10.
-dmet <- dmet[!((dmet$datetimepos$year == 105 & dmet$datetimepos$yday < 277 & dmet$StationID == 44203) | 
+dmet <- dmet[!((dmet$datetimepos$year == 105 & dmet$datetimepos$yday < 277 & dmet$StationID == 44203) |
                   (dmet$datetimepos$year == 111 & dmet$datetimepos$yday > 235 & dmet$StationID == 44203)),]
-  # excludes all to and including 04.10 i.e. runs from 05.10; 
+  # excludes all to and including 04.10 i.e. runs from 05.10;
   # excludes all from and including 25.08 i.e. runs to 24.08.
 dmet <- dmet[!(dmet$datetimepos$year == 111 & dmet$datetimepos$yday < 236 & dmet$StationID == 48977),]
   # excludes all up to and including 24.08. i.e. runs from 25.08.
@@ -160,12 +160,12 @@ rownames(temperature) <- NULL
 relhum <- na.omit(do.call("rbind", lapply(spldmet, meanHumidPC)))
 rownames(relhum) <- NULL
 
-pressure[order(pressure$Superstation),] # just looking
-winds[order(winds$Superstation),] # just looking
+head(pressure[order(pressure$Superstation),], n = 20) # just looking
+head(winds[order(winds$Superstation),], n = 20) # just looking
 
 ## save for next script
-saveRDS(pressure[order(pressure$Superstation),], "data/pressuredata.rds")
-saveRDS(winds[order(winds$Superstation),], "data/windsdata.rds")
-saveRDS(temperature[order(temperature$Superstation),], "data/temperaturedata.rds")
-saveRDS(relhum[order(relhum$Superstation),], "data/relhumdata.rds")
+saveRDS(pressure[order(pressure$Superstation),], "../data/pressuredata.rds")
+saveRDS(winds[order(winds$Superstation),], "../data/windsdata.rds")
+saveRDS(temperature[order(temperature$Superstation),], "../data/temperaturedata.rds")
+saveRDS(relhum[order(relhum$Superstation),], "../data/relhumdata.rds")
 

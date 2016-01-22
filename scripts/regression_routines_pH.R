@@ -11,12 +11,12 @@ library("reshape2")
 library("mgcv")
 
 ## load the data we need
-if (!file.exists("data/private/regvars.rds")) {
-  source("scripts/regression_routines.R")
+if (!file.exists("../data/private/regvars.rds")) {
+  source("../scripts/regression_routines.R")
 }
-regvars <- readRDS("data/private/regvars.rds")
+regvars <- readRDS("../data/private/regvars.rds")
 
-## is pH heavy-tailed?
+## is pH heavy-tailed? - this is irrelevant - you want to know if pH | x
 plot(density(regvars$pH_surface, na.rm = TRUE))
 qqnorm(regvars$pH_surface, na.rm = TRUE)
 ## yes, choose family = scat() in gam
@@ -27,11 +27,12 @@ qqnorm(regvars$pH_surface, na.rm = TRUE)
 ##    (as s(Year) or s(Year, bs = "re")) which is weird
 regvarf <- regvars
 regvarf <- transform(regvarf, Year = as.factor(Year))
-phmod <- gam(pH_surface ~ s(Lake, bs = "re") + s(Year, bs = "re") + s(Chl_a_ug_L) + s(GPP_h) + 
+phmod <- gam(pH_surface ~ s(Lake, Year, bs = "re") + s(Chl_a_ug_L) + s(GPP_h) +
                s(TDN_ug_L) + s(DOC_mg_L) + s(Oxygen_ppm) + te(PDO, SOI), data = regvarf,
-             select = TRUE, method = "REML", family = scat()) 
+             select = TRUE, method = "REML", family = gaussian)
 summary(phmod)
 plot(phmod, pages = 1, pers = TRUE)
+gam.check(phmod)
 
 ## A miniscript that will run the plots for each individual variable's effect keeping
 ##    all other variables constant (at their mean)
@@ -81,7 +82,7 @@ grablast <- function(df) {
 
 ## apply wrappers
 lastspl <- lapply(lastspl, grablast)
-chlmeans <- lapply(lastspl, mycolMeans, cols = c("Chl_a_ug_L")) 
+chlmeans <- lapply(lastspl, mycolMeans, cols = c("Chl_a_ug_L"))
 chlmeans <- do.call(rbind, chlmeans)
 rownames(chlmeans) <- NULL
 
@@ -95,10 +96,10 @@ regvarl <- merge(regvarl, chlmeans, by.x = c('Lake', 'Year'), by.y = c('Lake', '
 regvarl <- transform(regvarl, Year = as.factor(Year))
 
 ## create new regression to see if any sense in including it
-phmod2 <- gam(pH_surface ~ s(Lake, bs = "re") + s(Year, bs = "re") + s(Chl_a_ug_L.x) + 
-                s(Chl_a_ug_L.y) +s(GPP_h) + s(TDN_ug_L) + s(DOC_mg_L) + s(Oxygen_ppm) + 
+phmod2 <- gam(pH_surface ~ s(Lake, bs = "re") + s(Year, bs = "re") + s(Chl_a_ug_L.x) +
+                s(Chl_a_ug_L.y) +s(GPP_h) + s(TDN_ug_L) + s(DOC_mg_L) + s(Oxygen_ppm) +
                 te(PDO, SOI), data = regvarl,
-             select = TRUE, method = "ML", family = scat()) 
+             select = TRUE, method = "ML", family = scat())
 summary(phmod2)
 ## nope, no sense
 
