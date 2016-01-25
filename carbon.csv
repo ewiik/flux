@@ -1,0 +1,215 @@
+carbonID,sampleID,type,dataValue
+1,Clearwater,DIC,127.334
+2,Clearwater,DOC,27.501
+3,Fife,DIC,175.996
+4,Fife,DOC,19.958
+5,Junction,DIC,57.047
+6,Junction,DOC,12.85
+7,Reflex,DIC,1060.492
+8,Reflex,DOC,123.039
+9,Edouard,DIC,44.534
+10,Edouard,DOC,15.788
+11,Cutbank,DIC,105.265
+12,Cutbank,DOC,32.345
+13,Bullkin,DIC,115.096
+14,Bullkin,DOC,19.447
+15,Montague,DIC,100.373
+16,Montague,DOC,12.851
+17,Eyebrow,DIC,36.506
+18,Eyebrow,DOC,5.237
+19,Clair,DIC,53.187
+20,Clair,DOC,19.94
+21,Round,DIC,58.955
+22,Round,DOC,13.931
+23,Wolverine,DIC,49.936
+24,Wolverine,DOC,17.34
+25,Vincent,DIC,59.137
+26,Vincent,DOC,53.721
+27,Bitter,DIC,103.728
+28,Bitter,DOC,46.918
+29,Eaglehill,DIC,79.081
+30,Eaglehill,DOC,36.376
+31,Katepwa,DIC,51.173
+32,Katepwa,DOC,11.76
+33,X3,DIC,26.156
+34,X3,DOC,45.093
+35,Manitou,DIC,682.795
+36,Manitou,DOC,114.329
+37,Mason,DIC,184.987
+38,Mason,DOC,45.451
+39,Dewey,DIC,122.91
+40,Dewey,DOC,35.586
+41,Pasqua,DIC,52.128
+42,Pasqua,DOC,12.662
+43,Ingebright,DIC,145.946
+44,Ingebright,DOC,238.716
+45,Success,DIC,224.866
+46,Success,DOC,44.697
+47,Nickle,DIC,35.309
+48,Nickle,DOC,15.661
+49,Richmond,DIC,109.253
+50,Richmond,DOC,71.434
+51,York,DIC,65.208
+52,York,DOC,23.992
+53,Diefenbaker,DIC,34.053
+54,Diefenbaker,DOC,5.528
+55,Crooked,DIC,54.24
+56,Crooked,DOC,12.769
+57,Little Manitou,DIC,249.643
+58,Little Manitou,DOC,48.526
+59,Middle,DIC,85.516
+60,Middle,DOC,31.605
+61,Buffalo Pound,DIC,32.803
+62,Buffalo Pound,DOC,6.841
+63,Greenwater,DIC,41.36
+64,Greenwater,DOC,12.458
+65,Annie Laurie,DIC,39.075
+66,Annie Laurie,DOC,19.113
+67,Lenore SB,DIC,80.995
+68,Lenore SB,DOC,22.528
+69,Thomson,DIC,64.018
+70,Thomson,DOC,16.643
+71,Kenosee,DIC,90.806
+72,Kenosee,DOC,29.613
+73,Grassy,DIC,84.567
+74,Grassy,DOC,34.53
+75,Rabbit,DIC,90.086
+76,Rabbit,DOC,23.31
+77,Freefight,DIC,417.6
+78,Freefight,DOC,113.676
+79,Chapleau,DIC,49.808
+80,Chapleau,DOC,19.702
+81,Shrimp,DIC,45.542
+82,Shrimp,DOC,17.917
+83,Barber,DIC,73.448
+84,Barber,DOC,21.597
+85,Lonetree,DIC,47.42
+86,Lonetree,DOC,15.261
+87,Deadmoose,DIC,82.464
+88,Deadmoose,DOC,26.464
+89,Fishing,DIC,59.502
+90,Fishing,DOC,17.883
+91,Deep,DIC,59.768
+92,Deep,DOC,20.849
+93,Horse,DIC,103.534
+94,Horse,DOC,31.984
+95,Madge,DIC,43.166
+96,Madge,DOC,13.118
+97,X5,DIC,280.224
+98,X5,DOC,73.967
+99,Little Manitou,DIC,91.201
+100,Little Manitou,DOC,64.441
+101,Newton,DIC,46.545
+102,Newton,DOC,8.057
+103,Willow Bunch,DIC,129.943
+104,Willow Bunch,DOC,16.171
+105,Quill,DIC,75.738
+106,Quill,DOC,27.905
+107,Elkwater,DIC,39.674
+108,Elkwater,DOC,6.247
+109,Stony Beach,DIC,60.952
+110,Stony Beach,DOC,24.394
+111,Shannon,DIC,67.224
+112,Shannon,DOC,20.602
+113,Redberry,DIC,112.171
+114,Redberry,DOC,30.1
+115,WhiteBear,DIC,136.217
+116,WhiteBear,DOC,34.879
+117,Peter,DIC,41.037
+118,Peter,DOC,35.329
+119,Springwater,DIC,124.795
+120,Springwater,DOC,42.871
+121,Kindersley,DIC,32.905
+122,Kindersley,DOC,19.197
+123,McLean,DIC,189.586
+124,McLean,DOC,198.252
+125,Wakaw,DIC,43.911
+126,Wakaw,DOC,14.164
+127,Coldspring,DIC,103.52
+128,Coldspring,DOC,35.623
+129,Lac Pelletier,DIC,75.42
+130,Lac Pelletier,DOC,10.663
+131,Farewell,DIC,265.41
+132,Farewell,DOC,38.853
+133,Island,DIC,44.38
+134,Island,DOC,14.639
+135,White Heron,DIC,115.868
+136,White Heron,DOC,36.658
+137,Macklin,DIC,127.462
+138,Macklin,DOC,31.332
+139,Kipabiskau,DIC,56.685
+140,Kipabiskau,DOC,21.15
+141,Tramping,DIC,203.823
+142,Tramping,DOC,87.464
+143,Alioth,DIC,39.365
+144,Alioth,DOC,63.005
+145,Lewis Creek South,DIC,43.359
+146,Lewis Creek South,DOC,24.569
+147,Snakehole,DIC,127.306
+148,Snakehole,DOC,164.32
+149,Opuntia,DIC,133.47
+150,Opuntia,DOC,28.742
+151,Sunny,DIC,322.56
+152,Sunny,DOC,59.852
+153,Sink,DIC,185.099
+154,Sink,DOC,42.333
+155,Porter,DIC,83.677
+156,Porter,DOC,25.979
+157,Reesor,DIC,40.858
+158,Reesor,DOC,6.883
+159,Lenore,DIC,84.347
+160,Lenore,DOC,22.252
+161,Humbolt,DIC,56.37
+162,Humbolt,DOC,16.467
+163,Last Mountain,DIC,61.771
+164,Last Mountain,DOC,12.538
+165,Luck,DIC,47.054
+166,Luck,DOC,27.277
+167,Thackery,DIC,66.453
+168,Thackery,DOC,32.945
+169,Adrian,DIC,158.469
+170,Adrian,DOC,30.218
+171,Good Spirt,DIC,48.345
+172,Good Spirt,DOC,18.688
+173,Gull,DIC,94.276
+174,Gull,DOC,26.741
+175,Charron,DIC,96.402
+176,Charron,DOC,26.955
+177,Pike,DIC,59.997
+178,Pike,DOC,18.313
+179,Antelope,DIC,122.612
+180,Antelope,DOC,44.277
+181,Alsask,DIC,607.6
+182,Alsask,DOC,74.036
+183,Shoe,DIC,133.091
+184,Shoe,DOC,41.637
+185,Blackstrap,DIC,40.667
+186,Blackstrap,DOC,8.89
+187,Summercove,DIC,91.065
+188,Summercove,DOC,19.927
+189,Gouverneur,DIC,90.498
+190,Gouverneur,DOC,19.167
+191,Old Wives,DIC,82.764
+192,Old Wives,DOC,18.942
+193,McDonald,DIC,41.19
+194,McDonald,DOC,10.384
+195,Handsome,DIC,112.395
+196,Handsome,DOC,34.215
+197,Snipe,DIC,136.656
+198,Snipe,DOC,31.364
+199,Arthur,DIC,95.46
+200,Arthur,DOC,30.748
+201,Suffern,DIC,61.697
+202,Suffern,DOC,14.367
+203,Waldsea,DIC,79.167
+204,Waldsea,DOC,25.874
+205,Van Scoy,DIC,41.015
+206,Van Scoy,DOC,32.231
+207,Unknown 3,DIC,102.918
+208,Unknown 3,DOC,183.084
+209,Harris,DIC,44.273
+210,Harris,DOC,10.884
+211,Cypress,DIC,66.285
+212,Cypress,DOC,15.361
+213,Unknown 1,DIC,104.956
+214,Unknown 1,DOC,34.638
