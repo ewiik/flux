@@ -21,7 +21,8 @@ co2gams <- function(df) {
 
 resgams <- function(df, res) {
   if (nrow(df) < 3) { return(NA) } else {
-  resmod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
+  res <- as.data.frame(res)
+    resmod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
              s(DOC_mg_L) + s(Oxygen_ppm) + 
              te(PDO, SOI) + s(Year, bs = "re"), data = df,
            select = TRUE, method = "REML", family = scat(),
@@ -42,6 +43,9 @@ allres <- lapply(regmods, resid, type = "pearson", na.action = na.exclude)
 resmods <- mapply(resgams, regsplit, allres)
 ## FIXME: due to this error objects aren't created:
 ##    Error in diag(c(rep(S11, rank), rep(0, p - rank))) : vector is too large 
+## with later model where res is made into data frame, I get this:
+##    Error in model.frame.default(formula = res ~ 1 + Chl_a_ug_L + GPP_h +  : 
+##    invalid type (list) for variable 'res' 
 
 ## can lapply these to the above to check diagnostics however
 ##    over gam.check the plotting default means I don't know how to store objects
