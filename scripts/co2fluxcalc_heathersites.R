@@ -1,17 +1,17 @@
 ## run gasexchange on heather's sites
 
 ## load required data
-if (!file.exists("data/private/heathergasfluxsupp.rds")) {
-  source("scripts/co2flux_heathersites.R")
+if (!file.exists("../data/private/heathergasfluxsupp.rds")) {
+  source("co2flux_heathersites.R")
 }
-alldat <- readRDS("data/private/heathergasfluxsupp.rds")
+alldat <- readRDS("../data/private/heathergasfluxsupp.rds")
 alldat <- transform(alldat, sampleDate = as.POSIXct(as.character(sampleDate), format = "%Y-%m-%d"))
 colnames(alldat)[which(colnames(alldat) == "sampleDate")] <- "Date"
 alldat <- transform(alldat, Year = as.numeric(format(Date, format = "%Y")),
                     Month = as.numeric(format(Date, format = "%m")),
                     Day = as.numeric(format(Date, format = "%d")))
 
-ml <- read.csv("data/maunaloa.csv") 
+ml <- read.csv("../data/maunaloa.csv") 
 
 ## Insert pco2atm from Mauna Loa
 mlsub <- subset(ml, select = c('Year', 'Month', 'pCO2'))
@@ -19,7 +19,7 @@ names(mlsub) <- c("Year", "Month", "pco2atm")
 alldat <- merge(alldat, mlsub, by = c("Year", "Month"))
 
 ## load gasExchangeFlex
-source("functions/gasExchangeFlex.R")
+source("../functions/gasExchangeFlex.R")
 
 ## run the function, feed in changing atmospheric co2 concs
 args(gasExchangeFlex) # couldn't remember...
