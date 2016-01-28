@@ -97,6 +97,99 @@ plot(egmod.red2, pages = 4, scheme = 2)
 par(op)
 dev.off()
 
+## use final models created for pH and resids, adapted to see if any one Lake deviates
+##    from the global trend
+## =================================================================================
+## 1. can we use a blanket model for CO2 based on pH?
+co2mod <- gam(co2Flux ~ 
+               s(pH_surface) + s(pH_surface, by = Lake, m = 1) +
+               # m = 1 means that penalty goes with 1st derivative... required
+               #    here because we're doing both s() and s(..,by = ...)
+               s(Lake, Year, bs = "re"), # still need to explicitly keep Lake as re!!!
+             data = regvarf,
+             select = TRUE, method = "REML", family = gaussian,
+             na.action = na.exclude,
+             control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+
+summary <- TRUE
+if(summary) {
+  summary(co2mod)
+  gam.check(co2mod)
+}
+## FIXME: the kindex and pvalues are still NA for this model too
+
+co2modnull <- gam(co2Flux ~ 
+                s(pH_surface) +
+                s(Lake, Year, bs = "re"), 
+              data = regvarf,
+              select = TRUE, method = "REML", family = gaussian,
+              na.action = na.exclude,
+              control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+
+anova(co2modnull, co2mod, test = "LRT")
+AIC(co2modnull, co2mod)
+# --> we need to take the more complex model
+
+res <- resid(co2mod, type = "pearson")
+
+resmod <- gam(res ~ 
+                    s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
+                    s(GPP_h) + s(GPP_h, by = Lake, m = 1) +
+                    s(log10(TDN_ug_L)) + s(log10(TDN_ug_L), by = Lake, m = 1) +
+                    s(log10(DOC_mg_L)) + s(log10(DOC_mg_L), by = Lake, m = 1) +
+                    s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) +
+                    te(PDO, SOI) +
+                    s(Lake, Year, bs = "re"),
+                  data = regvarf2,
+                  select = TRUE, method = "REML", family = scat(),
+                  na.action = na.exclude,
+                  control = gam.control(nthreads = 3, trace = TRUE,
+                                        newton = list(maxHalf = 60)))
+
+pdf("../docs/resmod-full-covariates.pdf")
+op <- par(mar = c(4,4,1,1) + 0.1)
+plot(resmod, pages = 5, scheme = 2)
+par(op)
+dev.off()
+
+## some of the GPP lake-specific things look a bit far-fetched so took Lake away there.
+resmodred <- gam(res ~ 
+                   s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
+                   s(GPP_h) +
+                   s(log10(TDN_ug_L)) + 
+                   s(log10(DOC_mg_L)) + 
+                   s(Oxygen_ppm) + 
+                   te(PDO, SOI) +
+                   s(Lake, Year, bs = "re"),
+                 data = regvarf2,
+                 select = TRUE, method = "REML", family = scat(),
+                 na.action = na.exclude,
+                 control = gam.control(nthreads = 3, trace = TRUE,
+                                       newton = list(maxHalf = 60)))
+anova(resmodred, resmod, test = "LRT")
+
+if(summary) {
+  summary(resmodred)
+  gam.check(resmodred)
+}
+## s(log10(TDN_ug_L))          2.931e+00      9 25.756 9.97e-06 ***
+
+resmodredchl <- gam(res ~ 
+                   s(log10(Chl_a_ug_L)) +
+                   s(GPP_h) +
+                   s(log10(TDN_ug_L)) + 
+                   s(log10(DOC_mg_L)) + 
+                   s(Oxygen_ppm) + 
+                   te(PDO, SOI) +
+                   s(Lake, Year, bs = "re"),
+                 data = regvarf2,
+                 select = TRUE, method = "REML", family = scat(),
+                 na.action = na.exclude,
+                 control = gam.control(nthreads = 3, trace = TRUE,
+                                       newton = list(maxHalf = 60)))
+
+anova(resmodredchl, resmodred, test = "LRT")
+
 ## ===========================================================================
 ## Below are my initial apply applications before learning that I can introduce
 ##    by = ... into a gam call which makes it all better cause I am still using 
