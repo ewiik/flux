@@ -3,6 +3,7 @@
 
 ## load necessary packages
 library("mgcv")
+library("ggplot2")
 
 ## load necessary data
 if (!file.exists("../data/private/regvars.rds")) {
@@ -47,6 +48,7 @@ regvarf2$`Chl_a_ug_L`[regvarf2$`Chl_a_ug_L` <=0 ] <- 0
 regvarf2$`DOC_mg_L`[regvarf2$`DOC_mg_L` <=0 ] <- 0
 regvarf2$`Chl_a_ug_L` <- regvarf2$`Chl_a_ug_L` + 1
 regvarf2$`DOC_mg_L` <- regvarf2$`DOC_mg_L` + 1
+regvarf2 <- transform(regvarf2, dummy = rep(1, nrow(regvarf2)))
 
 ## for this model, we are removing some of the Lake-specificity where nothing signif
 ##    was found in previous model
@@ -57,7 +59,7 @@ egmod.red <- gam(pH_surface ~
                    s(log10(DOC_mg_L)) +
                    s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) +
                    te(PDO, SOI) +
-                   s(Lake, Year, bs = "re"),
+                   s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator),
                  data = regvarf2,
                  select = TRUE, method = "REML", family = gaussian,
                  na.action = na.exclude,
@@ -79,7 +81,7 @@ egmod.red2 <- gam(pH_surface ~
                     s(log10(DOC_mg_L)) +
                     s(Oxygen_ppm) +
                     te(PDO, SOI) +
-                    s(Lake, Year, bs = "re"),
+                    s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator
                   data = regvarf2,
                   select = TRUE, method = "REML", family = scat(),
                   na.action = na.exclude,
@@ -96,6 +98,31 @@ op <- par(mar = c(4,4,1,1) + 0.1)
 plot(egmod.red2, pages = 4, scheme = 2)
 par(op)
 dev.off()
+
+## Get site-specific data/predictions
+N <- 200
+varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
+lakeXbar <- with(regvarf2, do.call("rbind",
+                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
+                                          colMeans, na.rm = TRUE)))
+lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
+
+chla.pdat <- with(droplevels(regvarf2),
+                  data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    max(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    length = N),
+                                                nlevels(Lake)),
+                             Lake = rep(levels(Lake), each = N),
+                             Year = rep(2004, prod(nlevels(Lake), N)),
+                             dummy = rep(0, prod(nlevels(Lake), N))))
+chla.pdat <- merge(chla.pdat, lakeXbar)
+chla.pred <- predict(egmod.red2, newdata = chla.pdat, type = "terms")
+whichCols <- grep("Chl", colnames(chla.pred))
+chla.pdat <- cbind(chla.pdat, Fitted = rowSums(chla.pred[, whichCols]))
+
+ggplot(chla.pdat, aes(x = Chl_a_ug_L, y = Fitted, colour = Lake)) +
+  geom_line()
+
 
 ## use final models created for pH and resids, adapted to see if any one Lake deviates
 ##    from the global trend
@@ -139,7 +166,7 @@ resmod <- gam(res ~
                     s(log10(DOC_mg_L)) + s(log10(DOC_mg_L), by = Lake, m = 1) +
                     s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) +
                     te(PDO, SOI) +
-                    s(Lake, Year, bs = "re"),
+                    s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator),
                   data = regvarf2,
                   select = TRUE, method = "REML", family = scat(),
                   na.action = na.exclude,
@@ -160,7 +187,7 @@ resmodred <- gam(res ~
                    s(log10(DOC_mg_L)) + 
                    s(Oxygen_ppm) + 
                    te(PDO, SOI) +
-                   s(Lake, Year, bs = "re"),
+                   s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator
                  data = regvarf2,
                  select = TRUE, method = "REML", family = scat(),
                  na.action = na.exclude,
@@ -173,6 +200,31 @@ if(summary) {
   gam.check(resmodred)
 }
 ## s(log10(TDN_ug_L))          2.931e+00      9 25.756 9.97e-06 ***
+
+### Get site specific data/predictions
+N <- 200
+varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
+lakeXbar <- with(regvarf2, do.call("rbind",
+                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
+                                          colMeans, na.rm = TRUE)))
+lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
+
+chla.pdat <- with(droplevels(regvarf2),
+                  data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    max(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    length = N),
+                                                nlevels(Lake)),
+                             Lake = rep(levels(Lake), each = N),
+                             Year = rep(2004, prod(nlevels(Lake), N)),
+                             dummy = rep(0, prod(nlevels(Lake), N))))
+chla.pdat <- merge(chla.pdat, lakeXbar)
+chla.pred <- predict(resmodred, newdata = chla.pdat, type = "terms")
+whichCols <- grep("Chl", colnames(chla.pred))
+chla.pdat <- cbind(chla.pdat, Fitted = rowSums(chla.pred[, whichCols]))
+
+ggplot(chla.pdat, aes(x = Chl_a_ug_L, y = Fitted, colour = Lake)) +
+  geom_line()
+
 
 resmodredchl <- gam(res ~ 
                    s(log10(Chl_a_ug_L)) +
