@@ -1,4 +1,6 @@
 ## run gasexchange on heather's sites
+## chl data is from the database too, heather emailed it on Jan30-2016
+## FIXME: Which Little Manitou is in the actual chl data?
 
 ## load required data
 if (!file.exists("../data/private/heathergasfluxsupp.rds")) {
@@ -12,6 +14,10 @@ alldat <- transform(alldat, Year = as.numeric(format(Date, format = "%Y")),
                     Day = as.numeric(format(Date, format = "%d")))
 
 ml <- read.csv("../data/maunaloa.csv") 
+if (!file.exists("../data/private/chlorophyllheathersites.csv")) {
+  stop("get chlorophyll data from heather")
+} else {chlor <- read.csv("../data/private/chlorophyllheathersites.csv")}
+
 
 ## Insert pco2atm from Mauna Loa
 mlsub <- subset(ml, select = c('Year', 'Month', 'pCO2'))
@@ -52,3 +58,21 @@ puddles <- subset(alldat, select = c("Date", "lakeName", "latitude", "longitude"
                                      "Altitude", "co2flux"), subset = sampleDepth <= 2.5)
 write.csv(puddles, "data/private/co2fluxheathersubset.csv")
 
+
+## =====================================================================================
+## look at chlorophyll data in relation with gas flux.
+chlor <- subset(chlor, chlID == "A")
+chlormeans <- with(chlor, split(chlor, list(sampleID)))
+mycolMeans <- function(df, cols) {
+  df <- as.data.frame(df)
+  subdf <- subset(df, select = cols)
+  means <- colMeans(subdf, na.rm = TRUE)
+  cbind(data.frame(LAKE = df['sampleID'][1,], t(means)))
+}
+chlormeans <- lapply(chlormeans, mycolMeans, 'chlvalue')
+chlormeans <- do.call(rbind, chlormeans)
+row.names(chlormeans) <- NULL
+
+alldatchl <- merge(alldat, chlormeans, all.x = TRUE, by.x = 'lakeName', by.y = 'LAKE')
+
+write.csv(alldatchl, "../data/private/co2fluxheathersites.csv")
