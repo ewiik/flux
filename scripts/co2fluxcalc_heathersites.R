@@ -29,10 +29,12 @@ source("../functions/gasExchangeFlex.R")
 
 ## run the function, feed in changing atmospheric co2 concs
 args(gasExchangeFlex) # couldn't remember...
-alldat <- transform(alldat, co2flux = gasExchangeFlex(temp = temperature, cond = conductivity, ph = pH,
-                                                      wind = wind, salt = salinity, dic = DIC, 
-                                                      alt = Altitude, altnotkpa = TRUE,
-                                                      pco2atm = pco2atm))
+co2z <- with(alldat, gasExchangeFlex(temp = temperature, cond = conductivity, ph = pH,
+                          wind = wind, salt = salinity, dic = DIC, 
+                          alt = Altitude, altnotkpa = TRUE,
+                          pco2atm = pco2atm))
+
+alldatz <- cbind(alldat, co2z)
 
 ## a few diagnostic plots...
 pdf("data/private/heathersites.pdf")
@@ -73,6 +75,6 @@ chlormeans <- lapply(chlormeans, mycolMeans, 'chlvalue')
 chlormeans <- do.call(rbind, chlormeans)
 row.names(chlormeans) <- NULL
 
-alldatchl <- merge(alldat, chlormeans, all.x = TRUE, by.x = 'lakeName', by.y = 'LAKE')
+alldatchl <- merge(alldatz, chlormeans, all.x = TRUE, by.x = 'lakeName', by.y = 'LAKE')
 
 write.csv(alldatchl, "../data/private/co2fluxheathersites.csv")
