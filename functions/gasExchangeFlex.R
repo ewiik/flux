@@ -161,6 +161,6 @@ gasExchangeFlex <- function(temp, cond, ph, wind, kerri = FALSE, altnotkpa = FAL
   
   # =Y2*X2
   fluxenh <- flux*alpha
-  fluxenh
+  data.frame(fluxenh, pco2)
 }
 
