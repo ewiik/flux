@@ -1,15 +1,20 @@
 ---
 title: "Rationale and diagnostics --- Routines CO$_2$ flux"
 author: "Emma"
-date: "November 30, 2015"
+date: "Feb 2016"
 output: pdf_document
 ---
-```{r, echo=FALSE}
+```{r, echo=FALSE, results='hide', include=FALSE}
 ## source necessary packages
 library("mgcv")
 library("ggplot2")
 
-## load necessary data
+## read in models
+phmod <- readRDS("../data/private/egmodred2.rds")
+co2mod <- readRDS("../data/private/co2mod.rds")
+resmod <- readRDS("../data/private/resmodred.rds")
+
+## load necessary data and make transformations
 if (!file.exists("../data/private/regvars.rds")) {
   source("../scripts/regression_routines.R")
 }
@@ -24,10 +29,9 @@ regvarf2$`Chl_a_ug_L` <- regvarf2$`Chl_a_ug_L` + 1
 regvarf2$`DOC_mg_L` <- regvarf2$`DOC_mg_L` + 1
 regvarf2 <- transform(regvarf2, dummy = rep(1, nrow(regvarf2)))
 
-
 ```
 
-This document outlines the regression modelling of fully resolved temporal series of all routines sites (Pasqua, Wascana, Diefenbaker, Buffalo Pound, Last Mountain, Katepwa, Crooked). Pasqua series started in 2006, for the others CO$_2$ flux calculations were available from 1998. Missing data were not replaced by extrapolation. Variable selection was based on results from previous analyses, indicating that on an annual resolution, climate, pH, and for between-lake differences, production, were the most important drivers of flux. 
+This document outlines the regression modelling of fully resolved temporal series of all routines sites (Pasqua, Wascana, Diefenbaker, Buffalo Pound, Last Mountain, Katepwa, Crooked). Pasqua series started in 2006, for the others CO$_2$ flux calculations were available from the 1990s. Missing data were not replaced by extrapolation. Variable selection was based on results from previous analyses, indicating that on an annual resolution, climate, pH, and for between-lake differences, production, were the most important drivers of flux. 
 
 Since analysis has previously been done at an annual resolution, with lake-specific effects identified, both factors were added as random errors into the models. This effectively means that the model looks into the sub-annual variation in all data, given the effect of Year and Lake on the intercept.
 
@@ -57,74 +61,97 @@ As unexplained deviance was very small (3%), the model of the residuals was triv
 
 The pH model explained 42% of deviance. Out of all variables, GPP (shrunk out of the model), N (p < 0.1) and DOC (p < 0.1) were marginally or completely insignificant. As for previous analyses on an annual resolution, climate had the largest effect on pH, however production as chl a also had a significant effect in contrast to results from annual-resolution models. Furthermore, lake-specific effects were found for Wascana and Buffalo Pound, the former more significant than the latter (higher-than-mean-effect on pH).  
 
-Oxygen had an initial positive effect on pH followed by a plateauing out above ca 10 mg/L. 
+``` {r, echo=FALSE, include=FALSE}
+## Get site-specific data/predictions
+N <- 200
+varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
+lakeXbar <- with(regvarf2, do.call("rbind",
+                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
+                                          colMeans, na.rm = TRUE)))
+lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
 
-```{r, echo=FALSE}
-## model of pH ~ .
-egmod.red2 <- gam(pH_surface ~ 
-                    s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
-                    s(GPP_h) +
-                    s(log10(TDN_ug_L)) + 
-                    s(log10(DOC_mg_L)) +
-                    s(Oxygen_ppm) +
-                    te(PDO, SOI) +
-                    s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator
-                  data = regvarf2,
-                  select = TRUE, method = "REML", family = scat(),
-                  na.action = na.exclude,
-                  control = gam.control(nthreads = 3, trace = TRUE,
-                                        newton = list(maxHalf = 60)))
-## model of CO2 ~ pH
-co2mod <- gam(co2Flux ~ 
-               s(pH_surface) + s(pH_surface, by = Lake, m = 1) +
-               # m = 1 means that penalty goes with 1st derivative... required
-               #    here because we're doing both s() and s(..,by = ...)
-               s(Lake, Year, bs = "re"), # still need to explicitly keep Lake as re!!!
-             data = regvarf,
-             select = TRUE, method = "REML", family = gaussian,
-             na.action = na.exclude,
-             control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+chla.pdat <- with(droplevels(regvarf2),
+                  data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    max(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    length = N),
+                                                nlevels(Lake)),
+                             Lake = rep(levels(Lake), each = N),
+                             Year = rep(2004, prod(nlevels(Lake), N)),
+                             dummy = rep(0, prod(nlevels(Lake), N))))
+chla.pdat <- merge(chla.pdat, lakeXbar)
+chla.pred <- predict(phmod, newdata = chla.pdat, type = "terms")
+whichCols <- grep("Chl", colnames(chla.pred))
+chla.pdat <- cbind(chla.pdat, Fitted = rowSums(chla.pred[, whichCols]))
+```
 
-## model of res ~ .
-res <- resid(co2mod, type = "pearson")
+``` {r, echo=FALSE}
+ggplot(chla.pdat, aes(x = Chl_a_ug_L, y = Fitted, colour = 
+                        ifelse(Lake == "WW", "Wascana", "others"))) +
+  geom_line() + 
+  scale_colour_manual(name = 'Lakes', values = c("#999999", "#E69F00")) +
+  xlab('Chl a (ug/L)') + ylab('mean-0 pH')
+```
+
+Under ca 10ppm, decreasing oxygen had a negative effect on pH (holding all other variables at their mean).
+
+``` {r, echo=FALSE, error=FALSE, message=FALSE, warning=FALSE}
+## Get site-specific data/predictions Oxygen_ppm
+N <- 200
+varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Chl_a_ug_L", "PDO", "SOI")
+lakeObar <- data.frame(t(colMeans(regvarf2[, varWant], na.rm = TRUE)))
+lakeObar$Year <- 2004
+
+o2.pdat <- with(droplevels(regvarf2),
+                  data.frame(`Oxygen_ppm` = rep(seq(min(`Oxygen_ppm`, na.rm = TRUE),
+                                                    max(`Oxygen_ppm`, na.rm = TRUE),
+                                                    length = N),
+                                                nlevels(Lake)),
+                             Lake = rep(levels(Lake), each = N),
+                             Year = rep(2004, prod(nlevels(Lake), N)),
+                             dummy = rep(0, prod(nlevels(Lake), N))))
+o2.pdat <- merge(o2.pdat, lakeObar)
 
 
-resmodred <- gam(res ~ 
-                   s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
-                   s(GPP_h) +
-                   s(log10(TDN_ug_L)) + 
-                   s(log10(DOC_mg_L)) + 
-                   s(Oxygen_ppm) + 
-                   te(PDO, SOI) +
-                   s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator
-                 data = regvarf2,
-                 select = TRUE, method = "REML", family = scat(),
-                 na.action = na.exclude,
-                 control = gam.control(nthreads = 3, trace = TRUE,
-                                       newton = list(maxHalf = 60)))
+o2.pred <- predict(phmod, newdata = o2.pdat, type = "terms")
+whichCols <- grep("Oxygen", colnames(o2.pred))
+o2.pdat <- cbind(o2.pdat, Fitted = o2.pred[, whichCols])
+```
 
+``` {r, echo=FALSE}
+ggplot(o2.pdat, aes(x = Oxygen_ppm, y = Fitted)) +
+  geom_line() + 
+  xlab('Oxygen (ppm)') + ylab('mean-0 pH')
 ```
 
 
+## Note on diel data
 
-## Discussion
 Night-time flux for Wascana, based on running gas exchange equations with mean wind, and using altitude instead of pressure (initial quick run), and calculating DIC from conductivity (DIC or alkalinity not measured by sonde), indicates that no significant release of CO$_2$ occurs at night to offset daytime influx. pH stays above 8.6. The most positive flux occurred in late September when both day- and night-time pH dropped below 8.6.
-These initial data suggest that it is plausible to assume that, during summer time, the net negative flux balance holds.
-However, if the lakes have a long ice-free period through September into November, larger fluxes can occur.
+These initial data suggest that it is plausible to assume that between-day/week fluctuations exceed diurnal fluctuations.
+However, if the lakes have a long ice-free period through September into November with sinking temperature and production, larger effluxes can occur.
 
-PS something to be said about the fact that a few of these predictors ARE NOT correlated with each other! Pretty interesting!
+## Model summaries
 
-
+Summary of pH ~ . 
 ```{r, echo=FALSE}
-## source necessary packages
-library("ggplot2")
-library("mgcv")
-library("car")
-
-## source necessary data
-if (!file.exists("~/git/flux/data/private/regvars.rds")) {
-  source("~/git/flux/scripts/regression_routines.R")
-}
-regvars <- readRDS("~/git/flux/data/private/regvars.rds")
+summary(phmod)
 ```
 
+Summary of CO2 ~ pH
+```{r, echo=FALSE}
+summary(co2mod)
+```
+
+Summary of res ~ .
+```{r, echo=FALSE}
+summary(resmod)
+```
+
+<!-- 
+## Plots of pH ~ .
+
+``` {r plotgam, echo=FALSE, dev='pdf', dev.args=list(onefile=TRUE), fig.keep='all'}
+par(mar = c(4,4,1,1) + 0.1)
+plot(phmod, pages = 4, scheme = 2)
+```
+FIXME: this isn't working, only printing 1st page of output! --> 
