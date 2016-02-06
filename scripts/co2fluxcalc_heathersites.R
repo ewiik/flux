@@ -1,7 +1,9 @@
 ## run gasexchange on heather's sites
 ## chl data is from the database too, heather emailed it on Jan30-2016
 ## Little Manitou in the chl data set is the north one, site id 66
-## FIXME: complete units: secchi & sample depth (m), wind (m/s), conductivity (uS/cm), .. 
+## Units as in database: secchi & sample depth (m), wind (m/s), conductivity (uS/cm),
+##    condSLS (mS/cm), salinity (ppt i.e. g/L), TDS (g/L), oxygen (mg/L), chl (ug/L),
+##    DIC (mg/L i.e. ppm), DOC (mg/L i.e. ppm)
 ## FIXME: incorporate these into final colnames
 
 ## load required data
@@ -61,6 +63,8 @@ names(alldatz)[which(names(alldatz) %in% c("fluxenh", "pco2"))] <-
 
 ## save object for later
 write.csv(alldatz, "../data/private/co2fluxheathersites.csv", row.names = FALSE)
+## this with long and descriptive colnames
+
 
 ## a few diagnostic plots...
 pdf("data/private/heathersites.pdf")
