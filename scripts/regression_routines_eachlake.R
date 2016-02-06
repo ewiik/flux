@@ -100,6 +100,7 @@ egmod.red2 <- gam(pH_surface ~
                   na.action = na.exclude,
                   control = gam.control(nthreads = 3, trace = TRUE,
                                         newton = list(maxHalf = 60)))
+saveRDS(egmod.red2, "../data/private/egmodred2.rds")
 egmodred2sum <- summary(egmod.red2)
 if (plotmods) {
 sink("../data/private/egmodred2summary.txt")
@@ -168,6 +169,8 @@ sink()
 }
 
 gam.check(co2mod)
+saveRDS(co2mod, "../data/private/co2mod.rds")
+
 ## FIXME: the kindex and pvalues are still NA for this model too
 
 if(runextras) {
@@ -241,6 +244,7 @@ if (runextras) {
 anova(resmodred, resmod, test = "LRT")
 ## the simpler model is just fine
 }
+saveRDS(resmodred, "../data/private/resmodred.rds")
 
 co2resmodredsum <- summary(resmodred)
 
@@ -249,6 +253,12 @@ sink("../data/private/co2resmodredsummary.txt")
 co2resmodredsum
 ## s(log10(TDN_ug_L))          2.931e+00      9 25.756 9.97e-06 ***
 sink()
+
+pdf("../docs/resmodred.pdf")
+op <- par(mar = c(4,4,1,1) + 0.1)
+plot(resmodred, pages = 3, scheme = 2)
+par(op)
+dev.off()
 
 plot(resmodred, pages = 3, scheme = 2)
 }
