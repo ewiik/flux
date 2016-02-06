@@ -2,10 +2,10 @@
 ##    resolved temporal series of all routines sites
 
 ## read in data set with all variables of interest
-if (!file.exists("data/private/regvars.rds")) {
-  source("scripts/regression_routines.R")
+if (!file.exists("../data/private/regvars.rds")) {
+  source("../scripts/regression_routines.R")
 }
-regvars <- readRDS("data/private/regvars.rds")
+regvars <- readRDS("../data/private/regvars.rds")
 
 ## load necessary packages
 library("car")
@@ -71,9 +71,6 @@ gamlake2 <- gam(co2Flux ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) +
                select = TRUE, method = "ML", family = scat())
 gam.check(gamlake2)
 summary(gamlake2)
-## FIXME: are my k too low? some k-index just under 1, but only just
-##    and k' not really close to edf other than maybe my re's
-
 
 ## this is the version that Gavin helped create: first model pH, take residuals,
 ##    and model those based on the rest of the variables
@@ -120,33 +117,6 @@ plot(gamlake, pages=1, residuals=TRUE, pch=19, cex=0.25,
      scheme=1, col='#FF8000', shade=TRUE,shade.col='gray90')
 plot(mod2, pages=1, residuals=TRUE, pch=19, cex=0.25,
      scheme=1, col='#FF8000', shade=TRUE,shade.col='gray90')
-
-## A miniscript that will run the plots for each individual variable's effect keeping
-##    all other variables constant (at their mean)
-## Note that ..$model is the data that was used in the modeling process
-varmeans <- data.frame(t(colMeans(mod$model[,2:8])))
-varlist <- names(varmeans)
-varlist
-varying <- "GPP_h"
-varindexv <- which(names(varmeans) == varying)
-varindexm <- which(names(mod$model) == varying)
-
-testdata <- data.frame(cbind(varmeans[,-varindexv], mod$model[,varindexm]))
-names(testdata)[length(testdata)] <- varying
-
-testdata$co2Flux <- mod$model$co2Flux
-testdata$Lake <- mod$model$Lake
-
-fits  <-  predict(mod, newdata=testdata, type='response', se = TRUE)
-predicts  <-  data.frame(testdata, fits)
-names(predicts)[names(predicts) == varying]
-fit <- "fit"
-ggplot(aes_string(x=varying,y=fit), data=predicts) + # aes_string means it takes the colname
-  #   indicated by the string that varying refers to!!
-  geom_smooth(aes(ymin = fit - 1.96*se.fit, ymax=fit + 1.96*se.fit),
-              fill='gray80', size=1,stat='identity') +
-  xlab(varying)
-## FIXME: discuss plots with Gavin, especially the zigzag ones
 
 ## evidence for DOC declining with the progression of summer?
 ggplot(data = regvars, aes(x= Date, y = DOC_mg_L, group = Lake)) +

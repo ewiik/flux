@@ -2,8 +2,6 @@
 ##    carries on and investigates what may be driving (covarying with) pH
 ## We know that the max that pH can achieve is related to the start-of-year pH, so
 ##    therefore we will also look at Year as a random effect!
-## We know that N and P tend to be correlated, so let's allow one or both to be dropped
-##    and start with allowing shrinkage
 
 ## get necessary packages
 library("ggplot2")
@@ -16,15 +14,7 @@ if (!file.exists("../data/private/regvars.rds")) {
 }
 regvars <- readRDS("../data/private/regvars.rds")
 
-## is pH heavy-tailed? - this is irrelevant - you want to know if pH | x
-plot(density(regvars$pH_surface, na.rm = TRUE))
-qqnorm(regvars$pH_surface, na.rm = TRUE)
-## yes, choose family = scat() in gam
-
-## create model; pH a function of instantaneous productivity and previous year sum index?
-## FIXME: thought I should transform Year into factor since it's a random effect, but
-##    for some reason actually model didn't work with Year as not a factor,...
-##    (as s(Year) or s(Year, bs = "re")) which is weird
+## create model; pH a function of production and climate removing effect of Year and Lake
 regvarf <- regvars
 regvarf <- transform(regvarf, Year = as.factor(Year))
 phmod <- gam(pH_surface ~ s(Lake, Year, bs = "re") + s(Chl_a_ug_L) + s(GPP_h) +
@@ -33,33 +23,6 @@ phmod <- gam(pH_surface ~ s(Lake, Year, bs = "re") + s(Chl_a_ug_L) + s(GPP_h) +
 summary(phmod)
 plot(phmod, pages = 1, pers = TRUE)
 gam.check(phmod)
-
-## A miniscript that will run the plots for each individual variable's effect keeping
-##    all other variables constant (at their mean)
-## Note that ..$model is the data that was used in the modeling process
-varmeans <- data.frame(t(colMeans(phmod$model[,4:10])))
-varlist <- names(varmeans)
-varlist
-varying <- "DOC_mg_L"
-varindexv <- which(names(varmeans) == varying)
-varindexm <- which(names(phmod$model) == varying)
-
-testdata <- data.frame(cbind(varmeans[,-varindexv], phmod$model[,varindexm]))
-names(testdata)[length(testdata)] <- varying
-
-testdata$pH_surface <- phmod$model$pH_surface
-testdata$Lake <- phmod$model$Lake
-testdata$Year <- phmod$model$Year
-fits  <-  predict(phmod, newdata=testdata, type='response', se = TRUE)
-predicts  <-  data.frame(testdata, fits)
-names(predicts)[names(predicts) == varying]
-fit <- "fit"
-ggplot(aes_string(x=varying,y=fit), data=predicts) + # aes_string means it takes the colname
-  #   indicated by the string that varying refers to!!
-  geom_smooth(aes(ymin = fit - 1.96*se.fit, ymax=fit + 1.96*se.fit),
-              fill='gray80', size=1,stat='identity') +
-  xlab(varying)
-## FIXME: discuss plots with Gavin, especially the zigzag ones
 
 ## create crude correlate of previous year's autumn productivity to see if signif
 ##    using chl a
