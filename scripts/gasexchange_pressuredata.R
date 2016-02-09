@@ -145,5 +145,5 @@ stations <- data.frame(StationID = c(3002, 51441, 3062, 44203, 48977,
                        end = c(2013, 2015, 2005, 2011, 2015, 2015, 1996, 2015))
 ## see weatherstations.csv in /RScripts; these will cover lakes b,c,d,k,l,p,ww.
 
-met <- getData(stations, folder = "./data/weatherdata")
-saveRDS(met, "data/met.rds") # save for next script
+met <- getData(stations, folder = "../data/weatherdata")
+saveRDS(met, "../data/met.rds") # save for next script
