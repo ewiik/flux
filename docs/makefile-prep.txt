@@ -1,0 +1,47 @@
+prep for makefile. * = does not depend on parent script (but may depend on a function existing)
+
+1--4: prepare data for calculating co2 flux
+===========================================
+1*. gasexchange_pressuredata: grabs raw hourly data from online and saves dmet.
+2. weathermanipulations: grabs dmet and calculates mean wind, pressure, temperature and humidity; spits out all data frames as separate rds's ([*]data.rds)
+3. pressuremanipulations: grabs all rds's created by (2) and combines them with database query tables; changes wind and DIC into correct units. saves this table as params.rds
+	+++ saves archaic one using gasExchange.R as gasFlux.rds
+4*. precipmanipulations-routines: sources functions/gasexchange_precipdata.R and grabs DAILY precipitation data from online, saves it as precip.rds
+
+5: calculate CO2 flux
+============================================
+5a. co2_scenarios: reads in params. requires maunaloa, salcalc, gasExchangeFlex. inserts also kerri's values for winds. Creates SalCalc in params and merges maunaloa pressure with params
+	+++ removes a few outliers in pH. saves updated params as params-flux.rds
+5b. co2data_comparisons: reads in archaic gasFlux.rds and tests similarity with kerri's results. requires archaic gasExchange functions. no output saved.
+
+6: prepare data for regressions for CO2 flux
+=============================================
+6. co2ExplVar: 
+	takes pdo from online and creates an annual mean column. saves as pdo.rds
+	takes soi from online and saves as soi_stand.rds (nonstand for unstandardised data)
+	takes nao from online and saves as naoseasonal.rds
+	takes temperature rds and computes monthly and annual means
+	takes relhum rds (already monthly reso)
+
+	takes various supporting data from database queries. creates means for chl a and
+		bottle production estimates
+		+++ takes out an outlier
+	
+	merges all above excepting climate indices, and saves as co2explained.rds
+		+++ this has all the POTENTIAL predictors too	
+ 	
+7: do regressions for CO2 flux
+==============================================
+7. regression_routines: combines co2 flux with predictors; subsets available predictors from
+		co2explained; reads in params-flux.rds; co2explained.rds
+	deals with remaining outliers
+	saves data frame with selected predictors and NAs removed as regvars.rds 	
+
+others:
+=============================================
+salinityrecalcproject: rationale for calculating new salinities for the database
+
+a--b: required functions. c--n: archaic functions
+=============================================
+a. salcalc.R: recalculates salinity: assumes cond as uS/cm
+b. gasExchangeFlex
