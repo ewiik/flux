@@ -307,6 +307,78 @@ ggplot(chla.pdat, aes(x = Chl_a_ug_L, y = Fitted, colour = Lake)) +
   geom_line()
 
 
+## ==========================================================================
+## RUN MODELS FOR WASCANA ONLY -- USE regvarf2 WITH <0 made to 0, +1
+## ==========================================================================
+ww <- subset(regvarf2, Lake == "WW") # 168 data points
+
+## model with Year as factor
+co2wwmod <- gam(co2Flux ~ 
+                    s(pH_surface) +
+                    s(Year, bs = "re"), 
+                  data = ww,
+                  select = TRUE, method = "REML", family = gaussian,
+                  na.action = na.exclude,
+                  control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+
+## save summary as txt document
+co2wwsum <- summary(co2wwmod)
+sink("../data/private/co2wwmodsummary.txt")
+co2wwsum
+sink()
+
+## model with logged chla and TDN and Year as factor
+phwwmod <- gam(pH_surface ~ 
+                 s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+                 s(DOC_mg_L) + s(Oxygen_ppm) + te(PDO, SOI) +
+                 s(Year, bs = "re"), 
+               data = ww,
+             select = TRUE, method = "REML", family = gaussian,
+             na.action = na.exclude,
+             control = gam.control(nthreads = 3, trace = TRUE))
+
+## save summary as txt document
+phwwsum <- summary(phwwmod)
+sink("../data/private/phwwmodsummary.txt")
+phwwsum
+sink()
+
+## extract plots for Matt's paper
+N <- 200
+varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
+lakeWbar <- data.frame(t(colMeans(ww[, varWant], na.rm = TRUE)))
+lakeWbar$Year <- 2004
+
+ww.pdat <- with(droplevels(ww),
+                data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
+                                                  max(`Chl_a_ug_L`, na.rm = TRUE),
+                                                  length = N),
+                                              nlevels(Lake)),
+                           Lake = rep(levels(Lake), each = N),
+                           Year = rep(2004, prod(nlevels(Lake), N)),
+                           dummy = rep(0, prod(nlevels(Lake), N))))
+ww.pdat <- merge(ww.pdat, lakeWbar)
+
+
+ww.pred <- predict(phwwmod, newdata = ww.pdat, type = "terms")
+ww.predse <- predict(phwwmod, newdata = ww.pdat, type = "terms", se.fit = TRUE)
+whichCols <- grep("Chl", colnames(ww.pred))
+ww.predse <- as.data.frame(ww.predse$se.fit)
+whichColsse <- grep("Chl", colnames(ww.predse))
+ww.pdat <- cbind(ww.pdat, Fitted = ww.pred[, whichCols], Fittedse = ww.pred[,whichColsse])
+ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedplus = Fitted + Fittedse))
+ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedminus = Fitted - Fittedse))
+
+ggplot(ww.pdat, aes(novcr, fit)) + 
+  geom_ribbon(aes(ymin = LL, ymax = UL, fill = expbin), 
+              alpha = 0.25) + geom_line(aes(colour = expbin), size = 2) 
+
+ggplot(ww.pdat, aes(x = Chl_a_ug_L, y = Fitted)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              alpha = 0.25) + # + geom_line(aes(colour = expbin), size = 2 
+  xlab('Chlorophyll a') + ylab('mean-0 pH')
+## FIXME: units for y axis back to pH??
 
 if (runextras) {
 ## ===========================================================================
