@@ -336,6 +336,10 @@ phwwmod <- gam(pH_surface ~
              select = TRUE, method = "REML", family = gaussian,
              na.action = na.exclude,
              control = gam.control(nthreads = 3, trace = TRUE))
+# a note regarding select = T | F: "select = FALSE just fits the model 
+#   without the second penalty on the linear part of the function. It seems to want to 
+#   keep some small amount of curvature but put a little shrinkage into the null space 
+#   just like the lasso would shrink a term away from the least squares fit." -GS
 
 ## save summary as txt document
 phwwsum <- summary(phwwmod)
@@ -343,7 +347,9 @@ sink("../data/private/phwwmodsummary.txt")
 phwwsum
 sink()
 
-## extract plots for Matt's paper
+## extract predicted values based on chlorophyll for Matt's paper
+## we can use raw, not logged, chl values, since the gam retains this information
+##    and therefore we can feed it raw to predict() !!!
 N <- 200
 varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
 lakeWbar <- data.frame(t(colMeans(ww[, varWant], na.rm = TRUE)))
@@ -360,25 +366,78 @@ ww.pdat <- with(droplevels(ww),
 ww.pdat <- merge(ww.pdat, lakeWbar)
 
 
-ww.pred <- predict(phwwmod, newdata = ww.pdat, type = "terms")
-ww.predse <- predict(phwwmod, newdata = ww.pdat, type = "terms", se.fit = TRUE)
+## predict pH based on chlorophyll alone;
+## iterms means that uncertainty in intercept is included; especially good for when
+##   y axis units transformed back into original scale
+ww.pred <- predict(phwwmod, newdata = ww.pdat, type = "iterms")
+ww.predse <- predict(phwwmod, newdata = ww.pdat, type = "iterms", se.fit = TRUE)
 whichCols <- grep("Chl", colnames(ww.pred))
 ww.predse <- as.data.frame(ww.predse$se.fit)
 whichColsse <- grep("Chl", colnames(ww.predse))
-ww.pdat <- cbind(ww.pdat, Fitted = ww.pred[, whichCols], Fittedse = ww.pred[,whichColsse])
+ww.pdat <- cbind(ww.pdat, Fitted = ww.pred[, whichCols], Fittedse = ww.predse[,whichColsse])
 ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedplus = Fitted + Fittedse))
+# simple subtraction addition works here because family=gaussian
+# if I had a log-transformed response, I'd have to change the se:
+## "The standard errors are for the function on the log scale. You need to exp() the fitted 
+##    values and the upper and lower confidence before you plot" -GS
 ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedminus = Fitted - Fittedse))
 
-ggplot(ww.pdat, aes(novcr, fit)) + 
-  geom_ribbon(aes(ymin = LL, ymax = UL, fill = expbin), 
-              alpha = 0.25) + geom_line(aes(colour = expbin), size = 2) 
+## transform back into original pH value for clarity:
+# get mean/intercept pH used by the model
+shiftph <- attr(predict(phwwmod, newdata = ww.pdat, type = "iterms"), "constant")
+ww.pdatnorm <- ww.pdat
+ww.pdatnorm <- with(ww.pdatnorm, transform(ww.pdatnorm, Fitted = Fitted + shiftph, 
+                            Fittedplus = Fittedplus + shiftph, 
+                            Fittedminus = Fittedminus + shiftph))
 
-ggplot(ww.pdat, aes(x = Chl_a_ug_L, y = Fitted)) +
+labdat <- data.frame(x = 270, y = 9.1, label = "mean pH: 9.1")
+# without this step, the resolution of the text is really off for some reason
+
+pdf("../data/private/wwphmod.pdf", width = 10, height = 6.7)
+ggplot(ww.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted)) +
   geom_line() + 
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-              alpha = 0.25) + # + geom_line(aes(colour = expbin), size = 2 
-  xlab('Chlorophyll a') + ylab('mean-0 pH')
-## FIXME: units for y axis back to pH??
+              alpha = 0.25) +  
+  geom_abline(slope = 0, intercept = shiftph, linetype="dotted") +
+  geom_text(data = labdat, aes(label = label, x = x, y = y, size = 5), 
+            show.legend = FALSE) +
+  xlab('Chlorophyll a (ug/L)') + ylab('pH')
+dev.off()
+
+## predict CO2 based on pH: keep using iterms
+ww.pdatc <- data.frame(pH_surface = ww$pH_surface, Year = 2004)
+ww.predc <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms") 
+whichColsc <- grep("pH", colnames(ww.predc))
+
+ww.predcse <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms", se.fit = TRUE)
+ww.predcse <- as.data.frame(ww.predcse$se.fit)
+whichColscse <- grep("pH", colnames(ww.predcse))
+
+ww.pdatc <- cbind(ww.pdatc, Fitted = ww.predc[, whichColsc], Fittedse = ww.predcse[,whichColscse])
+ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedplus = Fitted + Fittedse))
+ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedminus = Fitted - Fittedse))
+
+## transform back into original pH value for clarity:
+# get mean/intercept pH used by the model
+shiftco2 <- attr(predict(co2wwmod, newdata = ww.pdatc, type = "iterms"), "constant")
+ww.pdatcnorm <- ww.pdatc
+ww.pdatcnorm <- with(ww.pdatcnorm, transform(ww.pdatcnorm, Fitted = Fitted + shiftph, 
+                                           Fittedplus = Fittedplus + shiftph, 
+                                           Fittedminus = Fittedminus + shiftph))
+
+labdat <- data.frame(x = 7, y = -15, label = "mean flux: -23")
+# without this step, the resolution of the text is really off for some reason
+
+pdf("../data/private/wwco2mod.pdf", width = 10, height = 6.7)
+ggplot(ww.pdatc, aes(x = pH_surface, y = Fitted)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              alpha = 0.25) +  
+  geom_abline(slope = 0, intercept = shiftco2, linetype="dotted") +
+  geom_text(data = labdat, aes(label = label, x = x, y = y, size = 5), 
+            show_legend = FALSE) +
+  xlab('pH') + ylab('CO2 flux (mmolC/m2/d)')
+dev.off()
 
 if (runextras) {
 ## ===========================================================================
