@@ -320,6 +320,7 @@ co2wwmod <- gam(co2Flux ~
                   select = TRUE, method = "REML", family = gaussian,
                   na.action = na.exclude,
                   control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+saveRDS(co2wwmod, "../data/private/co2wwmod.rds")
 
 ## save summary as txt document
 co2wwsum <- summary(co2wwmod)
@@ -330,7 +331,7 @@ sink()
 ## model with logged chla and TDN and Year as factor
 phwwmod <- gam(pH_surface ~ 
                  s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
-                 s(DOC_mg_L) + s(Oxygen_ppm) + te(PDO, SOI) +
+                 s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) +
                  s(Year, bs = "re"), 
                data = ww,
              select = TRUE, method = "REML", family = gaussian,
@@ -340,6 +341,8 @@ phwwmod <- gam(pH_surface ~
 #   without the second penalty on the linear part of the function. It seems to want to 
 #   keep some small amount of curvature but put a little shrinkage into the null space 
 #   just like the lasso would shrink a term away from the least squares fit." -GS
+saveRDS(phwwmod, "../data/private/phwwmod.rds")
+
 
 ## save summary as txt document
 phwwsum <- summary(phwwmod)
@@ -435,7 +438,7 @@ ggplot(ww.pdatc, aes(x = pH_surface, y = Fitted)) +
               alpha = 0.25) +  
   geom_abline(slope = 0, intercept = shiftco2, linetype="dotted") +
   geom_text(data = labdat, aes(label = label, x = x, y = y, size = 5), 
-            show_legend = FALSE) +
+            show.legend = FALSE) +
   xlab('pH') + ylab('CO2 flux (mmolC/m2/d)')
 dev.off()
 
