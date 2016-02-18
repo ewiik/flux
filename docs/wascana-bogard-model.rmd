@@ -1,0 +1,168 @@
+---
+title: "WW-CO$_2$-models"
+author: "EW"
+date: "February 18, 2016"
+output: word_document
+---
+
+```{r, echo=FALSE, results='hide', include=FALSE}
+## source necessary packages
+library("mgcv")
+library("ggplot2")
+
+## read in models
+co2wwmod <- readRDS("../data/private/co2wwmod.rds")
+phwwmod <- readRDS("../data/private/phwwmod.rds")
+
+## load necessary data and make transformations
+if (!file.exists("../data/private/regvars.rds")) {
+  source("../scripts/regression_routines.R")
+}
+regvars <- readRDS("../data/private/regvars.rds")
+regvarf <- regvars
+regvarf <- transform(regvarf, Year = as.factor(Year)) # make Year into factor for re
+
+regvarf2 <- regvarf
+regvarf2$`Chl_a_ug_L`[regvarf2$`Chl_a_ug_L` <=0 ] <- 0
+regvarf2$`DOC_mg_L`[regvarf2$`DOC_mg_L` <=0 ] <- 0
+regvarf2$`Chl_a_ug_L` <- regvarf2$`Chl_a_ug_L` + 1
+regvarf2$`DOC_mg_L` <- regvarf2$`DOC_mg_L` + 1
+regvarf2 <- transform(regvarf2, dummy = rep(1, nrow(regvarf2)))
+
+ww <- subset(regvarf2, Lake == "WW") # 168 data points
+
+```
+
+Methods (abbreviations likely used in paper already have been used without full defintion)
+===============================================================================================
+
+Seasonal CO$_2$ fluxes of Wascana were calculated based on physicochemical measurements and constants following methods outlined in Finlay et al. (2009). Fluxes were therefore directly related to measures such as pH, conductivity, salinity, and DIC, with  pH likely to be the predominant control also seasonally given its high correlation with annual CO$_2$ fluxes (Finlay et al. 2015). 
+
+Generalised additive models (GAMs) were used, firstly, to enumerate the variation in flux accounted for by pH alone, and secondly, to evaluate the relative contribution of lake metabolism correlates (O2, DOC, GPP, TDN, chl *a*) and climate indices (Pacific Decadal Oscillation, PDO; Southern Oscillation Index, SOI)  to seasonal variation in pH. All numerical analyses were performed using R (R Core Team 2014) package mgcv (Wood 2011).
+
+Predictor variables were chosen based on availability (minimal NAs), previously found relationships with CO$_2$ flux and pH (Finlay et a. 2009; 2015), and independence (minimal covariation). Heavy-tailed variables (TDN, chl *a*, DOC) were log10-transformed. Owing to the potential for interaction between SOI and PDO (Shabbar & Yu 2012), the two terms were modelled as a tensor product. In order to explicitly model seasonal, not annual, patterns in the data, the year of each measurement was added to the model as a random effect. Shrinkage was allowed for pruning out nonsignificant predictors.
+
+``` {r co2mod-predictions, echo=FALSE, include=FALSE}
+ww.pdatc <- data.frame(pH_surface = ww$pH_surface, Year = 2004)
+ww.predc <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms") 
+whichColsc <- grep("pH", colnames(ww.predc))
+
+ww.predcse <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms", se.fit = TRUE)
+ww.predcse <- as.data.frame(ww.predcse$se.fit)
+whichColscse <- grep("pH", colnames(ww.predcse))
+
+ww.pdatc <- cbind(ww.pdatc, Fitted = ww.predc[, whichColsc], Fittedse = ww.predcse[,whichColscse])
+ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedplus = Fitted + Fittedse))
+ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedminus = Fitted - Fittedse))
+
+## transform back into original pH value for clarity:
+# get mean/intercept pH used by the model
+shiftco2 <- attr(predict(co2wwmod, newdata = ww.pdatc, type = "iterms"), "constant")
+ww.pdatcnorm <- ww.pdatc
+ww.pdatcnorm <- with(ww.pdatcnorm, transform(ww.pdatcnorm, Fitted = Fitted + shiftco2, 
+                                           Fittedplus = Fittedplus + shiftco2, 
+                                           Fittedminus = Fittedminus + shiftco2))
+
+labdat1 <- data.frame(x = 7, y = -15, label = "mean flux: -23")
+# without this step, the resolution of the text is really off for some reason
+
+```
+
+
+``` {r phmod-predictions, echo=FALSE, include=FALSE}
+## extract predicted values based on chlorophyll for Matt's paper
+## we can use raw, not logged, chl values, since the gam retains this information
+##    and therefore we can feed it raw to predict() !!!
+N <- 200
+varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
+lakeWbar <- data.frame(t(colMeans(ww[, varWant], na.rm = TRUE)))
+lakeWbar$Year <- 2004
+
+ww.pdat <- with(droplevels(ww),
+                data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
+                                                  max(`Chl_a_ug_L`, na.rm = TRUE),
+                                                  length = N),
+                                              nlevels(Lake)),
+                           Lake = rep(levels(Lake), each = N),
+                           Year = rep(2004, prod(nlevels(Lake), N)),
+                           dummy = rep(0, prod(nlevels(Lake), N))))
+ww.pdat <- merge(ww.pdat, lakeWbar)
+
+
+## predict pH based on chlorophyll alone;
+## iterms means that uncertainty in intercept is included; especially good for when
+##   y axis units transformed back into original scale
+ww.pred <- predict(phwwmod, newdata = ww.pdat, type = "iterms")
+ww.predse <- predict(phwwmod, newdata = ww.pdat, type = "iterms", se.fit = TRUE)
+whichCols <- grep("Chl", colnames(ww.pred))
+ww.predse <- as.data.frame(ww.predse$se.fit)
+whichColsse <- grep("Chl", colnames(ww.predse))
+ww.pdat <- cbind(ww.pdat, Fitted = ww.pred[, whichCols], Fittedse = ww.predse[,whichColsse])
+ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedplus = Fitted + Fittedse))
+# simple subtraction addition works here because family=gaussian
+# if I had a log-transformed response, I'd have to change the se:
+## "The standard errors are for the function on the log scale. You need to exp() the fitted 
+##    values and the upper and lower confidence before you plot" -GS
+ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedminus = Fitted - Fittedse))
+
+## transform back into original pH value for clarity:
+# get mean/intercept pH used by the model
+shiftph <- attr(predict(phwwmod, newdata = ww.pdat, type = "iterms"), "constant")
+ww.pdatnorm <- ww.pdat
+ww.pdatnorm <- with(ww.pdatnorm, transform(ww.pdatnorm, Fitted = Fitted + shiftph, 
+                            Fittedplus = Fittedplus + shiftph, 
+                            Fittedminus = Fittedminus + shiftph))
+
+labdat2 <- data.frame(x = 270, y = 9.1, label = "mean pH: 9.1")
+# without this step, the resolution of the text is really off for some reason
+
+```
+
+Results
+=======
+
+* Numbers for a table: NS = not significant
+    * CO$_2$ ~ pH (p < 0.001): DEVIANCE EXPLAINED 95%
+    * pH ~ DOC (NS), TDN (NS), chl *a* (p < 0.001), O2 (NS), PDO-SOI (p < 0.001), GPP (NS): DEVIANCE EXPLAINED 39%
+    
+As predicted, pH accounted for most of the variation in CO$_2$ flux (95%) in Wascana with a strong negative correlation (Fig. 1). Only two (chl *a*, PDO-SOI) out of six predictors of pH were significant, each at p < 0.001. TDN, O2, and GPP were shrunk from the model, and DOC had a marginally negative effect on pH (not shown). chl *a* had a strong positive-plateauing effect on pH (> 1 unit-change; Fig. 2) with PDO-SOI slightly lower (< 1 unit-change; not shown). 
+
+``` {r co2mod-plot, echo = FALSE, error=FALSE, message=FALSE, warning=FALSE}
+ggplot(ww.pdatcnorm, aes(x = pH_surface, y = Fitted)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              alpha = 0.25) +  
+  geom_abline(slope = 0, intercept = shiftco2, linetype="dotted") +
+  geom_text(data = labdat1, aes(label = label, x = x, y = y, size = 5), 
+            show.legend = FALSE) +
+  xlab('pH') + ylab('CO$_2$ flux (mmolC/m2/d)')
+
+```
+
+``` {r phmod-plot, echo=FALSE, error=FALSE, message=FALSE, warning=FALSE}
+ggplot(ww.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              alpha = 0.25) +  
+  geom_abline(slope = 0, intercept = shiftph, linetype="dotted") +
+  geom_text(data = labdat2, aes(label = label, x = x, y = y, size = 5), 
+            show.legend = FALSE) +
+  xlab('Chlorophyll a (ug/L)') + ylab('pH')
+```
+
+
+
+<!-- ps to get sub-bullets, need to indent with 4 spaces -->
+
+Full references to stuff Peter may not have in the paper yet
+===================================================================
+
+R Core Team (2014). R: A language and environment for statistical
+   computing. R Foundation for Statistical Computing, Vienna, Austria.
+   URL http://www.R-project.org/.
+
+Amir Shabbar & Bin Yu (2012) Intraseasonal Canadian Winter Temperature Responses to Interannual and Interdecadal Pacific SST Modulations, Atmosphere-Ocean, 50:1, 109-121, DOI: 10.1080/07055900.2012.657154
+
+Wood, S.N. (2011) Fast stable restricted maximum likelihood and marginal likelihood estimation of
+  semiparametric generalized linear models. Journal of the Royal Statistical Society (B) 73(1):3-36
+
