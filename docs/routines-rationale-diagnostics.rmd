@@ -2,7 +2,7 @@
 title: "Rationale and diagnostics --- Routines CO$_2$ flux"
 author: "Emma"
 date: "Feb 2016"
-output: pdf_document
+output: word_document
 ---
 ```{r, echo=FALSE, results='hide', include=FALSE}
 ## source necessary packages
