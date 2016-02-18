@@ -5,6 +5,9 @@
 ##    condSLS (mS/cm), salinity (ppt i.e. g/L), TDS (g/L), oxygen (mg/L), chl (ug/L),
 ##    DIC (mg/L i.e. ppm), DOC (mg/L i.e. ppm)
 ## FIXME: incorporate these into final colnames
+## FIXME: pH missing for those really shallow lakes that did not have measurements at depth
+##  0.5m -- need to take depth 0m for those!!! So I need to go back to sourcing the data
+##  and create special conditions!
 
 ## load required data
 if (!file.exists("../data/private/heathergasfluxsupp.rds")) {
@@ -100,6 +103,8 @@ with(alldatz, plot(pCO2uatm ~ chlvalue, xlim = c(0,200))))
 ## subset by depth <= 2.5 for kerri
 ## =============================================================================================
 puddles <- subset(alldatz, select = c("Date", "lakeName", "latitude", "longitude", "sampleDepth",
-                                     "Altitude", "co2flux"), subset = sampleDepth <= 2.5)
+                                     "Altitude", "CO2fluxmmolm2d"), subset = sampleDepth <= 2.5)
 write.csv(puddles, "data/private/co2fluxheathersubset.csv")
 
+subsett <- which(alldatz$lakeName %in% puddles$lakeName) 
+alldatz[subsett,]
