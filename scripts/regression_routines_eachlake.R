@@ -312,7 +312,10 @@ ggplot(chla.pdat, aes(x = Chl_a_ug_L, y = Fitted, colour = Lake)) +
 ## ==========================================================================
 ww <- subset(regvarf2, Lake == "WW") # 168 data points
 
-## model with Year as factor
+## 1. Create models and output
+## ====================================
+
+## model CO2 on pH with Year as factor
 co2wwmod <- gam(co2Flux ~ 
                     s(pH_surface) +
                     s(Year, bs = "re"), 
@@ -349,6 +352,61 @@ phwwsum <- summary(phwwmod)
 sink("../data/private/phwwmodsummary.txt")
 phwwsum
 sink()
+
+## 2. Predict responses with most interesting terms and plot
+## =========================================================
+
+## predict CO2 based on pH: keep using iterms
+phwant <- with(ww, seq(min(`pH_surface`, na.rm = TRUE),
+     max(`pH_surface`, na.rm = TRUE),
+     length = N))
+
+ww.pdatc <- data.frame(pH_surface = phwant, Year = 2004) 
+ww.predc <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms") 
+whichColsc <- grep("pH", colnames(ww.predc))
+
+ww.predcse <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms", se.fit = TRUE)
+ww.predcse <- as.data.frame(ww.predcse$se.fit)
+whichColscse <- grep("pH", colnames(ww.predcse))
+
+ww.pdatc <- cbind(ww.pdatc, Fitted = ww.predc[, whichColsc], Fittedse = ww.predcse[,whichColscse])
+ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedplus = Fitted + Fittedse))
+ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedminus = Fitted - Fittedse))
+
+## transform back into original pH value for clarity:
+# get mean/intercept pH used by the model
+shiftco2 <- attr(predict(co2wwmod, newdata = ww.pdatc, type = "iterms"), "constant")
+ww.pdatcnorm <- ww.pdatc
+ww.pdatcnorm <- with(ww.pdatcnorm, transform(ww.pdatcnorm, Fitted = Fitted + shiftco2, 
+                                             Fittedplus = Fittedplus + shiftco2, 
+                                             Fittedminus = Fittedminus + shiftco2))
+
+labdat1 <- data.frame(x = 7, y = -15, label = "mean flux: -23")
+# without this step, the resolution of the text is really off for some reason
+
+## plot with all labels
+pdf("../data/private/wwco2mod.pdf", width = 10, height = 6.7)
+ggplot(ww.pdatcnorm, aes(x = pH_surface, y = Fitted)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              alpha = 0.25) +  
+  geom_abline(slope = 0, intercept = shiftco2, linetype="dotted") +
+  geom_text(data = labdat1, aes(label = label, x = x, y = y, size = 5), 
+            show.legend = FALSE) +
+  xlab('pH') + ylab('CO2 flux (mmolC/m2/d)')
+dev.off()
+
+## plot with disabled labels and white background
+tiff("../data/private/wwco2mod-notext.tiff", width = 2.3, height = 1.5, 
+     units = "in", res = 300)
+ggplot(ww.pdatcnorm, aes(x = pH_surface, y = Fitted)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              alpha = 0.25) +  
+  theme_bw() +
+  theme(axis.text = element_blank(), title = element_blank(),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+dev.off()
 
 ## extract predicted values based on chlorophyll for Matt's paper
 ## we can use raw, not logged, chl values, since the gam retains this information
@@ -393,53 +451,31 @@ ww.pdatnorm <- with(ww.pdatnorm, transform(ww.pdatnorm, Fitted = Fitted + shiftp
                             Fittedplus = Fittedplus + shiftph, 
                             Fittedminus = Fittedminus + shiftph))
 
-labdat <- data.frame(x = 270, y = 9.1, label = "mean pH: 9.1")
+labdat2 <- data.frame(x = 270, y = 9.1, label = "mean pH: 9.1")
 # without this step, the resolution of the text is really off for some reason
 
+## plot with all labels
 pdf("../data/private/wwphmod.pdf", width = 10, height = 6.7)
 ggplot(ww.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted)) +
   geom_line() + 
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
   geom_abline(slope = 0, intercept = shiftph, linetype="dotted") +
-  geom_text(data = labdat, aes(label = label, x = x, y = y, size = 5), 
+  geom_text(data = labdat2, aes(label = label, x = x, y = y, size = 5), 
             show.legend = FALSE) +
   xlab('Chlorophyll a (ug/L)') + ylab('pH')
 dev.off()
 
-## predict CO2 based on pH: keep using iterms
-ww.pdatc <- data.frame(pH_surface = ww$pH_surface, Year = 2004)
-ww.predc <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms") 
-whichColsc <- grep("pH", colnames(ww.predc))
-
-ww.predcse <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms", se.fit = TRUE)
-ww.predcse <- as.data.frame(ww.predcse$se.fit)
-whichColscse <- grep("pH", colnames(ww.predcse))
-
-ww.pdatc <- cbind(ww.pdatc, Fitted = ww.predc[, whichColsc], Fittedse = ww.predcse[,whichColscse])
-ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedplus = Fitted + Fittedse))
-ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedminus = Fitted - Fittedse))
-
-## transform back into original pH value for clarity:
-# get mean/intercept pH used by the model
-shiftco2 <- attr(predict(co2wwmod, newdata = ww.pdatc, type = "iterms"), "constant")
-ww.pdatcnorm <- ww.pdatc
-ww.pdatcnorm <- with(ww.pdatcnorm, transform(ww.pdatcnorm, Fitted = Fitted + shiftph, 
-                                           Fittedplus = Fittedplus + shiftph, 
-                                           Fittedminus = Fittedminus + shiftph))
-
-labdat <- data.frame(x = 7, y = -15, label = "mean flux: -23")
-# without this step, the resolution of the text is really off for some reason
-
-pdf("../data/private/wwco2mod.pdf", width = 10, height = 6.7)
-ggplot(ww.pdatc, aes(x = pH_surface, y = Fitted)) +
+## plot with disabled labels and white background
+tiff("../data/private/wwphmod-notext.tiff", width = 2.3, height = 1.5, 
+     units = "in", res = 300)
+ggplot(ww.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted)) +
   geom_line() + 
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
-  geom_abline(slope = 0, intercept = shiftco2, linetype="dotted") +
-  geom_text(data = labdat, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
-  xlab('pH') + ylab('CO2 flux (mmolC/m2/d)')
+  theme_bw() +
+  theme(axis.text = element_blank(), title = element_blank(), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 dev.off()
 
 if (runextras) {
