@@ -16,6 +16,10 @@ vars$dataValue[vars$variableID == "conductivitySLS"] <-
   vars$dataValue[vars$variableID == "conductivitySLS"] * 1000
 vars$variableID[vars$variableID == "conductivitySLS"] <- "conductivity"
 
+vars0$dataValue[vars0$variableID == "conductivitySLS"] <- 
+  vars0$dataValue[vars0$variableID == "conductivitySLS"] * 1000
+vars0$variableID[vars0$variableID == "conductivitySLS"] <- "conductivity"
+
 ## remove comments section for data processing purposes
 sites <- sites[,-which(colnames(sites) == "comments")]
 
@@ -43,6 +47,13 @@ dupend <- length(dups)
 vars[dups[dupstart:dupend],'sampleID'] <- "Little Manitwo"
 colnames(vars)[which(colnames(vars) == "sampleID")] <- "lakeName"
 
+vars0$sampleID <- as.character(vars0$sampleID) 
+dups <- grep("Little Manitou", vars0$sampleID)
+dupstart <- length(dups)/2 + 1
+dupend <- length(dups)
+vars0[dups[dupstart:dupend],'sampleID'] <- "Little Manitwo"
+colnames(vars0)[which(colnames(vars0) == "sampleID")] <- "lakeName"
+
 carbon$sampleID <- as.character(carbon$sampleID) 
 dups <- grep("Little Manitou", carbon$sampleID)
 dupstart <- length(dups)/2 + 1
@@ -56,6 +67,7 @@ colnames(carbon)[which(colnames(carbon) == "sampleID")] <- "lakeName"
 ## some data are long format, but with different lengths (nrow) so can't unstack (at least not
 ##    with my level of R. So, splitting by variableID to be merged....
 varsplit <- with(vars, split(vars, variableID))
+vars0split <- with(vars0, split(vars0, variableID))
 carbonsplit <- with(carbon, split(carbon, type))
 
 ## create function that makes each variable into a standalone column
@@ -106,6 +118,21 @@ dataloss <- subset(allvars, select = c(lakeName, wind, conductivity, Altitude,
 nanumbers <- rowSums(is.na(dataloss))
 datalost <- dataloss[rowSums(is.na(dataloss)) > 0,]
 nrow(datalost) # 19; for these sites limno largely not done; no pH, mostly no temp, sal, cond
+
+## replace NA with the appropriate depth 0 values for cond, pH, salinity, temp
+nanames <- dataloss$lakeName
+names <- c(names(vars0plit))
+varlist <- varnames(vars0plit, "dataValue", names, c("variableID", "depth"))
+
+vars0df <- merge(varlist$conductivity, varlist$temperature)
+vars0df <- merge(vars0df, varlist$pH)
+vars0df <- merge(vars0df, varlist$salinity)
+
+replacecols <- which(names(allvars) %in% names(vars0df))
+replacewith <- which(vars0df$lakeName %in% nanames)
+replaceme <- which(allvars$lakeName %in% nanames)
+allvars[replaceme,replacecols] <- lapply(allvars[replaceme,replacecols], replace, )
+## FIXME: essentially need a double lapply since running over cols of two dfs... was it mapply? check
 
 ## save full dataset for running gasflux on
 saveRDS(allvars, "data/private/heathergasfluxsupp.rds")
