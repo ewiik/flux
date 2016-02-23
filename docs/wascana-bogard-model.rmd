@@ -1,8 +1,8 @@
 ---
-title: "WW-CO$_2$-models"
+title: "WW-CO2-models"
 author: "EW"
 date: "February 18, 2016"
-output: word_document
+output: pdf_document
 ---
 
 ```{r, echo=FALSE, results='hide', include=FALSE}
@@ -37,7 +37,7 @@ ww <- subset(regvarf2, Lake == "WW") # 168 data points
 
 Seasonal CO$_2$ fluxes of Wascana were calculated based on physicochemical measurements and constants following methods outlined in Finlay et al. (2009). Fluxes were therefore directly related to measures such as pH, conductivity, salinity, and DIC, with  pH likely to be the predominant control seasonally given its high correlation with annual CO$_2$ flux (Finlay et al. 2015). 
 
-Generalised additive models (GAMs) were used, firstly, to enumerate the variation in flux accounted for by pH alone, and secondly, to evaluate the relative contribution of lake metabolism correlates (O2, DOC, GPP, TDN, chl *a*) and climate indices (Pacific Decadal Oscillation, PDO; Southern Oscillation Index, SOI) to seasonal variation in pH. All numerical analyses were performed using R (Version X.X.X; R Core Team 2015) with the mgcv package (Version X.X.X; Wood 2011).
+Generalised additive models (GAMs) were used, firstly, to enumerate the variation in flux accounted for by pH alone, and secondly, to evaluate the relative contribution of lake metabolism correlates (O2, DOC, GPP, TDN, chl *a*) and climate indices (Pacific Decadal Oscillation, PDO; Southern Oscillation Index, SOI) to seasonal variation in pH. All numerical analyses were performed using R (Version 3.2.3; R Core Team 2015) with the mgcv package (Version 1.8-10; Wood 2011).
 
 Predictor variables were chosen based on availability (minimal missing observations), previously identified relationships with CO$_2$ flux and pH (Finlay et al. 2009; 2015), and independence (minimal covariation). Variables that were right-skewed (TDN, chl *a*, DOC) were log-transformed (base 10). Owing to the potential for an interactive effect of SOI and PDO (Shabbar & Yu 2012), the two terms were modelled as a bivariate smooth using a tensor product spline. In order to explicitly model seasonal, not annual, patterns in the data, the year of each measurement was added to the model as a random effect. The double penalty method of Marra & Wood (2011) was used for model selection. In the double penalty method, as well as the usual penalty to promote smoothness, an additional penalty term is applied to smooths which penalises the linear part of the spline. The effect of this is that redundant model terms can be effectively removed entirely from the model. The double penalty method of model selection has good performance relative to other model selection methods in tests with simulated data (Marra & Wood, 2011).
 
@@ -123,7 +123,7 @@ labdat2 <- data.frame(x = 270, y = 9.1, label = "mean pH: 9.1")
     * CO$_2$ ~ pH (p < 0.001): DEVIANCE EXPLAINED 95%
     * pH ~ DOC (NS), TDN (NS), chl *a* (p < 0.001), O2 (NS), PDO-SOI (p < 0.001), GPP (NS): DEVIANCE EXPLAINED 39%
     
-As expected, pH accounted for almost all of the variation in CO$_2$ flux (95%) in Wascana with a strong negative relationship (Fig. 1). Only two (chl *a*, PDO-SOI) out of six predictors of pH were significant (p < 0.001). TDN, O2, and GPP were shrunk from the model, and DOC had a small negative effect on pH (not shown). Chl *a* had a strong positive effect on pH (> 1 unit-change; Fig. 2), though above 50 $\mu g L^{-1}$ that rate of change in pH with increasing Chl-*a* diminished. Climate (PDO & SOI) had a slightly lowerlesser predictive effect on pH (< 1 unit-change; not shown). 
+As expected, pH accounted for almost all of the variation in CO$_2$ flux (95%) in Wascana with a strong negative relationship (Fig. [co2model]). Only two (chl *a*, PDO-SOI) out of six predictors of pH were significant (p < 0.001). TDN, O2, and GPP were shrunk from the model, and DOC had a small negative effect on pH (not shown). Chl *a* had a strong positive effect on pH (> 1 unit-change; Fig. [phmodel]), though above 50 $\mu g L^{-1}$ that rate of change in pH with increasing Chl-*a* diminished. Climate (PDO & SOI) had a slightly lesser predictive effect on pH (< 1 unit-change; not shown). 
 
 ``` {r co2mod-plot, echo = FALSE, error=FALSE, message=FALSE, warning=FALSE}
 ggplot(ww.pdatcnorm, aes(x = pH_surface, y = Fitted)) +
