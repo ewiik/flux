@@ -353,6 +353,52 @@ sink("../data/private/phwwmodsummary.txt")
 phwwsum
 sink()
 
+## one more model with co2 against everything
+dummymod <- gam(co2Flux ~ 
+                 s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+                 s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) +
+                 s(Year, bs = "re"), 
+               data = ww,
+               select = TRUE, method = "REML", family = gaussian,
+               na.action = na.exclude,
+               control = gam.control(nthreads = 3, trace = TRUE))
+
+saveRDS(dummymod, "../data/private/dummymod.rds")
+
+## save summary as txt document
+dummysum <- summary(dummymod)
+sink("../data/private/dummysummary.txt")
+dummysum
+sink()
+
+## AAANNND looking at SOI and PDO separately
+nointer <- gam(pH_surface ~ 
+                 s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+                 s(log10(DOC_mg_L)) + s(Oxygen_ppm) +
+                 ti(PDO) + ti(SOI) +
+                 s(Year, bs = "re"), 
+               data = ww,
+               select = TRUE, method = "REML", family = gaussian,
+               na.action = na.exclude,
+               control = gam.control(nthreads = 3, trace = TRUE))
+
+inter <- gam(pH_surface ~ 
+                 s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+                 s(log10(DOC_mg_L)) + s(Oxygen_ppm) + 
+                 ti(PDO) + ti(SOI) + ti(PDO, SOI) +
+                 s(Year, bs = "re"), 
+               data = ww,
+               select = TRUE, method = "REML", family = gaussian,
+               na.action = na.exclude,
+               control = gam.control(nthreads = 3, trace = TRUE))
+anova(nointer, inter, test = "LRT")
+
+# a note regarding select = T | F: "select = FALSE just fits the model 
+#   without the second penalty on the linear part of the function. It seems to want to 
+#   keep some small amount of curvature but put a little shrinkage into the null space 
+#   just like the lasso would shrink a term away from the least squares fit." -GS
+
+
 ## 2. Predict responses with most interesting terms and plot
 ## =========================================================
 

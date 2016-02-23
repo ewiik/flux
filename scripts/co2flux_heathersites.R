@@ -1,10 +1,12 @@
 ## running CO2 flux calculations for heather's data too
 
 ## download necessary files
-sites <- read.csv("data/private/qCO2fluxSites.csv")
-vars <- read.csv("data/private/qCO2fluxVars.csv")
-alt <- read.csv("data/private/heathersitesalt.csv") # altitudes derived from a lat long website
-carbon <- read.csv("data/private/carbon.csv")
+sites <- read.csv("../data/private/qCO2fluxSites.csv")
+vars <- read.csv("../data/private/qCO2fluxVars.csv")
+alt <- read.csv("../data/private/heathersitesalt.csv") # altitudes derived from a lat long website
+carbon <- read.csv("../data/private/carbon.csv")
+vars0 <- read.csv("../data/private/qpH@depth0.csv") # some lakes have only 0 depth pH.. need to
+#   be incorporated
 
 ## load necessary packages
 library(reshape2)
