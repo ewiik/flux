@@ -11,14 +11,10 @@ vars0 <- read.csv("../data/private/qpH@depth0.csv") # some lakes have only 0 dep
 ## load necessary packages
 library(reshape2)
 
-## deal with units: change mS to uS 
+## deal with units: change mS to uS for SLS --- but note SLS not present in vars0
 vars$dataValue[vars$variableID == "conductivitySLS"] <- 
   vars$dataValue[vars$variableID == "conductivitySLS"] * 1000
 vars$variableID[vars$variableID == "conductivitySLS"] <- "conductivity"
-
-vars0$dataValue[vars0$variableID == "conductivitySLS"] <- 
-  vars0$dataValue[vars0$variableID == "conductivitySLS"] * 1000
-vars0$variableID[vars0$variableID == "conductivitySLS"] <- "conductivity"
 
 ## remove comments section for data processing purposes
 sites <- sites[,-which(colnames(sites) == "comments")]
@@ -121,10 +117,10 @@ vars0df <- merge(vars0df, varlist$pH)
 vars0df <- merge(vars0df, varlist$salinity)
 
 ## how many NA? (first select only those vars that strictly needed for running gasflux)
-dataloss <- subset(allvars, select = c(lakeName, wind, conductivity, Altitude, 
+allsub <- subset(allvars, select = c(lakeName, wind, conductivity, Altitude, 
                                        pH, salinity, temperature, DIC))
-nanumbers <- rowSums(is.na(dataloss))
-datalost <- dataloss[rowSums(is.na(dataloss)) > 0,]
+nanumbers <- rowSums(is.na(allsub))
+datalost <- allsub[rowSums(is.na(allsub)) > 0,]
 nrow(datalost) # 19; for these sites there is no limno for depth = 1m
 
 ## mapply converts numerics to characters and I need to avoid this. Hence take out
@@ -132,9 +128,9 @@ nrow(datalost) # 19; for these sites there is no limno for depth = 1m
 ## (http://stackoverflow.com/questions/15490006/r-as-numeric-matrix)
 ## At present some of the characters don't get converted back into numeric appropriately
 ##    and causing erroneous data
-rownames(dataloss) <- dataloss$lakeName
-dataloss$lakeName <- NULL
-dataloss <- as.matrix(dataloss)
+rownames(allsub) <- allsub$lakeName
+allsub$lakeName <- NULL
+allsub <- as.matrix(allsub)
 
 rownames(vars0df) <- vars0df$lakeName
 vars0df$lakeName <- NULL
@@ -143,13 +139,22 @@ vars0df <- as.matrix(vars0df)
 ## replace NA with the appropriate depth 0 values for cond, pH, salinity, temp
 nanames <- datalost$lakeName
 
-replacecols <- which(colnames(dataloss) %in% colnames(vars0df))
-replacewith <- which(rownames(vars0df) %in% nanames)
-replaceme <- which(rownames(dataloss) %in% nanames)
+replacecols <- which(colnames(allsub) %in% colnames(vars0df))
+# order cols to match
+reorder <- colnames(vars0df)[order(colnames(vars0df))]
+vars0df <- vars0df[,c(reorder)]
 
-dataloss[replaceme,replacecols] <- mapply(replace, dataloss[replaceme,replacecols], 
+replacewith <- which(rownames(vars0df) %in% nanames)
+replaceme <- which(rownames(allsub) %in% nanames)
+
+allsub[replaceme,replacecols] <- mapply(replace, allsub[replaceme,replacecols], 
                                          values = vars0df[replacewith, ] )
-## FIXME: this not seemingly working that well yet
+
+## put allsub back into allvars
+newvals <- which(names(allvars) %in% colnames(allsub))
+allvars <- allvars[, -newvals]
+
+allvars <- cbind(allvars, allsub)
 
 ## save full dataset for running gasflux on
 saveRDS(allvars, "../data/private/heathergasfluxsupp.rds")
