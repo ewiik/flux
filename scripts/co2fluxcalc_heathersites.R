@@ -1,7 +1,7 @@
 ## run gasexchange on heather's sites
 ## chl data is from the database too, heather emailed it on Jan30-2016
 ## Little Manitou in the chl data set is the north one, site id 66
-## Units as in database: secchi & sample depth (m), wind (m/s), conductivity (uS/cm),
+## Units in source sheet: secchi & sample depth (m), wind (km/h), windMS (m/s), conductivity (uS/cm),
 ##    condSLS (mS/cm), salinity (ppt i.e. g/L), TDS (g/L), oxygen (mg/L), chl (ug/L),
 ##    DIC (mg/L i.e. ppm), DOC (mg/L i.e. ppm)
 ## FIXME: incorporate these into final colnames
@@ -53,7 +53,7 @@ alldat <- merge(alldat, chlormeans, all.x = TRUE, by.x = 'lakeName', by.y = 'LAK
 ## run the function, feed in changing atmospheric co2 concs
 args(gasExchangeFlex) # couldn't remember...
 co2z <- with(alldat, gasExchangeFlex(temp = temperature, cond = conductivity, ph = pH,
-                          wind = wind, salt = salinity, dic = DICumol, 
+                          wind = windMS, salt = salinity, dic = DICumol, 
                           alt = Altitude, altnotkpa = TRUE,
                           pco2atm = pco2atm))
 
@@ -67,7 +67,7 @@ write.csv(alldatz, "../data/private/co2fluxheathersites.csv", row.names = FALSE)
 
 
 ## a few diagnostic plots...
-pdf("data/private/heathersites.pdf")
+pdf("../data/private/heathersites.pdf")
 with(alldatz, plot(CO2fluxmmolm2d ~ salinity))
 with(alldatz, plot(CO2fluxmmolm2d ~ conductivity))
 with(alldatz, plot(CO2fluxmmolm2d ~ Altitude))
@@ -93,15 +93,16 @@ with(alldatz, plot(pCO2uatm ~ temperature))
 with(alldatz, plot(pCO2uatm ~ DIC))
 with(alldatz, plot(pCO2uatm ~ pH))
 abline(0,0)
-with(alldatz, plot(pCO2uatm ~ chlvalue, xlim = c(0,200))))
+with(alldatz, plot(pCO2uatm ~ chlvalue, xlim = c(0,200)))
 
 
 ## =============================================================================================
 ## subset by depth <= 2.5 for kerri
 ## =============================================================================================
 puddles <- subset(alldatz, select = c("Date", "lakeName", "latitude", "longitude", "sampleDepth",
-                                     "Altitude", "CO2fluxmmolm2d"), subset = sampleDepth <= 2.5)
-write.csv(puddles, "data/private/co2fluxheathersubset.csv")
+                                     "Altitude", "CO2fluxmmolm2d", "pCO2uatm"), 
+                  subset = sampleDepth <= 2.5)
+write.csv(puddles, "../data/private/co2fluxheathersubset.csv")
 
 subsett <- which(alldatz$lakeName %in% puddles$lakeName) 
 alldatz[subsett,]
