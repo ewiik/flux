@@ -5,9 +5,6 @@
 ##    condSLS (mS/cm), salinity (ppt i.e. g/L), TDS (g/L), oxygen (mg/L), chl (ug/L),
 ##    DIC (mg/L i.e. ppm), DOC (mg/L i.e. ppm)
 ## FIXME: incorporate these into final colnames
-## FIXME: pH missing for those really shallow lakes that did not have measurements at depth
-##  0.5m -- need to take depth 0m for those!!! So I need to go back to sourcing the data
-##  and create special conditions!
 
 ## load required data
 if (!file.exists("../data/private/heathergasfluxsupp.rds")) {

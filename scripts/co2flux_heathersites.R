@@ -112,28 +112,45 @@ allvars$longitude[allvars$lakeName == "Arthur"] <- -105.443097
 ##    I would use the handheld values, so for Ed, Aug was 9.4."
 allvars$pH[allvars$lakeName == "Edouard"] <- 9.4
 
-## how many NA? (first select only those vars that strictly needed for running gasflux)
-dataloss <- subset(allvars, select = c(lakeName, wind, conductivity, Altitude, 
-                                       pH, salinity, temperature, DIC))
-nanumbers <- rowSums(is.na(dataloss))
-datalost <- dataloss[rowSums(is.na(dataloss)) > 0,]
-nrow(datalost) # 19; for these sites limno largely not done; no pH, mostly no temp, sal, cond
-
-## replace NA with the appropriate depth 0 values for cond, pH, salinity, temp
-nanames <- dataloss$lakeName
-names <- c(names(vars0plit))
-varlist <- varnames(vars0plit, "dataValue", names, c("variableID", "depth"))
+## sort out df with 0 depths
+names <- c(names(vars0split))
+varlist <- varnames(vars0split, "dataValue", names, c("variableID", "depth"))
 
 vars0df <- merge(varlist$conductivity, varlist$temperature)
 vars0df <- merge(vars0df, varlist$pH)
 vars0df <- merge(vars0df, varlist$salinity)
 
-replacecols <- which(names(allvars) %in% names(vars0df))
-replacewith <- which(vars0df$lakeName %in% nanames)
-replaceme <- which(allvars$lakeName %in% nanames)
-allvars[replaceme,replacecols] <- lapply(allvars[replaceme,replacecols], replace, )
-## FIXME: essentially need a double lapply since running over cols of two dfs... was it mapply? check
+## how many NA? (first select only those vars that strictly needed for running gasflux)
+dataloss <- subset(allvars, select = c(lakeName, wind, conductivity, Altitude, 
+                                       pH, salinity, temperature, DIC))
+nanumbers <- rowSums(is.na(dataloss))
+datalost <- dataloss[rowSums(is.na(dataloss)) > 0,]
+nrow(datalost) # 19; for these sites there is no limno for depth = 1m
+
+## mapply converts numerics to characters and I need to avoid this. Hence take out
+##    lakeName since that *is* character and therefore confuses transformations
+## (http://stackoverflow.com/questions/15490006/r-as-numeric-matrix)
+## At present some of the characters don't get converted back into numeric appropriately
+##    and causing erroneous data
+rownames(dataloss) <- dataloss$lakeName
+dataloss$lakeName <- NULL
+dataloss <- as.matrix(dataloss)
+
+rownames(vars0df) <- vars0df$lakeName
+vars0df$lakeName <- NULL
+vars0df <- as.matrix(vars0df)
+
+## replace NA with the appropriate depth 0 values for cond, pH, salinity, temp
+nanames <- datalost$lakeName
+
+replacecols <- which(colnames(dataloss) %in% colnames(vars0df))
+replacewith <- which(rownames(vars0df) %in% nanames)
+replaceme <- which(rownames(dataloss) %in% nanames)
+
+dataloss[replaceme,replacecols] <- mapply(replace, dataloss[replaceme,replacecols], 
+                                         values = vars0df[replacewith, ] )
+## FIXME: this not seemingly working that well yet
 
 ## save full dataset for running gasflux on
-saveRDS(allvars, "data/private/heathergasfluxsupp.rds")
+saveRDS(allvars, "../data/private/heathergasfluxsupp.rds")
 
