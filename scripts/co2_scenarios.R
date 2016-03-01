@@ -18,6 +18,8 @@
 ##    log pCO2 (uatm) = 12.076-1.101*pH (r2 = 0.95)
 ## ergo since we using only existing data, the CO2 stuff is ok.
 
+## for this iteration of outlier fixes we use the metadata FIXME sheet from 30th Nov 15
+
 ## get necessary data
 if (!file.exists("../data/maunaloa.csv")) {
   source("getmaunaloa.R")
@@ -30,6 +32,12 @@ if (file.exists("../data/private/params.rds")) {
   source("pressuremanipulations.R")
   params <- readRDS("../data/private/params.rds")
   }
+
+if (file.exists("../data/private/db_metadata_outliers.csv")) {
+  checkdates <- readRDS("../data/private/db_metadata_outliers.csv")
+} else {
+  stop("get database metadata FIXME from Emma")
+}
 
 ## Create necessary values for starting parameters
 # insert pco2atm from Mauna Loa
@@ -45,20 +53,40 @@ params <- merge(params, winds, by = "Lake") # adds Kerri's wind values
 replace <- which(names(params) %in% "WindMS")
 names(params)[replace] <- "measuredWindMS" # wind of the *sampling date*
 
-## replace outlier pH values with NA
-phtona <- which(params$pH > 12)
-params$pH[phtona] <- NA
-
-## source functions that will run through the calculations
-source("../functions/gasExchangeFlex.R")
-source("../data/private/salcalc.R")
-
 ## create salcalc column to replace erratic salinity values
 ## assuming 1m depth adds .1 bar to air pressure, can take rough mean of all sites
 ##    and add that value for dbar; converted kpa to dbar (see also salinityrecalcproject.R)
 kpa <- mean(params$Pressure)
 dbar <- kpa/10 + 1
 params <- transform(params, SalCalc = salcalc(Temperature, Conductivity, dbar))
+
+### deal with outliers based on database checks:
+checkdates <- transform(checkdates, Date = as.POSIXct(Date, format = "%m/%d/%Y"))
+wrongs <- params[params$Date %in% c(checkdates$Date),c("Lake", "Date", "Year", "pH", 
+                                                       "Conductivity","Salinity", "SalCalc")]
+wrongrows <- which(params$Date %in% c(checkdates$Date))
+
+## grab original row numbers of variable values that are wrong within the outlier subset
+phtona <- as.numeric(rownames(wrongs[which(wrongs$pH < 7 | wrongs$pH > 11),]))
+newcond <- as.numeric(rownames(wrongs[which(wrongs$Conductivity == 13.85),])) # typo cond
+keepas <- as.numeric(rownames(wrongs[which((wrongs$Lake == "P" & wrongs$Year == 2006) |
+                                             (wrongs$Lake == "K" & wrongs$Year == 1994) |
+                                             (wrongs$Lake == "C" & wrongs$Year == 1996)),]))
+# keepas are those with one date many lake and only one lake dodgy
+all <- c(phtona, newcond, keepas)
+salcondtona <- as.numeric(rownames(wrongs[-c(which(rownames(wrongs) %in% c(all))),]))
+salcondtona2 <- subset(wrongs[c(which(rownames(wrongs) %in% c(phtona))),], Lake == "D" & Year == 2002)
+salcondtona2 <- as.numeric(rownames(salcondtona2)) # one where not only pH but also these need NA
+
+## replace the wrong values
+params[phtona,'pH'] <- NA
+params[newcond, 'Conductivity'] <- 1385
+params[newcond, 'SalCalc'] <- with(params[newcond,], salcalc(Temperature, Conductivity, dbar))
+params[c(salcondtona, salcondtona2),c('Conductivity', 'SalCalc')] <- NA
+
+### source functions that will run through the calculations
+source("../functions/gasExchangeFlex.R")
+source("../data/private/salcalc.R")
 
 ## create our two scenarios; parameters in function = temp, cond, ph, wind, kerri = FALSE, salt = NULL,
 ##    dic = NULL, alt = NULL, kpa = NULL, pco2atm = NULL, trace = FALSE

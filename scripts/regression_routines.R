@@ -79,14 +79,14 @@ colnames(soistack)[which(colnames(soistack) == "values")] <- "SOI"
 ## check NA situation
 fluxna <- which(is.na(fluxes$co2Flux))
 nrow(fluxes[fluxna,]) # due to missing DIC mostly
-nrow(fluxes) # 360 NA out of 1139
+nrow(fluxes) # 362 NA out of 1141
 
 nanumbers <- rowSums(is.na(regvars))
 dataloss <- regvars[nanumbers > 0,]
-nrow(dataloss) # 448 out of 1264
+nrow(dataloss) # 444 out of 1264
 
 Nna <- which(is.na(regvars$TDN_ug_L)) #214
-DOCna <- which(is.na(regvars$DOC_mg_L)) #120
+DOCna <- which(is.na(regvars$DOC_mg_L)) #148
 
 ## merge harmonised tables; start: 1264 rows in regvars
 regvars <- merge(regvars, pdostack) # 1264
@@ -99,7 +99,7 @@ fluxdiff <- fluxes$Date[fluxes$Date %in% regvars$Date == FALSE]
 vardiff[order(vardiff)] # 26 dates not in fluxes
 fluxdiff[order(fluxdiff)]
 # bottle production estimates only started in 1996.... so if we want -94 and -95 we can't use NPP, R.
-regvars <- merge(regvars, fluxes[,c('Lake', 'Date', 'co2Flux', 'meanWind')], all = TRUE)
+regvars <- merge(regvars, fluxes[,c('Lake', 'Date', 'co2Flux', 'lakepCO2', 'meanWindMS')], all = TRUE)
 
 ## subset to lakes we want
 regvars <- subset(regvars, Lake %in% c("K", "L", "B", "C", "D", "WW", "P"))
@@ -110,23 +110,15 @@ regvars <- subset(regvars, Lake %in% c("K", "L", "B", "C", "D", "WW", "P"))
 ##    dealt with in co2ExplVar.R
 fluxtona <- which(regvars$co2Flux > 500)
 regvars$co2Flux[fluxtona] <- NA
+regvars$lakepCO2[fluxtona] <- NA
 
-## make -ve DOC into NA (although I suspect this is a typo i.e. - sign added by accident)
+## make grossly -ve DOC into NA (although I suspect this is a typo i.e. - sign added by accident)
 lowdoc <- which(regvars$DOC_mg_L < -60)
 regvars$DOC_mg_L[lowdoc] <- NA
 
 ## change NaN chlorophylls to NA
 chlnan <- which(is.nan(regvars$Chl_a_ug_L))
 regvars$Chl_a_ug_L[chlnan] <- NA
-
-## check if we still have some true flux outliers based on predictor outliers:
-##    for this iteration we use the metadata FIXME sheet from 30th Nov 15
-checkdates <- read.csv("../data/private/db_metadata_outliers.csv")
-checkdates <- transform(checkdates, Date = as.POSIXct(Date, format = "%m/%d/%Y"))
-fluxes[fluxes$Date %in% c(checkdates$Date),c("Lake", "Date", "pH", "Conductivity",
-                                             "Salinity", "co2Flux")]
-fluxtona <- which(regvars$Date %in% c(checkdates$Date))
-regvars$co2Flux[fluxtona] <- NA
 
 ## any outliers left?
 drops <- c("Month", "Year", "Lake", "DOY")
