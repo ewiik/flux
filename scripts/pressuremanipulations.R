@@ -151,11 +151,11 @@ joined <- merge(joined, winddf, by = c("Date", "Lake"), sort = FALSE, all.x = TR
 joined <- merge(joined, relhumdata, sort = FALSE, all.x = TRUE)
 
 ## need to change wind from km/h to m/s
-joined <- transform(joined, Wind = Wind * (1000/60/60))
-joined <- transform(joined, meanWind = meanWind * (1000/60/60))
+joined <- transform(joined, WindMS = Wind * (1000/60/60))
+joined <- transform(joined, meanWindMS = meanWind * (1000/60/60))
 
 ## need to change dic from mg/L to uM
-joined <- transform(joined, TIC = TIC / 0.012)
+joined <- transform(joined, TICumol = TIC / 0.012)
 #   this is what Kerris' spreadsheet indicates for the unit conversion
 
 ## save joined as parameter data table
