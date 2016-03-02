@@ -1,0 +1,62 @@
+# Assuming now that this makefile will be located in flux/scripts
+# Define file paths
+RDIR= ~/git/flux
+
+scriptDIR= $(RDIR)/scripts
+functionDIR= $(RDIR)/functions
+docDIR= $(RDIR)/docs
+dataDIR= $(RDIR)/data
+privDIR= $(RDIR)/data/private
+ 
+# list script files
+RSCRIPTS := $(wildcard $(scriptDIR)/*.R)
+
+# FIXME: check this indicator file thing
+# Indicator files to show R file has run
+OUT_FILES:= $(RSCRIPTS:.R=.Rout)
+  
+# primary target, prerequisite objects and source, recipe:
+# FIXME: do I need a recipe or can I just define prerequisities?
+#	(see 'all' in http://robjhyndman.com/hyndsight/makefiles/)
+$(privDIR)/regvars.rds: $(privDIR)/params-flux.rds $(privDIR)/co2explained.rds \
+regression_routines.R
+	R CMD BATCH regression_routines.R
+# FIXME: Do I need to be explicit about the .R file or is it implicit in R CMD BATCH?
+
+# prerequisite object dependencies:
+$(privDIR)/params-flux.rds: $(dataDIR)/params.rds $(functionDIR)/gasExchangeFlex.R \
+$functionDIR/getmaunaloa.R $(PRIVDIR)/salcalc.R co2_scenarios.R
+	R CMD BATCH co2_scenarios.R
+$(dataDIR)/params.rds: $(dataDIR)/windsdata.rds $(dataDIR)/pressuredata.rds \
+pressuremanipulations.R
+	R CMD BATCH pressuremanipulations.R
+$(dataDIR)/windsdata.rds $(dataDIR)/pressuredata.rds: $(dataDIR)/dmet.rds \
+weathermanipulations.R
+	R CMD BATCH weathermanipulations.R
+
+$(privDIR)/co2explained.rds: $(dataDIR)/relhumdata.rds $(dataDIR)/temperaturedata.rds \
+co2ExplVar.R
+	R CMD BATCH co2ExplVar.R
+$(dataDIR)/relhumdata.rds $(dataDIR)/temperaturedata.rds: $(dataDIR)/dmet.rds weathermanipulations.R
+	R CMD BATCH weathermanipulations.R
+$(dataDIR)/dmet.rds: gasexchange_pressuredata.R
+	R CMD BATCH gasexchange_pressuredata.R
+
+
+# ==================
+# FIXME: develop other options after thought; ones below copy pastes
+#===================
+
+# Run R files
+R: $(OUT_FILES)
+  
+# Clean up stray files
+clean:
+	rm -fv $(OUT_FILES) 
+	rm -fv $(CROP_FILES)
+	rm -fv *.aux *.log *.toc *.blg *.bbl *.synctex.gz
+	rm -fv *.out *.bcf *blx.bib *.run.xml
+	rm -fv *.fdb_latexmk *.fls
+	rm -fv $(TEXFILE).pdf
+ 
+.PHONY: all clean
