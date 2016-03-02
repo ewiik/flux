@@ -104,11 +104,11 @@ regvars <- merge(regvars, fluxes[,c('Lake', 'Date', 'co2Flux', 'lakepCO2', 'mean
 ## subset to lakes we want
 regvars <- subset(regvars, Lake %in% c("K", "L", "B", "C", "D", "WW", "P"))
 
-## deal with outliers and other data issues; see also FIXME in database metadata
+## deal with outliers and other data issues
 ## =============================================================================
-## pH already dealt with with <12 clause in co2_scenarios.R, and GPP high outlier
+## CO2 calculation variables already dealt with in co2_scenarios.R, and GPP high outlier
 ##    dealt with in co2ExplVar.R
-fluxtona <- which(regvars$co2Flux > 500)
+fluxtona <- which(regvars$co2Flux > 500) # two points, one for L and one for WW
 regvars$co2Flux[fluxtona] <- NA
 regvars$lakepCO2[fluxtona] <- NA
 

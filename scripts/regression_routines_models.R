@@ -93,9 +93,8 @@ mod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) +
 plot(mod, pages = 1, pers = TRUE)
 summary(mod)
 gam.check(mod)
-## FIXME: something is strange since only NAs for k-index and p-value
-##    does gam stuff retain some form of mother index? since NA rows differ betwen 
-##    pH and other variables
+## note that gam stuff retains some form of mother index and NA row differences will 
+##    not influence moving back and forth between models
 
 ## check residuals for temporal autocorrelation
 regplus <- cbind(regvars, resid(mod))
