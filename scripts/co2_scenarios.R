@@ -22,7 +22,7 @@
 
 ## get necessary data
 if (!file.exists("../data/maunaloa.csv")) {
-  source("getmaunaloa.R")
+  source("../functions/getmaunaloa.R")
 }
 ml <- read.csv("../data/maunaloa.csv")
 
