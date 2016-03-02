@@ -11,7 +11,7 @@ prep for makefile. * = does not depend on parent script (but may depend on a fun
 5: calculate CO2 flux
 ============================================
 5a. co2_scenarios: reads in params. requires maunaloa, salcalc, gasExchangeFlex. inserts also kerri's values for winds. Creates SalCalc in params and merges maunaloa pressure with params
-	+++ removes a few outliers in pH. saves updated params as params-flux.rds
+	+++ replaces outlier cond, pH, salinity values with NA. Saves updated params as params-flux.rds
 5b. co2data_comparisons: reads in archaic gasFlux.rds and tests similarity with kerri's results. requires archaic gasExchange functions. no output saved.
 
 6: prepare data for regressions for CO2 flux
@@ -25,7 +25,7 @@ prep for makefile. * = does not depend on parent script (but may depend on a fun
 
 	takes various supporting data from database queries. creates means for chl a and
 		bottle production estimates
-		+++ takes out an outlier
+		+++ makes a production outlier NA
 	
 	merges all above excepting climate indices, and saves as co2explained.rds
 		+++ this has all the POTENTIAL predictors too	
@@ -35,7 +35,16 @@ prep for makefile. * = does not depend on parent script (but may depend on a fun
 7. regression_routines: combines co2 flux with predictors; subsets available predictors from
 		co2explained; reads in params-flux.rds; co2explained.rds
 	deals with remaining outliers
-	saves data frame with selected predictors and NAs removed as regvars.rds 	
+	saves data frame with selected predictors and NAs removed as regvars.rds 
+8a. regression_routines_models: regresses CO2 flux against variables of interest, first stab
+	at different ways of incorporating Lake as random effect vs factor etc. reads in
+	regvars. no output produced
+8b. regression_routines_ph: regresses pH against variables of interest, Year and Lake as
+	random effect. reads in regvars. no output.
+8c. regression_routines_eachlake: models developed and then selected for paper, including
+	rationale. subsets to WW for Matt's paper. reads in regvars. produces models and
+	model summaries as output. 
+	
 
 others:
 =============================================
