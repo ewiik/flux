@@ -9,7 +9,7 @@ library("ggplot2")
 library("scales")
 
 ## read in data, transform date, remove data points prior to instrument stabilisation
-diel <- read.csv("data/private/WS-9-9.csv")
+diel <- read.csv("../data/private/WS-9-9.csv")
 diel <- transform(diel, Date.Time = as.POSIXct(as.character(Date.Time), 
                                                format = "%y/%m/%d %H:%M:%S"))
 takeout <- which(diel$Cond < 100) 
@@ -68,24 +68,25 @@ p <- p + geom_vline(data = sondeclean, aes(xintercept = as.numeric(Cleantimes),
                                            show_guide = TRUE)
 p
 
-pdf("data/private/dieltrial.pdf", width = 15)
+pdf("../data/private/dieltrial.pdf", width = 15)
 p
 dev.off()
 
 ## let's chech how CO2 flux gets modelled by this.
-source("functions/gasExchangeFlex.R")
-if (!file.exists("data/maunaloa.csv")) {
-  source("scripts/getmaunaloa.R")
+source("../functions/gasExchangeFlex.R")
+
+if (!file.exists("../data/maunaloa.csv")) {
+  source("../functions/getmaunaloa.R")
 }
 
 ## mauna loa stuff online has been updated from my getmaunaloa script, and since I need
 ##    2015....
 download.file("ftp://aftp.cmdl.noaa.gov/products/trends/co2/co2_mm_mlo.txt", 
-              destfile = "data/maunaloa2.csv")
-ml <- read.csv("data/maunaloa2.csv", skip = 72, sep = "", encoding = "latin1", header = FALSE,
+              destfile = "../data/maunaloa2.csv")
+ml <- read.csv("../data/maunaloa2.csv", skip = 72, sep = "", encoding = "latin1", header = FALSE,
                col.names = c("Year", "Month", "DecimalDate", "pCO2ave", "pCO2interp", 
                              "trend", "hashdays"))
-write.csv(ml, "data/maunaloa2.csv", row.names = FALSE)
+write.csv(ml, "../data/maunaloa2.csv", row.names = FALSE)
 
 ## grab Sep 2015 value
 pco2atm <- ml[ml$Month == 9 & ml$Year == 2015, 'pCO2interp']
