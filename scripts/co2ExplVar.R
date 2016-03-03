@@ -3,6 +3,7 @@
 ## 1. download weather pattern data from web: PDO, SOI, NAO
 ## 2. process routines sampling data tables
 ## 3. get flow et al data from other sources
+## FIXME: develope if file exists clauses for all private files in one
 
 ## Part 1: all these data are complete
 ## ==================================================================================================
@@ -127,6 +128,13 @@ secchi <- transform(secchi, Date = as.POSIXct(as.character(Date), format = "%Y-%
 lakes <- read.csv("../data/private/Lakes.csv")
 colnames(lakes)[which(colnames(lakes) == "Abbreviation")] <- "LAKE"
 
+if (file.exists("../data/private/qDICDOCupdate.csv")) {
+  dicdocnew <- read.csv("../data/private/qDICDOCupdate.csv")
+} else {
+  stop("get 2013,2014 DIC data from Emma")
+}
+dicdocnew <- transform(dicdocnew, Date = as.POSIXct(Date, format = "%d-%b-%y"))
+
 ## remove extra date column (originally retained in case wanna check that the date format
 ##    conversion worked in OpenOffice)
 routines <- routines[,-which(colnames(routines)=="Date2")]
@@ -243,6 +251,24 @@ rownames(relhum) <- NULL #set new order for rows, otherwise in mixed order based
 
 ## merge co2expl with monthly relative humidity data
 co2expl <- merge(co2expl, relhum)
+
+## insert DIC and DOC for 2013 and 2014
+take <- dicdocnew[,c('LAKE', 'Date', 'TIC_mg_L', 'DOC_mg_L')]
+take <- merge(co2expl[co2expl$YEAR >= 2013,], take, by.y = c("LAKE", "Date"), by.x = c("LAKE", "Date"), 
+              all.x = TRUE) 
+take$TIC_mg_L <- take$TIC_mg_L.y
+take$DOC_mg_L <- take$DOC_mg_L.y
+take <- take[,-which(names(take) %in% c('TIC_mg_L.x','TIC_mg_L.y', 'DOC_mg_L.x', 'DOC_mg_L.y'))]
+take <- take[,c("YEAR", "Month", "Date", "LAKE", "Chl_a_ug_L", "GPP_h", "NPP_h", "R_h", "LakeArea_km2", 
+                "Secchi_m", "lakeGPP", "lakeNPP", "lakeR", "DOY", "pH_surface", "SRP_ug_L", "TDP_ug_L", 
+                "TDN_ug_L", "NO2_ug_L", "NH4_ug_L", "DOC_mg_L", "TIC_mg_L", "SO4_mg_L", "Si_mg_L", 
+                "NO3_ug_L", "Temperature_deg_C", "Oxygen_ppm", "AirTempMonthly", "AirTempAnnual", "RelHum")] 
+# now in same co2expl order
+
+takeout <- which(co2expl$YEAR >= 2013)
+co2expl <- co2expl[-takeout,]
+
+co2expl <- rbind(co2expl, take)
 
 ## save output for later
 saveRDS(co2expl, "../data/private/co2explained.rds")
