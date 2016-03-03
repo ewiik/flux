@@ -34,10 +34,21 @@ if (file.exists("../data/private/params.rds")) {
   }
 
 if (file.exists("../data/private/db_metadata_outliers.csv")) {
-  checkdates <- readRDS("../data/private/db_metadata_outliers.csv")
+  checkdates <- read.csv("../data/private/db_metadata_outliers.csv")
 } else {
   stop("get database metadata FIXME from Emma")
 }
+
+if (file.exists("../data/private/qDICDOCupdate.csv")) {
+  dicdocnew <- read.csv("../data/private/qDICDOCupdate.csv")
+} else {
+  stop("get 2013,2014 DIC data from Emma")
+}
+
+### source functions that will run through the calculations
+source("../functions/gasExchangeFlex.R")
+source("../data/private/salcalc.R")
+
 
 ## Create necessary values for starting parameters
 # insert pco2atm from Mauna Loa
@@ -84,9 +95,22 @@ params[newcond, 'Conductivity'] <- 1385
 params[newcond, 'SalCalc'] <- with(params[newcond,], salcalc(Temperature, Conductivity, dbar))
 params[c(salcondtona, salcondtona2),c('Conductivity', 'SalCalc')] <- NA
 
-### source functions that will run through the calculations
-source("../functions/gasExchangeFlex.R")
-source("../data/private/salcalc.R")
+
+## insert DIC for 2013 and 2014; convert new DICs into umol
+dicdocnew <- transform(dicdocnew, Date = as.POSIXct(Date, format = "%d-%b-%y"))
+take <- dicdocnew[,c('LAKE', 'Date', 'TIC_mg_L')]
+take <- merge(params[params$Year >= 2013,], take, by.y = c("LAKE", "Date"), by.x = c("Lake", "Date"), all.x = TRUE) 
+take$TIC <- take$TIC_mg_L
+take <- take[,-which(names(take) == 'TIC_mg_L')]
+take <- take[,c("Lake", "Year", "Month", "Superstation", "StationID", "Date", "Temperature", "Conductivity", "Salinity", 
+        "Depth", "pH", "Wind", "TIC", "DOY", "Elevation", "Day", "Pressure", "meanWind", "RelHum", 
+        "measuredWindMS", "meanWindMS", "TICumol", "pco2atm", "kerriWindMS", "SalCalc")] # now in same params order
+take$TICumol <- take$TIC / 0.012
+
+takeout <- which(params$Year >= 2013)
+params <- params[-takeout,]
+
+params <- rbind(params, take)
 
 ## create our two scenarios; parameters in function = temp, cond, ph, wind, kerri = FALSE, salt = NULL,
 ##    dic = NULL, alt = NULL, kpa = NULL, pco2atm = NULL, trace = FALSE
