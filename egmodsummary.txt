@@ -1,0 +1,75 @@
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+pH_surface ~ s(Chl_a_ug_L) + s(Chl_a_ug_L, by = Lake, m = 1) + 
+    s(GPP_h) + s(GPP_h, by = Lake, m = 1) + s(TDN_ug_L) + s(TDN_ug_L, 
+    by = Lake, m = 1) + s(DOC_mg_L) + s(DOC_mg_L, by = Lake, 
+    m = 1) + s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) + 
+    te(PDO, SOI) + te(PDO, SOI, by = Lake, m = 1) + s(Lake, Year, 
+    bs = "re")
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  8.91381    0.03412   261.2   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Approximate significance of smooth terms:
+                           edf Ref.df     F  p-value    
+s(Chl_a_ug_L)        2.951e+00  3.503 3.407 0.010724 *  
+s(Chl_a_ug_L):LakeK  4.655e-04  8.000 0.000 0.413201    
+s(Chl_a_ug_L):LakeL  3.610e-04  8.000 0.000 0.429506    
+s(Chl_a_ug_L):LakeB  3.758e+00  8.000 2.018 0.001901 ** 
+s(Chl_a_ug_L):LakeC  2.047e+00  8.000 0.449 0.113850    
+s(Chl_a_ug_L):LakeD  1.437e-04  7.000 0.000 0.606346    
+s(Chl_a_ug_L):LakeWW 3.039e+00  8.000 1.904 0.000507 ***
+s(Chl_a_ug_L):LakeP  1.990e-04  8.000 0.000 0.663135    
+s(GPP_h)             1.758e+00  2.196 0.704 0.558268    
+s(GPP_h):LakeK       2.158e-03  8.000 0.000 0.346083    
+s(GPP_h):LakeL       6.080e+00  8.000 3.412 0.001483 ** 
+s(GPP_h):LakeB       5.069e-05  8.000 0.000 1.000000    
+s(GPP_h):LakeC       1.331e-04  8.000 0.000 0.778312    
+s(GPP_h):LakeD       7.551e-05  8.000 0.000 1.000000    
+s(GPP_h):LakeWW      2.599e-04  8.000 0.000 0.428339    
+s(GPP_h):LakeP       5.172e-05  8.000 0.000 1.000000    
+s(TDN_ug_L)          1.000e+00  1.000 0.417 0.518922    
+s(TDN_ug_L):LakeK    3.181e+00  8.000 2.141 0.085932 .  
+s(TDN_ug_L):LakeL    1.954e+00  8.000 0.844 0.066150 .  
+s(TDN_ug_L):LakeB    9.414e-05  8.000 0.000 0.665136    
+s(TDN_ug_L):LakeC    1.046e-04  8.000 0.000 0.788932    
+s(TDN_ug_L):LakeD    1.984e-04  8.000 0.000 0.591382    
+s(TDN_ug_L):LakeWW   1.317e-04  8.000 0.000 0.775489    
+s(TDN_ug_L):LakeP    9.667e-05  8.000 0.000 1.000000    
+s(DOC_mg_L)          1.001e+00  1.002 1.342 0.246861    
+s(DOC_mg_L):LakeK    3.827e-04  8.000 0.000 0.506257    
+s(DOC_mg_L):LakeL    1.492e-04  8.000 0.000 0.927547    
+s(DOC_mg_L):LakeB    7.282e-01  8.000 0.254 0.203400    
+s(DOC_mg_L):LakeC    8.298e-01  8.000 0.266 0.176250    
+s(DOC_mg_L):LakeD    1.360e-04  8.000 0.000 0.575073    
+s(DOC_mg_L):LakeWW   5.399e-01  8.000 0.093 0.293845    
+s(DOC_mg_L):LakeP    1.922e+00  8.000 0.551 0.234308    
+s(Oxygen_ppm)        3.363e+00  4.151 2.153 0.071266 .  
+s(Oxygen_ppm):LakeK  3.373e-04  8.000 0.000 0.393296    
+s(Oxygen_ppm):LakeL  5.069e+00  8.000 2.474 0.002780 ** 
+s(Oxygen_ppm):LakeB  1.391e-04  8.000 0.000 0.668942    
+s(Oxygen_ppm):LakeC  2.208e+00  8.000 0.544 0.124903    
+s(Oxygen_ppm):LakeD  9.948e-05  8.000 0.000 0.761069    
+s(Oxygen_ppm):LakeWW 1.763e+00  8.000 0.413 0.133868    
+s(Oxygen_ppm):LakeP  2.740e-04  8.000 0.000 0.465288    
+te(PDO,SOI)          8.372e+00  8.785 5.447 2.92e-07 ***
+te(PDO,SOI):LakeK    2.000e+00  2.001 1.251 0.287029    
+te(PDO,SOI):LakeL    3.000e+00  3.000 0.843 0.470597    
+te(PDO,SOI):LakeB    3.000e+00  3.000 1.040 0.374289    
+te(PDO,SOI):LakeC    2.437e+00  2.743 0.255 0.838978    
+te(PDO,SOI):LakeD    3.000e+00  3.000 0.090 0.965464    
+te(PDO,SOI):LakeWW   6.878e+00  8.613 0.835 0.579578    
+te(PDO,SOI):LakeP    4.162e+00  4.936 0.329 0.862745    
+s(Lake,Year)         5.363e+01 94.000 1.504 3.66e-14 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Rank: 627/630
+R-sq.(adj) =  0.445   Deviance explained = 54.2%
+-REML =  560.1  Scale est. = 0.19833   n = 749

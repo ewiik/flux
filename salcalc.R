@@ -5,7 +5,7 @@ salcalc <- function(temp, cond, dbar) {
   temp <- temp
   cond <- cond/1000 # in params, cond is in uS/cm, we need mS/cm
   dbar <- dbar
-  consts <- read.csv("data/private/ysi85constants.csv", row.names = 1)
+  consts <- read.csv("../data/private/ysi85constants.csv", row.names = 1)
   consts <- as.data.frame(t(consts))
   attach(consts)
   

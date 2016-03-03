@@ -1,0 +1,22 @@
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+co2Flux ~ s(pH_surface) + s(Year, bs = "re")
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  -23.392      1.133  -20.64   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Approximate significance of smooth terms:
+                   edf Ref.df     F p-value    
+s(pH_surface) 6.154765      9 222.2  <2e-16 ***
+s(Year)       0.001624     13   0.0   0.599    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+R-sq.(adj) =  0.947   Deviance explained =   95%
+-REML = 447.49  Scale est. = 143.86    n = 112
