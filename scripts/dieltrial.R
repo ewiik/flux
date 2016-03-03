@@ -97,8 +97,9 @@ dic <- 26.57 + 0.018 * diel$Cond  # (mg/L)
 dic <- dic / 0.012 # --> uM
 
 ## run gasExchangeFlex, using mean wind (from kerri's means) and Wascana's altitude
+source("../functions/gasExchangeFlex.R")
 CO2Flux <- with(diel, gasExchangeFlex(Temp, Cond, pH, wind = 2.8, kerri = FALSE, altnotkpa = TRUE,
                                                   salt = Sal, dic = dic, alt = 570.5, pco2atm = pco2atm))
-diel <- transform(diel, CO2Flux = CO2Flux)
+diel <- transform(diel, CO2Flux = CO2Flux$fluxenh)
 
 with(diel, plot(CO2Flux ~ Date.Time, col = ifelse(Day, "red", "black")))
