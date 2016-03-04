@@ -1,0 +1,14 @@
+# all public data files
+metdata:
+	Rscript ./scripts/gasexchange_pressuredata.R
+	Rscript ./scripts/weathermanipulations.R 
+	Rscript ./scripts/weathermanipulations.R 
+	Rscript ./scripts/pressuremanipulations.R
+	Rscript ./scripts/precipmanipulations-routines.R 
+	
+# all lake data files
+vardata:
+	Rscript ./scripts/co2ExplVar.R 
+	Rscript ./scripts/co2_scenarios.R
+	Rscript ./scripts/regression_routines.R  
+

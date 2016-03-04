@@ -1,0 +1,44 @@
+# Assuming now that this makefile will be located in git/flux/
+RDIR= ~/git/flux
+
+scriptDIR= $(RDIR)/scripts
+functionDIR= $(RDIR)/functions
+docDIR= $(RDIR)/docs
+dataDIR= $(RDIR)/data
+privDIR= $(RDIR)/data/private
+ 
+# dummy designations... see http://kbroman.org/minimal_make/
+#	and weirdness. what call makes what ambiguous since some imply
+#	call can be done without path even though path spelled out
+#	and also... some say dependency cascades bottom up others 
+#	top down (bottom up: http://zmjones.com/make/)
+vardata: regvars.rds params-flux.rds params.rds co2explained.rds
+# so make vardata runs all the below with matching filenames regardless of update?
+# and make would cascade regvars? Could I still do make co2explained.rds?
+  
+# primary target, prerequisite objects and source, recipe:
+#	(see 'all' in http://robjhyndman.com/hyndsight/makefiles/)
+$(privDIR)/regvars.rds: $(privDIR)/params-flux.rds $(privDIR)/co2explained.rds \
+$(scriptDIR)/regression_routines.R
+	Rscript $(scriptDIR)/regression_routines.R
+
+# prerequisite object dependencies:
+$(privDIR)/params-flux.rds: $(dataDIR)/params.rds $(functionDIR)/gasExchangeFlex.R \
+$functionDIR/getmaunaloa.R $(PRIVDIR)/salcalc.R co2_scenarios.R
+	Rscript co2_scenarios.R
+$(dataDIR)/params.rds: $(dataDIR)/windsdata.rds $(dataDIR)/pressuredata.rds \
+pressuremanipulations.R
+	Rscript pressuremanipulations.R
+$(dataDIR)/windsdata.rds $(dataDIR)/pressuredata.rds: $(dataDIR)/dmet.rds \
+weathermanipulations.R
+	Rscript weathermanipulations.R
+
+$(privDIR)/co2explained.rds: $(dataDIR)/relhumdata.rds $(dataDIR)/temperaturedata.rds \
+co2ExplVar.R
+	Rscript co2ExplVar.R
+$(dataDIR)/relhumdata.rds $(dataDIR)/temperaturedata.rds: $(dataDIR)/dmet.rds weathermanipulations.R
+	Rscript weathermanipulations.R
+$(dataDIR)/dmet.rds: gasexchange_pressuredata.R
+	Rscript gasexchange_pressuredata.R
+
+
