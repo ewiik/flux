@@ -1,0 +1,29 @@
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+co2Flux ~ s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+    s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) + s(Year, 
+    bs = "re")
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  -26.017      4.361  -5.965 4.96e-08 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Approximate significance of smooth terms:
+                           edf Ref.df     F  p-value    
+s(log10(Chl_a_ug_L)) 0.9490157      9 2.061 2.08e-05 ***
+s(GPP_h)             0.0001568      9 0.000  1.00000    
+s(log10(TDN_ug_L))   0.3361086      9 0.056  0.20606    
+s(log10(DOC_mg_L))   0.0003415      9 0.000  0.39311    
+s(Oxygen_ppm)        0.0005095      9 0.000  0.34899    
+te(PDO,SOI)          5.4527970     24 0.664  0.00438 ** 
+s(Year)              0.0096562     12 0.001  0.35893    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+R-sq.(adj) =  0.281   Deviance explained = 33.2%
+-REML = 500.02  Scale est. = 1824      n = 96

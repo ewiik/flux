@@ -1,0 +1,30 @@
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+co2Flux ~ s(pH_surface) + s(pH_surface, by = Lake, m = 1) + s(Lake, 
+    Year, bs = "re")
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  -7.5683     0.7335  -10.32   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Approximate significance of smooth terms:
+                        edf Ref.df       F  p-value    
+s(pH_surface)         8.559      9 178.448  < 2e-16 ***
+s(pH_surface):LakeK   5.667      8   1.862  0.00309 ** 
+s(pH_surface):LakeL   7.017      8  10.079 1.42e-13 ***
+s(pH_surface):LakeB   7.221      8  10.204 1.70e-15 ***
+s(pH_surface):LakeC   2.034      8   0.379  0.00538 ** 
+s(pH_surface):LakeD   6.444      8   7.328 2.08e-11 ***
+s(pH_surface):LakeWW  3.636      8   0.957  0.00232 ** 
+s(pH_surface):LakeP   5.920      8   2.233  0.00815 ** 
+s(Lake,Year)         69.282     94   3.017  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+R-sq.(adj) =  0.964   Deviance explained =   97%
+-REML = 2960.2  Scale est. = 86.252    n = 771

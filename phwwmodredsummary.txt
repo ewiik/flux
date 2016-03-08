@@ -1,0 +1,28 @@
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+pH_surface ~ s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+    s(DOC_mg_L) + s(Oxygen_ppm) + te(PDO, SOI) + s(Year, bs = "re")
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  9.08368    0.05596   162.3   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Approximate significance of smooth terms:
+                           edf Ref.df     F  p-value    
+s(log10(Chl_a_ug_L)) 9.590e-01      9 2.598 1.98e-06 ***
+s(GPP_h)             3.703e-05      9 0.000   0.8388    
+s(log10(TDN_ug_L))   3.814e-05      9 0.000   0.5533    
+s(DOC_mg_L)          6.354e-01      9 0.194   0.0792 .  
+s(Oxygen_ppm)        9.581e-05      9 0.000   0.4461    
+te(PDO,SOI)          7.433e+00     24 1.245 7.59e-05 ***
+s(Year)              4.917e-04     13 0.000   0.4152    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+R-sq.(adj) =  0.337   Deviance explained = 39.4%
+-REML = 102.76  Scale est. = 0.3319    n = 106

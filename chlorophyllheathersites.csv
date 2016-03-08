@@ -1,0 +1,676 @@
+chlorphyllID,sampleID,rep,volume,chlID,chlvalue
+3,Tramping,1,250,A,38.17
+4,Tramping,1,250,B,0.02
+5,Tramping,1,250,C,-0.21
+6,Tramping,1,250,totalChl,37.97
+7,Tramping,2,250,A,36.6
+8,Tramping,2,250,B,-0.08
+9,Tramping,2,250,C,-0.56
+10,Tramping,2,250,totalChl,35.97
+11,Lewis Creek South,1,250,A,70.48
+12,Lewis Creek South,1,250,B,-3.19
+13,Lewis Creek South,1,250,C,-0.5
+14,Lewis Creek South,1,250,totalChl,66.79
+15,Lewis Creek South,2,250,A,66.01
+16,Lewis Creek South,2,250,B,-1.85
+17,Lewis Creek South,2,250,C,0.87
+18,Lewis Creek South,2,250,totalChl,65.03
+19,Kenosee,1,250,A,25.83
+20,Kenosee,1,250,B,2.65
+21,Kenosee,1,250,C,-2.2
+22,Kenosee,1,250,totalChl,26.27
+23,Kenosee,2,250,A,25.28
+24,Kenosee,2,250,B,1.88
+25,Kenosee,2,250,C,-3.29
+26,Kenosee,2,250,totalChl,23.88
+27,Shrimp,1,250,A,59.44
+28,Shrimp,1,250,B,-0.81
+29,Shrimp,1,250,C,0.67
+30,Shrimp,1,250,totalChl,59.3
+31,Shrimp,2,250,A,62.53
+32,Shrimp,2,250,B,-1.61
+33,Shrimp,2,250,C,0.73
+34,Shrimp,2,250,totalChl,61.64
+35,Newton,1,750,A,3.23
+36,Newton,1,750,B,4.22
+37,Newton,1,750,C,0.91
+38,Newton,1,750,totalChl,8.37
+39,Newton,2,750,A,2.65
+40,Newton,2,750,B,1.97
+41,Newton,2,750,C,0.64
+42,Newton,2,750,totalChl,5.25
+43,Good Spirt,1,500,A,6.94
+44,Good Spirt,1,500,B,1.72
+45,Good Spirt,1,500,C,-0.69
+46,Good Spirt,1,500,totalChl,7.96
+47,Good Spirt,2,500,A,6.69
+48,Good Spirt,2,500,B,1.52
+49,Good Spirt,2,500,C,-0.87
+50,Good Spirt,2,500,totalChl,7.34
+51,Montague,1,150,A,16.8
+52,Montague,1,150,B,7.51
+53,Montague,1,150,C,-4.59
+54,Montague,1,150,totalChl,19.72
+55,Montague,2,150,A,8.5
+56,Montague,2,150,B,4.41
+57,Montague,2,150,C,-3.14
+58,Montague,2,150,totalChl,9.77
+59,Bullkin,1,250,A,8.73
+60,Bullkin,1,250,B,4.83
+61,Bullkin,1,250,C,-3.98
+62,Bullkin,1,250,totalChl,9.58
+63,Bullkin,2,250,A,10.03
+64,Bullkin,2,250,B,5.61
+65,Bullkin,2,250,C,-3.3
+66,Bullkin,2,250,totalChl,12.34
+67,Springwater,1,1000,A,1.17
+68,Springwater,1,1000,B,1.23
+69,Springwater,1,1000,C,-1.13
+70,Springwater,1,1000,totalChl,1.27
+71,Springwater,2,1000,A,1.41
+72,Springwater,2,1000,B,1.53
+73,Springwater,2,1000,C,-0.8
+74,Springwater,2,1000,totalChl,2.14
+75,Peter,1,750,A,0.59
+76,Peter,1,750,B,1.59
+77,Peter,1,750,C,-1.81
+78,Peter,1,750,totalChl,0.3
+79,Peter,2,750,A,0.54
+80,Peter,2,750,B,1.56
+81,Peter,2,750,C,-1.87
+82,Peter,2,750,totalChl,0.26
+83,Horse,1,250,A,54.19
+84,Horse,1,250,B,-0.93
+85,Horse,1,250,C,-2.05
+86,Horse,1,250,totalChl,51.2
+87,Horse,2,250,A,57.91
+88,Horse,2,250,B,-1.45
+89,Horse,2,250,C,-1.06
+90,Horse,2,250,totalChl,55.4
+91,Island,1,250,A,12.96
+92,Island,1,250,B,3.86
+93,Island,1,250,C,-3.42
+94,Island,1,250,totalChl,13.41
+95,Island,2,250,A,12.51
+96,Island,2,250,B,3.94
+97,Island,2,250,C,-3.95
+98,Island,2,250,totalChl,12.5
+99,Luck,1,750,A,0.04
+100,Luck,1,750,B,0.03
+101,Luck,1,750,C,0.02
+102,Luck,1,750,totalChl,0.1
+103,Luck,2,750,A,1.97
+104,Luck,2,750,B,1.49
+105,Luck,2,750,C,-1.56
+106,Luck,2,750,totalChl,1.89
+107,Quill,1,250,A,12.18
+108,Quill,1,250,B,4.01
+109,Quill,1,250,C,-3.78
+110,Quill,1,250,totalChl,12.41
+111,Quill,2,250,A,12.05
+112,Quill,2,250,B,4.11
+113,Quill,2,250,C,-3.87
+114,Quill,2,250,totalChl,12.29
+115,Elkwater,1,250,A,4.84
+116,Elkwater,1,250,B,5.13
+117,Elkwater,1,250,C,-3.11
+118,Elkwater,1,250,totalChl,6.86
+119,Elkwater,2,250,A,4.39
+120,Elkwater,2,250,B,5.22
+121,Elkwater,2,250,C,-3.9
+122,Elkwater,2,250,totalChl,5.71
+123,Opuntia,1,750,A,2.65
+124,Opuntia,1,750,B,1.62
+125,Opuntia,1,750,C,-1.17
+126,Opuntia,1,750,totalChl,3.1
+127,Opuntia,2,750,A,2.68
+128,Opuntia,2,750,B,1.61
+129,Opuntia,2,750,C,-1.19
+130,Opuntia,2,750,totalChl,3.11
+131,Willow Bunch,1,250,A,13.98
+132,Willow Bunch,1,250,B,1.61
+133,Willow Bunch,1,250,C,-1.19
+134,Willow Bunch,1,250,totalChl,16.19
+135,Willow Bunch,2,250,A,12
+136,Willow Bunch,2,250,B,3.73
+137,Willow Bunch,2,250,C,-2.36
+138,Willow Bunch,2,250,totalChl,13.36
+139,White Heron,1,250,A,32.76
+140,White Heron,1,250,B,1.08
+141,White Heron,1,250,C,-1.03
+142,White Heron,1,250,totalChl,32.81
+143,White Heron,2,250,A,34.27
+144,White Heron,2,250,B,0.64
+145,White Heron,2,250,C,-0.95
+146,White Heron,2,250,totalChl,33.97
+147,Shoe,1,750,A,1.92
+148,Shoe,1,750,B,1.38
+149,Shoe,1,750,C,-0.9
+150,Shoe,1,750,totalChl,2.41
+151,Shoe,2,750,A,1.7
+152,Shoe,2,750,B,1.16
+153,Shoe,2,750,C,-0.9
+154,Shoe,2,750,totalChl,1.96
+155,Eaglehill,1,250,A,29.32
+156,Eaglehill,1,250,B,6.27
+157,Eaglehill,1,250,C,-2.4
+158,Eaglehill,1,250,totalChl,33.18
+159,Eaglehill,2,250,A,29.47
+160,Eaglehill,2,250,B,6.28
+161,Eaglehill,2,250,C,-2.62
+162,Eaglehill,2,250,totalChl,33.13
+163,Richmond,1,35,A,80.14
+164,Richmond,1,35,B,23.15
+165,Richmond,1,35,C,-21.61
+166,Richmond,1,35,totalChl,81.68
+167,Richmond,2,35,A,84.16
+168,Richmond,2,35,B,21.48
+169,Richmond,2,35,C,-20.3
+170,Richmond,2,35,totalChl,85.33
+171,Summercove,1,250,A,43.75
+172,Summercove,1,250,B,3.61
+173,Summercove,1,250,C,-0.97
+174,Summercove,1,250,totalChl,46.39
+175,Summercove,2,250,A,43.53
+176,Summercove,2,250,B,3.66
+177,Summercove,2,250,C,-1.34
+178,Summercove,2,250,totalChl,45.86
+179,Old Wives,1,250,A,15.04
+180,Old Wives,1,250,B,3.08
+181,Old Wives,1,250,C,-2.39
+182,Old Wives,1,250,totalChl,15.74
+183,Old Wives,2,250,A,14.87
+184,Old Wives,2,250,B,3.41
+185,Old Wives,2,250,C,-2.03
+186,Old Wives,2,250,totalChl,16.25
+187,X3,1,500,A,4.93
+188,X3,1,500,B,1.55
+189,X3,1,500,C,-1.1
+190,X3,1,500,totalChl,5.39
+191,X3,2,500,A,5.11
+192,X3,2,500,B,2.4
+193,X3,2,500,C,-1.8
+194,X3,2,500,totalChl,5.71
+195,Suffern,1,500,A,5.1
+196,Suffern,1,500,B,1.87
+197,Suffern,1,500,C,-3.88
+198,Suffern,1,500,totalChl,3.09
+199,Suffern,2,500,A,4.53
+200,Suffern,2,500,B,2
+201,Suffern,2,500,C,-3.78
+202,Suffern,2,500,totalChl,2.75
+203,Annie Laurie,1,150,A,65.15
+204,Annie Laurie,1,150,B,4.12
+205,Annie Laurie,1,150,C,-3.95
+206,Annie Laurie,1,150,totalChl,65.32
+207,Annie Laurie,2,175,A,56.5
+208,Annie Laurie,2,175,B,2.98
+209,Annie Laurie,2,175,C,-4.18
+210,Annie Laurie,2,175,totalChl,55.3
+211,McLean,1,10,A,170.71
+212,McLean,1,10,B,15.64
+213,McLean,1,10,C,-225.63
+214,McLean,1,10,totalChl,-39.28
+215,McLean,2,10,A,177.26
+216,McLean,2,10,B,6.99
+217,McLean,2,10,C,-226.85
+218,McLean,2,10,totalChl,-42.6
+219,Thomson,1,500,A,3.08
+220,Thomson,1,500,B,2.63
+221,Thomson,1,500,C,-2.92
+222,Thomson,1,500,totalChl,2.78
+223,Thomson,2,500,A,3.24
+224,Thomson,2,500,B,2.66
+225,Thomson,2,500,C,-3.08
+226,Thomson,2,500,totalChl,2.82
+227,Sunny,1,250,A,4.29
+228,Sunny,1,250,B,14.6
+229,Sunny,1,250,C,-12.95
+230,Sunny,1,250,totalChl,5.94
+231,Sunny,2,250,A,4.22
+232,Sunny,2,250,B,14.4
+233,Sunny,2,250,C,-13.15
+234,Sunny,2,250,totalChl,5.47
+235,Pasqua,1,250,A,14.28
+236,Pasqua,1,250,B,4.14
+237,Pasqua,1,250,C,-5.8
+238,Pasqua,1,250,totalChl,12.62
+239,Pasqua,2,250,A,14.24
+240,Pasqua,2,250,B,4.26
+241,Pasqua,2,250,C,-5.65
+242,Pasqua,2,250,totalChl,12.85
+243,Greenwater,1,500,A,6.32
+244,Greenwater,1,500,B,2.19
+245,Greenwater,1,500,C,-2.6
+246,Greenwater,1,500,totalChl,5.91
+247,Greenwater,2,500,A,5.75
+248,Greenwater,2,500,B,1.87
+249,Greenwater,2,500,C,-3
+250,Greenwater,2,500,totalChl,4.62
+251,Reflex,1,1000,A,1.28
+252,Reflex,1,1000,B,1.19
+253,Reflex,1,1000,C,-1.49
+254,Reflex,1,1000,totalChl,0.99
+255,Reflex,2,1000,A,1.19
+256,Reflex,2,1000,B,1.31
+257,Reflex,2,1000,C,-1.41
+258,Reflex,2,1000,totalChl,1.09
+259,Sink,1,250,A,28.69
+260,Sink,1,250,B,7.05
+261,Sink,1,250,C,-4.64
+262,Sink,1,250,totalChl,31.09
+263,Sink,2,250,A,30.03
+264,Sink,2,250,B,7.12
+265,Sink,2,250,C,-4.32
+266,Sink,2,250,totalChl,32.83
+267,Thackery,1,250,A,36.36
+268,Thackery,1,250,B,1.77
+269,Thackery,1,250,C,-0.69
+270,Thackery,1,250,totalChl,37.44
+271,Thackery,2,250,A,33.76
+272,Thackery,2,250,B,2.79
+273,Thackery,2,250,C,-1.32
+274,Macklin,1,500,A,7.37
+275,Macklin,1,500,B,2.01
+276,Macklin,1,500,C,-1.54
+277,Macklin,1,500,totalChl,7.84
+278,Macklin,2,500,A,7.66
+279,Macklin,2,500,B,2.1
+280,Macklin,2,500,C,-1.75
+281,Macklin,2,500,totalChl,8.01
+282,Coldspring,1,500,A,7.15
+283,Coldspring,1,500,B,1.72
+284,Coldspring,1,500,C,-1.77
+285,Coldspring,1,500,totalChl,7.1
+286,Coldspring,2,500,A,7.49
+287,Coldspring,2,500,B,1.84
+288,Coldspring,2,500,C,-1.78
+289,Coldspring,2,500,totalChl,7.55
+290,Buffalo Pound,1,250,A,62.62
+291,Buffalo Pound,1,250,B,0.48
+292,Buffalo Pound,1,250,C,-1.31
+293,Buffalo Pound,1,250,totalChl,61.8
+294,Buffalo Pound,2,250,A,62.92
+295,Buffalo Pound,2,250,B,-1.02
+296,Buffalo Pound,2,250,C,-2.27
+297,Buffalo Pound,2,250,totalChl,59.63
+298,X5,1,250,A,21.99
+299,X5,1,250,B,2.74
+300,X5,1,250,C,-5.53
+301,X5,1,250,totalChl,19.2
+302,X5,2,250,A,21.13
+303,X5,2,250,B,2.41
+304,X5,2,250,C,-5.45
+305,X5,2,250,totalChl,18.09
+306,Manitou,1,750,A,4.16
+307,Manitou,1,750,B,1.25
+308,Manitou,1,750,C,-1.79
+309,Manitou,1,750,totalChl,3.63
+310,Manitou,2,750,A,4.53
+311,Manitou,2,750,B,1.42
+312,Manitou,2,750,C,-1.6
+313,Manitou,2,750,totalChl,4.35
+314,Katepwa,1,250,A,16.39
+315,Katepwa,1,250,B,1.96
+316,Katepwa,1,250,C,-3.35
+317,Katepwa,1,250,totalChl,15.01
+318,Katepwa,2,250,A,17.95
+319,Katepwa,2,250,B,1.77
+320,Katepwa,2,250,C,-2.96
+321,Katepwa,2,250,totalChl,16.76
+322,Chapleau,1,100,A,130.54
+323,Chapleau,1,100,B,-3.35
+324,Chapleau,1,100,C,-5.69
+325,Chapleau,1,100,totalChl,121.5
+326,Chapleau,2,100,A,112.29
+327,Chapleau,2,100,B,-3.93
+328,Chapleau,2,100,C,-8.71
+329,Chapleau,2,100,totalChl,99.65
+330,Little Manitou,1,500,A,30.11
+331,Little Manitou,1,500,B,-1.46
+332,Little Manitou,1,500,C,-1.66
+333,Little Manitou,1,500,totalChl,26.98
+334,Little Manitou,2,500,A,33.92
+335,Little Manitou,2,500,B,-0.84
+336,Little Manitou,2,500,C,-0.62
+337,Little Manitou,2,500,totalChl,32.46
+338,Alioth,1,750,A,3.09
+339,Alioth,1,750,B,0.96
+340,Alioth,1,750,C,-2
+341,Alioth,1,750,totalChl,2.04
+342,Alioth,2,750,A,2.78
+343,Alioth,2,750,B,0.8
+344,Alioth,2,750,C,-2.09
+345,Alioth,2,750,totalChl,1.48
+346,Farewell,1,20,A,49.8
+347,Farewell,1,20,B,56.61
+348,Farewell,1,20,C,-62.47
+349,Farewell,1,20,totalChl,43.94
+350,Farewell,2,20,A,47.19
+351,Farewell,2,20,B,55.15
+352,Farewell,2,20,C,-63.61
+353,Farewell,2,20,totalChl,38.74
+354,Deep,1,250,A,71.03
+355,Deep,1,250,B,-2.4
+356,Deep,1,250,C,-0.39
+357,Deep,1,250,totalChl,68.24
+358,Deep,2,250,A,66.37
+359,Deep,2,250,B,-2.13
+360,Deep,2,250,C,-0.71
+361,Deep,2,250,totalChl,63.53
+362,Diefenbaker,1,750,A,2.77
+363,Diefenbaker,1,750,B,1.39
+364,Diefenbaker,1,750,C,-0.96
+365,Diefenbaker,1,750,totalChl,3.2
+366,Diefenbaker,2,750,A,2.51
+367,Diefenbaker,2,750,B,1.27
+368,Diefenbaker,2,750,C,-1.24
+369,Diefenbaker,2,720,totalChl,2.54
+370,Round,1,500,A,22.48
+371,Round,1,500,B,-0.03
+372,Round,1,500,C,-0.39
+373,Round,1,500,totalChl,22.07
+374,Round,2,500,A,22.16
+375,Round,2,500,B,-0.16
+376,Round,2,500,C,-0.09
+377,Round,2,500,totalChl,21.92
+378,Stony Beach,1,500,A,11.91
+379,Stony Beach,1,500,B,0.92
+380,Stony Beach,1,500,C,-0.45
+381,Stony Beach,1,500,totalChl,12.38
+382,Stony Beach,2,500,A,11.7
+383,Stony Beach,2,500,B,0.41
+384,Stony Beach,2,500,C,-1.15
+385,Stony Beach,2,500,totalChl,10.96
+386,Barber,1,500,A,3.19
+387,Barber,1,500,B,2.32
+388,Barber,1,500,C,-2.16
+389,Barber,1,500,totalChl,3.35
+390,Barber,2,500,A,3.21
+391,Barber,2,500,B,1.91
+392,Barber,2,500,C,-2.31
+393,Barber,2,500,totalChl,2.81
+394,Eyebrow,1,1000,A,2.52
+395,Eyebrow,1,1000,B,1.23
+396,Eyebrow,1,1000,C,-1.16
+397,Eyebrow,1,1000,totalChl,2.59
+398,Eyebrow,2,1000,A,2.57
+399,Eyebrow,2,1000,B,1.19
+400,Eyebrow,2,1000,C,-1.21
+401,Eyebrow,2,1000,totalChl,2.55
+402,Adrian,1,500,A,14.12
+403,Adrian,1,500,B,1.33
+404,Adrian,1,500,C,-1.64
+405,Adrian,1,500,totalChl,13.81
+406,Adrian,2,500,A,12.4
+407,Adrian,2,500,B,1.33
+408,Adrian,2,500,C,-1.8
+409,Adrian,2,500,totalChl,11.93
+410,Handsome,1,125,A,111.94
+411,Handsome,1,125,B,-4.57
+412,Handsome,1,125,C,-1.05
+413,Handsome,1,125,totalChl,106.32
+414,Handsome,2,125,A,96.5
+415,Handsome,2,125,B,-4.74
+416,Handsome,2,125,C,-3.28
+417,Handsome,2,125,totalChl,88.48
+418,Harris,1,250,A,10.11
+419,Harris,1,250,B,3.21
+420,Harris,1,250,C,-3.26
+421,Harris,1,250,totalChl,10.06
+422,Harris,2,250,A,8.52
+423,Harris,2,250,B,3.46
+424,Harris,2,250,C,-3.85
+425,Harris,2,250,totalChl,8.13
+426,Pike,1,250,A,12.25
+427,Pike,1,250,B,3.29
+428,Pike,1,250,C,-3.52
+429,Pike,1,250,totalChl,12.02
+430,Pike,2,250,A,14.19
+431,Pike,2,250,B,4.12
+432,Pike,2,250,C,-2.26
+433,Pike,2,250,totalChl,16.05
+434,Vincent,1,50,A,303.45
+435,Vincent,1,50,B,7.05
+436,Vincent,1,50,C,-1.23
+437,Vincent,1,50,totalChl,309.27
+438,Vincent,2,50,A,328.25
+439,Vincent,2,50,B,8.13
+440,Vincent,2,50,C,-5.85
+441,Vincent,2,50,totalChl,330.52
+442,Lonetree,1,250,A,46.31
+443,Lonetree,1,250,B,-0.11
+444,Lonetree,1,250,C,0.28
+445,Lonetree,1,250,totalChl,46.48
+446,Lonetree,2,250,A,37.75
+447,Lonetree,2,250,B,0.49
+448,Lonetree,2,250,C,-0.77
+449,Lonetree,2,250,totalChl,37.48
+450,WhiteBear,1,500,A,7.15
+451,WhiteBear,1,500,B,1.26
+452,WhiteBear,1,500,C,-1.49
+453,WhiteBear,1,500,totalChl,6.92
+454,WhiteBear,2,500,A,6.71
+455,WhiteBear,2,500,B,1.39
+456,WhiteBear,2,500,C,-1.27
+457,WhiteBear,2,500,totalChl,6.82
+458,Ingebright,1,250,A,4.56
+459,Ingebright,1,250,B,3.72
+460,Ingebright,1,250,C,-1.87
+461,Ingebright,1,250,totalChl,6.41
+462,Ingebright,2,250,A,4.12
+463,Ingebright,2,250,B,3.42
+464,Ingebright,2,250,C,-1.31
+465,Ingebright,2,250,totalChl,6.23
+466,Nickle,1,250,A,6.42
+467,Nickle,1,250,B,2.98
+468,Nickle,1,250,C,-2.28
+469,Nickle,1,250,totalChl,7.12
+470,Nickle,2,250,A,5.35
+471,Nickle,2,250,B,2.63
+472,Nickle,2,250,C,-3.24
+473,Nickle,2,250,totalChl,4.74
+474,Freefight,1,250,A,13
+475,Freefight,1,250,B,13.88
+476,Freefight,1,250,C,-1.38
+477,Freefight,1,250,totalChl,25.5
+478,Freefight,2,250,A,13.01
+479,Freefight,2,250,B,13.85
+480,Freefight,2,250,C,-2.96
+481,Freefight,2,250,totalChl,23.9
+482,Snipe,1,250,A,12.56
+483,Snipe,1,250,B,5
+484,Snipe,1,250,C,-2.86
+485,Snipe,1,250,totalChl,14.7
+486,Snipe,2,250,A,13.13
+487,Snipe,2,250,B,4.66
+488,Snipe,2,250,C,-4.05
+489,Snipe,2,250,totalChl,13.74
+490,Clearwater,1,250,A,26.18
+491,Clearwater,1,250,B,7.15
+492,Clearwater,1,250,C,-3.36
+493,Clearwater,1,250,totalChl,29.97
+494,Clearwater,2,250,A,27.47
+495,Clearwater,2,250,B,7.05
+496,Clearwater,2,250,C,-3.08
+497,Clearwater,2,250,totalChl,31.44
+498,Mason,1,250,A,7.28
+499,Mason,1,250,B,4.17
+500,Mason,1,250,C,-4.47
+501,Mason,1,250,totalChl,6.98
+502,Mason,2,250,A,6.26
+503,Mason,2,250,B,4.72
+504,Mason,2,250,C,-4.47
+505,Mason,2,250,totalChl,6.51
+506,Porter,1,250,A,3.04
+507,Porter,1,250,B,4.27
+508,Porter,1,250,C,-4.2
+509,Porter,1,250,totalChl,3.11
+510,Porter,2,250,A,2.6
+511,Porter,2,250,B,3.98
+512,Porter,2,250,C,-4.55
+513,Porter,2,250,totalChl,2.04
+514,Blackstrap,1,250,A,15.87
+515,Blackstrap,1,250,B,1.82
+516,Blackstrap,1,250,C,-3.67
+517,Blackstrap,1,250,totalChl,14.02
+518,Blackstrap,2,250,A,20.79
+519,Blackstrap,2,250,B,1.61
+520,Blackstrap,2,250,C,-2.71
+521,Blackstrap,2,250,totalChl,19.68
+522,Bitter,1,70,A,56.41
+523,Bitter,1,70,B,13.78
+524,Bitter,1,70,C,-11.08
+525,Bitter,1,70,totalChl,59.11
+526,Bitter,2,70,A,54.84
+527,Bitter,2,70,B,12.46
+528,Bitter,2,70,C,-13.7
+529,Bitter,2,70,totalChl,53.6
+530,Van Scoy,1,500,A,1.73
+531,Van Scoy,1,500,B,1.76
+532,Van Scoy,1,500,C,-2.08
+533,Van Scoy,1,500,totalChl,1.41
+534,Van Scoy,2,500,A,1.65
+535,Van Scoy,2,500,B,1.8
+536,Van Scoy,2,500,C,-2.06
+537,Van Scoy,2,500,totalChl,1.39
+538,Alsask,1,1000,A,4.35
+539,Alsask,1,1000,B,6.82
+540,Alsask,1,1000,C,7.43
+541,Alsask,1,1000,totalChl,18.6
+542,Alsask,2,1000,A,1.39
+543,Alsask,2,1000,B,2.13
+544,Alsask,2,1000,C,0.68
+545,Alsask,2,1000,totalChl,4.19
+546,Alsask,3,1000,A,2.75
+547,Alsask,3,1000,B,4.36
+548,Alsask,3,1000,C,3.8
+549,Alsask,3,1000,totalChl,10.92
+550,Junction,1,250,A,9.11
+551,Junction,1,250,B,3.66
+552,Junction,1,250,C,-2.39
+553,Junction,1,250,totalChl,10.38
+554,Junction,2,250,A,7.32
+555,Junction,2,250,B,3.18
+556,Junction,2,250,C,-3.44
+557,Junction,2,250,totalChl,7.06
+558,Cypress,1,250,A,5.03
+559,Cypress,1,250,B,3.8
+560,Cypress,1,250,C,-3.55
+561,Cypress,1,250,totalChl,5.28
+562,Cypress,2,250,A,5.22
+563,Cypress,2,250,B,4.34
+564,Cypress,2,250,C,-2.8
+565,Cypress,2,250,totalChl,6.76
+566,Grassy,1,500,A,1.81
+567,Grassy,1,500,B,2.33
+568,Grassy,1,500,C,-1.23
+569,Grassy,1,500,totalChl,2.91
+570,Grassy,2,500,A,1.42
+571,Grassy,2,500,B,1.89
+572,Grassy,2,500,C,-1.8
+573,Grassy,2,500,totalChl,1.51
+574,McDonald,1,250,A,13.37
+575,McDonald,1,250,B,3.5
+576,McDonald,1,250,C,-3.03
+577,McDonald,1,250,totalChl,13.84
+578,McDonald,2,250,A,14.76
+579,McDonald,2,250,B,3.41
+580,McDonald,2,250,C,-2.94
+581,McDonald,2,250,totalChl,15.23
+582,Cutbank,1,250,A,57.9
+583,Cutbank,1,250,B,-2.14
+584,Cutbank,1,250,C,-0.71
+585,Cutbank,1,250,totalChl,55.05
+586,Cutbank,2,250,A,63.41
+587,Cutbank,2,250,B,-2.57
+588,Cutbank,2,250,C,0.16
+589,Cutbank,2,250,totalChl,61
+590,York,1,250,A,12.66
+591,York,1,250,B,3.16
+592,York,1,250,C,-3.5
+593,York,1,250,totalChl,12.33
+594,York,2,250,A,14.32
+595,York,2,250,B,2.2
+596,York,2,250,C,-3.73
+597,York,2,250,totalChl,12.78
+598,Unknown 3,1,30,A,1247.86
+599,Unknown 3,1,30,B,35.89
+600,Unknown 3,1,30,C,60.59
+601,Unknown 3,1,30,totalChl,1344.34
+602,Unknown 3,2,30,A,977.05
+603,Unknown 3,2,30,B,43.31
+604,Unknown 3,2,30,C,33.07
+605,Unknown 3,2,30,totalChl,1053.43
+606,Reesor,1,250,A,20.71
+607,Reesor,1,250,B,2.82
+608,Reesor,1,250,C,-2.84
+609,Reesor,1,250,totalChl,20.7
+610,Reesor,2,250,A,20.36
+611,Reesor,2,250,B,3.77
+612,Reesor,2,250,C,-1.48
+613,Reesor,2,250,totalChl,22.65
+614,Dewey,1,750,A,4.16
+615,Dewey,1,750,B,1.02
+616,Dewey,1,750,C,-1.13
+617,Dewey,1,750,totalChl,4.04
+618,Dewey,2,750,A,4.11
+619,Dewey,2,750,B,1.42
+620,Dewey,2,750,C,-0.72
+621,Dewey,2,750,totalChl,4.82
+622,Wolverine,1,250,A,43.14
+623,Wolverine,1,250,B,-0.38
+624,Wolverine,1,250,C,-0.06
+625,Wolverine,1,250,totalChl,42.7
+626,Wolverine,2,250,A,36.37
+627,Wolverine,2,250,B,-0.5
+628,Wolverine,2,250,C,-0.98
+629,Wolverine,2,250,totalChl,34.88
+630,Madge,1,500,A,4.45
+631,Madge,1,500,B,1.58
+632,Madge,1,500,C,-1.86
+633,Madge,1,500,totalChl,4.17
+634,Madge,2,500,A,4.34
+635,Madge,2,500,B,1.32
+636,Madge,2,500,C,-1.92
+637,Madge,2,500,totalChl,3.74
+638,Gouverneur,1,500,A,4.18
+639,Gouverneur,1,500,B,1.59
+640,Gouverneur,1,500,C,-2.22
+641,Gouverneur,1,500,totalChl,3.55
+642,Gouverneur,2,500,A,5.77
+643,Gouverneur,2,500,B,1.87
+644,Gouverneur,2,500,C,-1.36
+645,Gouverneur,2,500,totalChl,6.28
+646,Kindersley,1,250,A,24.54
+647,Kindersley,1,250,B,1.3
+648,Kindersley,1,250,C,-2.24
+649,Kindersley,1,250,totalChl,23.59
+650,Kindersley,2,250,A,23.15
+651,Kindersley,2,250,B,0.3
+652,Kindersley,2,250,C,-4.08
+653,Kindersley,2,250,totalChl,19.36
+654,Fife,1,250,A,13.12
+655,Fife,1,250,B,3.03
+656,Fife,1,250,C,-3.09
+657,Fife,1,250,totalChl,13.07
+658,Fife,2,250,A,12.53
+659,Fife,2,250,B,3.18
+660,Fife,2,250,C,-2.71
+661,Fife,2,250,totalChl,13.01
+662,Shannon,1,250,A,4.71
+663,Shannon,1,250,B,3.68
+664,Shannon,1,250,C,-4.68
+665,Shannon,1,250,totalChl,3.71
+666,Shannon,2,250,A,4.84
+667,Shannon,2,250,B,4.06
+668,Shannon,2,250,C,-4.48
+669,Shannon,2,250,totalChl,4.42
+670,Unknown 1,1,250,A,32.48
+671,Unknown 1,1,250,B,0.79
+672,Unknown 1,1,250,C,-1.42
+673,Unknown 1,1,250,totalChl,31.86
+674,Unknown 1,2,250,A,32.03
+675,Unknown 1,2,250,B,0.68
+676,Unknown 1,2,250,C,-1.83
+677,Unknown 1,2,250,totalChl,30.88

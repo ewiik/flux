@@ -1,0 +1,748 @@
+depth,variableID,dataValue,sampleID
+0,temperature,19.2,Blackstrap
+0,oxygenPercent,84.4,Blackstrap
+0,oxygenConcentration,6.84,Blackstrap
+0,specificConductivity,876,Blackstrap
+0,conductivity,780,Blackstrap
+0,salinity,0.43,Blackstrap
+0,pH,8.75,Blackstrap
+0,salinity,49.87,Vincent
+0,pH,9.42,Vincent
+0,temperature,18.7,Elkwater
+0,oxygenPercent,91.7,Elkwater
+0,oxygenConcentration,6.71,Elkwater
+0,specificConductivity,377.4,Elkwater
+0,conductivity,331.7,Elkwater
+0,salinity,0.18,Elkwater
+0,pH,8.64,Elkwater
+0,temperature,19.3,Mason
+0,oxygenPercent,58.2,Mason
+0,oxygenConcentration,4.37,Mason
+0,specificConductivity,8867,Mason
+0,conductivity,7900,Mason
+0,salinity,4.97,Mason
+0,pH,9.25,Mason
+0,temperature,18.9,Cypress
+0,oxygenPercent,76.7,Cypress
+0,temperature,20.1,Adrian
+0,oxygenPercent,117,Adrian
+0,oxygenConcentration,9.2,Adrian
+0,specificConductivity,1562,Adrian
+0,conductivity,1416,Adrian
+0,salinity,0.79,Adrian
+0,pH,9.18,Adrian
+0,temperature,21.4,Grassy
+0,oxygenPercent,88.4,Grassy
+0,oxygenConcentration,6.63,Grassy
+0,specificConductivity,1284,Grassy
+0,conductivity,1195,Grassy
+0,salinity,0.64,Grassy
+0,pH,8.94,Grassy
+0,temperature,18.9,Reesor
+0,oxygenPercent,87.8,Reesor
+0,oxygenConcentration,6.33,Reesor
+0,specificConductivity,284.7,Reesor
+0,conductivity,251.7,Reesor
+0,salinity,0.14,Reesor
+0,pH,8.5,Reesor
+0,temperature,19.2,Porter
+0,oxygenPercent,68.4,Porter
+0,oxygenConcentration,5.36,Porter
+0,specificConductivity,5142,Porter
+0,conductivity,4571,Porter
+0,salinity,2.78,Porter
+0,pH,8.46,Porter
+0,temperature,20,Pike
+0,oxygenPercent,77.4,Pike
+0,oxygenConcentration,6.53,Pike
+0,specificConductivity,544.6,Pike
+0,conductivity,492.5,Pike
+0,salinity,0.26,Pike
+0,pH,8.65,Pike
+0,temperature,19.2,WhiteBear
+0,oxygenPercent,84.7,WhiteBear
+0,oxygenConcentration,6.55,WhiteBear
+0,specificConductivity,3824,WhiteBear
+0,conductivity,3399,WhiteBear
+0,salinity,2.03,WhiteBear
+0,pH,9.03,WhiteBear
+0,oxygenConcentration,5.77,Cypress
+0,specificConductivity,618,Cypress
+0,conductivity,548,Cypress
+0,salinity,0.3,Cypress
+0,pH,8.78,Cypress
+0,temperature,20.5,Ingebright
+0,oxygenPercent,71,Ingebright
+0,oxygenConcentration,3.73,Ingebright
+0,specificConductivity,89274,Ingebright
+0,conductivity,81548,Ingebright
+0,salinity,63.57,Ingebright
+0,pH,8.33,Ingebright
+0,temperature,18.9,Harris
+0,oxygenPercent,86.3,Harris
+0,oxygenConcentration,6.51,Harris
+0,specificConductivity,713,Harris
+0,conductivity,630,Harris
+0,salinity,0.35,Harris
+0,pH,8.83,Harris
+0,temperature,21.5,Unknown 3
+0,oxygenPercent,30.5,Unknown 3
+0,oxygenConcentration,1.5,Unknown 3
+0,specificConductivity,82278,Unknown 3
+0,conductivity,76794,Unknown 3
+0,salinity,57.83,Unknown 3
+0,pH,8.57,Unknown 3
+0,temperature,19.1,Bitter
+0,oxygenPercent,64.6,Bitter
+0,oxygenConcentration,4.6,Bitter
+0,specificConductivity,24765,Bitter
+0,conductivity,21960,Bitter
+0,salinity,15.1,Bitter
+0,pH,8.68,Bitter
+0,temperature,20.1,Gull
+0,oxygenPercent,99.6,Gull
+0,oxygenConcentration,7.31,Gull
+0,specificConductivity,3848,Gull
+0,conductivity,3490,Gull
+0,salinity,2.04,Gull
+0,pH,8.96,Gull
+0,temperature,22,Vincent
+0,oxygenPercent,57.3,Vincent
+0,oxygenConcentration,3.1,Vincent
+0,specificConductivity,72333,Vincent
+0,conductivity,68235,Vincent
+0,temperature,19.5,Montague
+0,oxygenPercent,92.3,Montague
+0,oxygenConcentration,7.22,Montague
+0,specificConductivity,2080,Montague
+0,conductivity,1863,Montague
+0,salinity,1.07,Montague
+0,pH,9.05,Montague
+0,temperature,19.4,Bullkin
+0,oxygenPercent,87.7,Bullkin
+0,oxygenConcentration,6.85,Bullkin
+0,specificConductivity,3792,Bullkin
+0,conductivity,3393,Bullkin
+0,salinity,2.01,Bullkin
+0,pH,9.06,Bullkin
+0,temperature,21.1,Lewis Creek South
+0,oxygenPercent,54.8,Lewis Creek South
+0,oxygenConcentration,4.2,Lewis Creek South
+0,specificConductivity,2627,Lewis Creek South
+0,conductivity,2433,Lewis Creek South
+0,salinity,1.36,Lewis Creek South
+0,pH,8.79,Lewis Creek South
+0,temperature,21.3,Wolverine
+0,oxygenPercent,147.4,Wolverine
+0,oxygenConcentration,11.22,Wolverine
+0,specificConductivity,1592,Wolverine
+0,conductivity,1481,Wolverine
+0,salinity,0.8,Wolverine
+0,pH,8.94,Wolverine
+0,temperature,22.1,Annie Laurie
+0,oxygenPercent,128,Annie Laurie
+0,oxygenConcentration,9.77,Annie Laurie
+0,specificConductivity,524.3,Annie Laurie
+0,conductivity,494.9,Annie Laurie
+0,salinity,0.25,Annie Laurie
+0,pH,8.77,Annie Laurie
+0,temperature,20.6,Quill
+0,oxygenPercent,81.4,Quill
+0,oxygenConcentration,6.01,Quill
+0,specificConductivity,12812,Quill
+0,conductivity,11738,Quill
+0,salinity,7.38,Quill
+0,pH,8.74,Quill
+0,temperature,19.2,Kenosee
+0,oxygenPercent,100.4,Kenosee
+0,oxygenConcentration,7.69,Kenosee
+0,specificConductivity,2555,Kenosee
+0,conductivity,2275,Kenosee
+0,salinity,1.32,Kenosee
+0,pH,8.78,Kenosee
+0,temperature,21,Madge
+0,oxygenPercent,116.6,Madge
+0,oxygenConcentration,8.99,Madge
+0,specificConductivity,776,Madge
+0,conductivity,717,Madge
+0,salinity,0.38,Madge
+0,pH,8.56,Madge
+0,temperature,21.1,Greenwater
+0,oxygenPercent,96.3,Greenwater
+0,oxygenConcentration,7.48,Greenwater
+0,specificConductivity,680,Greenwater
+0,conductivity,630,Greenwater
+0,salinity,0.33,Greenwater
+0,pH,8.54,Greenwater
+0,temperature,19.7,Freefight
+0,oxygenPercent,82.8,Freefight
+0,oxygenConcentration,5.74,Freefight
+0,specificConductivity,32117,Freefight
+0,conductivity,28872,Freefight
+0,salinity,20.08,Freefight
+0,pH,9.07,Freefight
+0,temperature,20.5,Horse
+0,oxygenPercent,57.7,Horse
+0,oxygenConcentration,4.41,Horse
+0,specificConductivity,1410,Horse
+0,conductivity,1300,Horse
+0,salinity,0.72,Horse
+0,pH,8.77,Horse
+0,temperature,21.7,Unknown 1
+0,oxygenPercent,88.5,Unknown 1
+0,oxygenConcentration,6.55,Unknown 1
+0,temperature,17.9,Eyebrow
+0,oxygenPercent,89.2,Eyebrow
+0,oxygenConcentration,7.25,Eyebrow
+0,specificConductivity,428.9,Eyebrow
+0,conductivity,370.7,Eyebrow
+0,salinity,0.21,Eyebrow
+0,pH,8.34,Eyebrow
+0,temperature,19.8,Alsask
+0,oxygenPercent,273,Alsask
+0,oxygenConcentration,13.83,Alsask
+0,specificConductivity,102492,Alsask
+0,conductivity,92263,Alsask
+0,salinity,74.79,Alsask
+0,pH,9.35,Alsask
+0,temperature,18.2,Luck
+0,oxygenPercent,100.7,Luck
+0,oxygenConcentration,7.98,Luck
+0,specificConductivity,8147,Luck
+0,conductivity,7101,Luck
+0,salinity,4.55,Luck
+0,pH,9.62,Luck
+0,temperature,19.4,Clearwater
+0,oxygenPercent,93.7,Clearwater
+0,oxygenConcentration,7.35,Clearwater
+0,specificConductivity,1363,Clearwater
+0,conductivity,1215,Clearwater
+0,salinity,0.68,Clearwater
+0,pH,9.15,Clearwater
+0,temperature,17.5,Kindersley
+0,oxygenPercent,69.4,Kindersley
+0,oxygenConcentration,5.64,Kindersley
+0,specificConductivity,849,Kindersley
+0,conductivity,727,Kindersley
+0,salinity,0.42,Kindersley
+0,pH,9.66,Kindersley
+0,temperature,18.8,Snipe
+0,oxygenPercent,91,Snipe
+0,oxygenConcentration,7.22,Snipe
+0,specificConductivity,3180,Snipe
+0,conductivity,2802,Snipe
+0,salinity,1.67,Snipe
+0,pH,8.86,Snipe
+0,temperature,21.1,Barber
+0,oxygenPercent,67.6,Barber
+0,oxygenConcentration,5.18,Barber
+0,specificConductivity,2423,Barber
+0,conductivity,2242,Barber
+0,salinity,1.25,Barber
+0,pH,8.64,Barber
+0,temperature,18.6,Handsome
+0,temperature,24,Tramping
+0,oxygenPercent,71.2,Tramping
+0,oxygenConcentration,4.85,Tramping
+0,specificConductivity,19379,Tramping
+0,conductivity,18991,Tramping
+0,salinity,11.52,Tramping
+0,pH,9.13,Tramping
+0,temperature,25.3,White Heron
+0,oxygenPercent,102.9,White Heron
+0,oxygenConcentration,7.26,White Heron
+0,specificConductivity,3581,White Heron
+0,conductivity,3596,White Heron
+0,salinity,1.88,White Heron
+0,pH,9.01,White Heron
+0,temperature,20.7,Manitou
+0,oxygenPercent,92,Manitou
+0,oxygenConcentration,6.14,Manitou
+0,specificConductivity,42002,Manitou
+0,conductivity,38523,Manitou
+0,salinity,27,Manitou
+0,pH,9.56,Manitou
+0,temperature,16.5,Farewell
+0,oxygenPercent,133.2,Farewell
+0,oxygenConcentration,11.17,Farewell
+0,specificConductivity,6498,Farewell
+0,conductivity,5440,Farewell
+0,salinity,3.57,Farewell
+0,pH,9.4,Farewell
+0,temperature,22.4,Reflex
+0,oxygenPercent,67.2,Reflex
+0,oxygenConcentration,2.8,Reflex
+0,specificConductivity,132437,Reflex
+0,conductivity,125840,Reflex
+0,salinity,102.22,Reflex
+0,pH,9.39,Reflex
+0,temperature,21.6,Little Manitou
+0,oxygenPercent,139.9,Little Manitou
+0,oxygenConcentration,10.38,Little Manitou
+0,specificConductivity,6595,Little Manitou
+0,conductivity,6157,Little Manitou
+0,salinity,3.6,Little Manitou
+0,pH,9.19,Little Manitou
+0,temperature,21.6,Suffern
+0,oxygenPercent,80,Suffern
+0,oxygenConcentration,6.18,Suffern
+0,specificConductivity,459.9,Suffern
+0,conductivity,430,Suffern
+0,salinity,0.22,Suffern
+0,pH,8.25,Suffern
+0,specificConductivity,2458,Unknown 1
+0,conductivity,2304,Unknown 1
+0,salinity,1.27,Unknown 1
+0,pH,8.66,Unknown 1
+0,temperature,20.2,Good Spirt
+0,oxygenPercent,99,Good Spirt
+0,oxygenConcentration,7.83,Good Spirt
+0,specificConductivity,941,Good Spirt
+0,conductivity,853,Good Spirt
+0,salinity,0.46,Good Spirt
+0,pH,8.74,Good Spirt
+0,temperature,22.4,Peter
+0,oxygenPercent,190.5,Peter
+0,oxygenConcentration,14.23,Peter
+0,specificConductivity,5159,Peter
+0,conductivity,4907,Peter
+0,salinity,2.78,Peter
+0,pH,9.49,Peter
+0,temperature,22.9,York
+0,oxygenPercent,120,York
+0,oxygenConcentration,9.63,York
+0,specificConductivity,2138,York
+0,conductivity,2051,York
+0,salinity,1.09,York
+0,pH,8.97,York
+0,temperature,22.6,Shrimp
+0,oxygenPercent,55.7,Shrimp
+0,oxygenConcentration,4.09,Shrimp
+0,specificConductivity,838,Shrimp
+0,conductivity,800,Shrimp
+0,salinity,0.41,Shrimp
+0,pH,9.07,Shrimp
+0,temperature,22.3,Springwater
+0,oxygenPercent,28.2,Springwater
+0,oxygenConcentration,2,Springwater
+0,specificConductivity,11505,Springwater
+0,conductivity,10911,Springwater
+0,salinity,6.56,Springwater
+0,pH,8.61,Springwater
+0,temperature,22.9,Sunny
+0,oxygenPercent,104.9,Sunny
+0,oxygenConcentration,7.33,Sunny
+0,specificConductivity,12486,Sunny
+0,conductivity,11980,Sunny
+0,salinity,7.16,Sunny
+0,pH,8.87,Sunny
+0,oxygenPercent,139.8,Handsome
+0,oxygenConcentration,10.47,Handsome
+0,specificConductivity,4107,Handsome
+0,conductivity,3597,Handsome
+0,salinity,2.19,Handsome
+0,pH,9.06,Handsome
+0,temperature,21.4,Cutbank
+0,oxygenPercent,191,Cutbank
+0,oxygenConcentration,14.32,Cutbank
+0,specificConductivity,4513,Cutbank
+0,conductivity,4203,Cutbank
+0,salinity,2.41,Cutbank
+0,pH,9.2,Cutbank
+0,temperature,19.3,Dewey
+0,oxygenPercent,43.9,Dewey
+0,oxygenConcentration,3.25,Dewey
+0,specificConductivity,14653,Dewey
+0,conductivity,13051,Dewey
+0,salinity,8.54,Dewey
+0,pH,8.4,Dewey
+0,temperature,18.9,Old Wives
+0,oxygenPercent,98.5,Old Wives
+0,oxygenConcentration,7.81,Old Wives
+0,specificConductivity,2906,Old Wives
+0,conductivity,2561,Old Wives
+0,salinity,1.52,Old Wives
+0,pH,9.28,Old Wives
+0,temperature,20.3,Lonetree
+0,oxygenPercent,101.2,Lonetree
+0,oxygenConcentration,7.7,Lonetree
+0,specificConductivity,394.7,Lonetree
+0,conductivity,359.3,Lonetree
+0,salinity,0.19,Lonetree
+0,pH,9.09,Lonetree
+0,temperature,19.9,Shoe
+0,oxygenPercent,78.8,Shoe
+0,oxygenConcentration,5.27,Shoe
+0,specificConductivity,39230,Shoe
+0,conductivity,35522,Shoe
+0,salinity,25.05,Shoe
+0,pH,8.87,Shoe
+0,temperature,21.8,Island
+0,oxygenPercent,69.6,Island
+0,oxygenConcentration,5.16,Island
+0,specificConductivity,381.6,Island
+0,conductivity,358.2,Island
+0,salinity,0.18,Island
+0,pH,8.88,Island
+0,temperature,21.2,Willow Bunch
+0,oxygenPercent,93,Willow Bunch
+0,oxygenConcentration,6.96,Willow Bunch
+0,specificConductivity,4796,Willow Bunch
+0,conductivity,2.58,Willow Bunch
+0,salinity,2.58,Willow Bunch
+0,pH,9.16,Willow Bunch
+0,temperature,21,Thomson
+0,oxygenPercent,86.8,Thomson
+0,oxygenConcentration,6.54,Thomson
+0,specificConductivity,1982,Thomson
+0,conductivity,1826,Thomson
+0,salinity,1.01,Thomson
+0,pH,8.85,Thomson
+0,temperature,21.1,Alioth
+0,oxygenPercent,190.6,Alioth
+0,oxygenConcentration,13.44,Alioth
+0,specificConductivity,23016,Alioth
+0,conductivity,21217,Alioth
+0,salinity,13.92,Alioth
+0,pH,10.33,Alioth
+0,temperature,21.2,McLean
+0,specificConductivity,67730,McLean
+0,conductivity,62825,McLean
+0,salinity,46.22,McLean
+0,pH,9.27,McLean
+0,temperature,21.1,Sink
+0,oxygenPercent,25,Sink
+0,oxygenConcentration,1.89,Sink
+0,specificConductivity,5224,Sink
+0,conductivity,4839,Sink
+0,salinity,2.82,Sink
+0,pH,8.86,Sink
+0,temperature,20.5,Macklin
+0,oxygenPercent,63.8,Macklin
+0,oxygenConcentration,4.95,Macklin
+0,specificConductivity,1588,Macklin
+0,conductivity,1451,Macklin
+0,salinity,0.8,Macklin
+0,pH,8.38,Macklin
+0,temperature,19,Coldspring
+0,oxygenPercent,92,Coldspring
+0,oxygenConcentration,7.13,Coldspring
+0,specificConductivity,10326,Coldspring
+0,conductivity,9142,Coldspring
+0,salinity,5.86,Coldspring
+0,pH,8.8,Coldspring
+0,temperature,19.6,Thackery
+0,oxygenPercent,58.7,Thackery
+0,oxygenConcentration,4.55,Thackery
+0,specificConductivity,2275,Thackery
+0,conductivity,2042,Thackery
+0,salinity,1.17,Thackery
+0,pH,9.4,Thackery
+0,temperature,19.4,Eaglehill
+0,oxygenPercent,2,Eaglehill
+0,oxygenConcentration,0.14,Eaglehill
+0,specificConductivity,4896,Eaglehill
+0,conductivity,4371,Eaglehill
+0,salinity,2.64,Eaglehill
+0,pH,9.02,Eaglehill
+0,temperature,18,Richmond
+0,oxygenPercent,55.5,Richmond
+0,oxygenConcentration,4.28,Richmond
+0,specificConductivity,16976,Richmond
+0,conductivity,14726,Richmond
+0,salinity,10.02,Richmond
+0,pH,8.62,Richmond
+0,temperature,20.3,X3
+0,oxygenPercent,140.79,X3
+0,oxygenConcentration,10.79,X3
+0,specificConductivity,5673,X3
+0,conductivity,5192,X3
+0,temperature,20.8,Newton
+0,oxygenPercent,98.4,Newton
+0,oxygenConcentration,7.45,Newton
+0,specificConductivity,771,Newton
+0,conductivity,709,Newton
+0,salinity,0.38,Newton
+0,pH,8.95,Newton
+0,temperature,20.1,Summercove
+0,oxygenPercent,97.1,Summercove
+0,oxygenConcentration,7.41,Summercove
+0,specificConductivity,1913,Summercove
+0,conductivity,1736,Summercove
+0,salinity,0.98,Summercove
+0,pH,8.96,Summercove
+0,temperature,19.6,Fife
+0,oxygenPercent,91.5,Fife
+0,oxygenConcentration,6.97,Fife
+0,specificConductivity,2801,Fife
+0,conductivity,2542,Fife
+0,salinity,1.47,Fife
+0,pH,9.05,Fife
+0,temperature,21.1,Gouverneur
+0,oxygenPercent,91.1,Gouverneur
+0,oxygenConcentration,6.89,Gouverneur
+0,specificConductivity,2670,Gouverneur
+0,conductivity,2469,Gouverneur
+0,salinity,1.38,Gouverneur
+0,pH,8.79,Gouverneur
+0,temperature,19.6,Nickle
+0,oxygenConcentration,7.18,Nickle
+0,oxygenPercent,90.6,Nickle
+0,conductivity,455,Nickle
+0,specificConductivity,508.8,Nickle
+0,salinity,0.25,Nickle
+0,pH,8.17,Nickle
+0,pH,8.48,McDonald
+0,temperature,20.2,McDonald
+0,oxygenConcentration,8.64,McDonald
+0,oxygenPercent,110.2,McDonald
+0,conductivity,462.1,McDonald
+0,specificConductivity,508.1,McDonald
+0,salinity,0.25,McDonald
+0,salinity,2.98,Opuntia
+0,pH,9.01,Opuntia
+0,temperature,18.94,Charron
+0,conductivitySLS,7.546,Charron
+0,TDS,5.548,Charron
+0,salinity,4.77,Charron
+0,oxygenPercent,108,Charron
+0,oxygenConcentration,7.4,Charron
+0,pH,10.6,Charron
+0,temperature,20.04,Edouard
+0,conductivitySLS,0.624,Edouard
+0,TDS,0.448,Edouard
+0,salinity,0.34,Edouard
+0,oxygenPercent,154,Edouard
+0,oxygenConcentration,10.8,Edouard
+0,pH,11.12,Edouard
+0,salinity,3.08,X3
+0,pH,9.75,X3
+0,temperature,19.6,Van Scoy
+0,oxygenPercent,111.1,Van Scoy
+0,oxygenConcentration,8.58,Van Scoy
+0,specificConductivity,11301,Van Scoy
+0,conductivity,10145,Van Scoy
+0,salinity,6.45,Van Scoy
+0,pH,8.81,Van Scoy
+0,temperature,21.8,Deep
+0,oxygenPercent,126.3,Deep
+0,oxygenConcentration,9.4,Deep
+0,specificConductivity,2946,Deep
+0,conductivity,2774,Deep
+0,salinity,1.53,Deep
+0,pH,8.86,Deep
+0,temperature,21.7,Chapleau
+0,oxygenPercent,137.6,Chapleau
+0,oxygenConcentration,10.37,Chapleau
+0,specificConductivity,835,Chapleau
+0,conductivity,783,Chapleau
+0,salinity,0.41,Chapleau
+0,pH,9.08,Chapleau
+0,temperature,23.3,Round
+0,oxygenPercent,135.5,Round
+0,oxygenConcentration,10.13,Round
+0,specificConductivity,1041,Round
+0,conductivity,1588,Round
+0,salinity,0.83,Round
+0,pH,8.9,Round
+0,temperature,22,Stony Beach
+0,oxygenPercent,114.2,Stony Beach
+0,oxygenConcentration,8.65,Stony Beach
+0,specificConductivity,718,Stony Beach
+0,conductivity,678,Stony Beach
+0,salinity,0.35,Stony Beach
+0,pH,9.52,Stony Beach
+0,temperature,24.5,Crooked
+0,oxygenPercent,242.7,Crooked
+0,oxygenConcentration,17.07,Crooked
+0,specificConductivity,1581,Crooked
+0,conductivity,1566,Crooked
+0,salinity,0.79,Crooked
+0,pH,9.18,Crooked
+0,temperature,21.4,Diefenbaker
+0,oxygenPercent,92.3,Diefenbaker
+0,oxygenConcentration,7,Diefenbaker
+0,specificConductivity,446.3,Diefenbaker
+0,conductivity,415.2,Diefenbaker
+0,salinity,0.21,Diefenbaker
+0,pH,8.49,Diefenbaker
+0,temperature,24.5,Buffalo Pound
+0,oxygenPercent,129.3,Buffalo Pound
+0,oxygenConcentration,9.3,Buffalo Pound
+0,specificConductivity,640,Buffalo Pound
+0,conductivity,637,Buffalo Pound
+0,salinity,0.31,Buffalo Pound
+0,pH,9.05,Buffalo Pound
+0,temperature,22.6,Katepwa
+0,oxygenPercent,154,Katepwa
+0,oxygenConcentration,11.46,Katepwa
+0,specificConductivity,1463,Katepwa
+0,conductivity,1395,Katepwa
+0,salinity,0.73,Katepwa
+0,pH,9.02,Katepwa
+0,temperature,20.3,Junction
+0,oxygenPercent,87.6,Junction
+0,oxygenConcentration,6.71,Junction
+0,specificConductivity,1328,Junction
+0,conductivity,1214,Junction
+0,salinity,0.67,Junction
+0,pH,8.91,Junction
+0,temperature,20.8,X5
+0,oxygenPercent,46.4,X5
+0,oxygenConcentration,3.26,X5
+0,specificConductivity,20991,X5
+0,conductivity,19360,X5
+0,salinity,12.62,X5
+0,pH,9.09,X5
+0,temperature,21.3,Last Mountain
+0,oxygenPercent,112.9,Last Mountain
+0,oxygenConcentration,8.72,Last Mountain
+0,specificConductivity,2045,Last Mountain
+0,conductivity,1901,Last Mountain
+0,salinity,1.05,Last Mountain
+0,pH,8.84,Last Mountain
+0,temperature,22.3,Pasqua
+0,oxygenPercent,99.6,Pasqua
+0,oxygenConcentration,7.49,Pasqua
+0,specificConductivity,1524,Pasqua
+0,conductivity,1445,Pasqua
+0,salinity,0.77,Pasqua
+0,pH,9.03,Pasqua
+0,temperature,22.8,Opuntia
+0,oxygenPercent,64.9,Opuntia
+0,oxygenConcentration,4.67,Opuntia
+0,specificConductivity,5508,Opuntia
+0,conductivity,5275,Opuntia
+0,temperature,20.24,Redberry
+0,conductivitySLS,16.76,Redberry
+0,TDS,11.98,Redberry
+0,salinity,10.95,Redberry
+0,oxygenPercent,108,Redberry
+0,oxygenConcentration,7.4,Redberry
+0,pH,9.24,Redberry
+0,temperature,20,Rabbit
+0,conductivitySLS,6.946,Rabbit
+0,TDS,4.993,Rabbit
+0,salinity,4.26,Rabbit
+0,oxygenPercent,115,Rabbit
+0,oxygenConcentration,7.9,Rabbit
+0,pH,9.29,Rabbit
+0,temperature,22.27,Success
+0,conductivitySLS,28.4,Success
+0,TDS,19.48,Success
+0,salinity,18.59,Success
+0,oxygenPercent,131,Success
+0,oxygenConcentration,8.3,Success
+0,pH,9.57,Success
+0,temperature,23.56,Snakehole
+0,conductivitySLS,70.82,Snakehole
+0,TDS,47.34,Snakehole
+0,salinity,50.19,Snakehole
+0,oxygenPercent,119,Snakehole
+0,oxygenConcentration,7.4,Snakehole
+0,pH,8.97,Snakehole
+0,temperature,22.53,Antelope
+0,conductivitySLS,12.98,Antelope
+0,TDS,8.856,Antelope
+0,salinity,7.87,Antelope
+0,oxygenPercent,191,Antelope
+0,oxygenConcentration,12,Antelope
+0,pH,9.48,Antelope
+0,temperature,21.67,Lac Pelletier
+0,conductivitySLS,0.78,Lac Pelletier
+0,TDS,0.541,Lac Pelletier
+0,salinity,0.41,Lac Pelletier
+0,oxygenPercent,177,Lac Pelletier
+0,oxygenConcentration,11.2,Lac Pelletier
+0,pH,9.57,Lac Pelletier
+0,temperature,20.75,Little Manitou
+0,conductivitySLS,60.04,Little Manitou
+0,TDS,42.46,Little Manitou
+0,salinity,44.34,Little Manitou
+0,oxygenPercent,171,Little Manitou
+0,oxygenConcentration,11.5,Little Manitou
+0,pH,9.09,Little Manitou
+0,temperature,19.89,Middle
+0,conductivitySLS,7.593,Middle
+0,TDS,5.473,Middle
+0,salinity,4.7,Middle
+0,oxygenPercent,107,Middle
+0,oxygenConcentration,7.2,Middle
+0,pH,9.06,Middle
+0,temperature,20.4,Arthur
+0,conductivitySLS,11.35,Arthur
+0,TDS,8.088,Arthur
+0,salinity,7.15,Arthur
+0,oxygenPercent,114,Arthur
+0,oxygenConcentration,7.6,Arthur
+0,pH,9.07,Arthur
+0,temperature,21.13,Wakaw
+0,conductivitySLS,2.672,Wakaw
+0,TDS,1.878,Wakaw
+0,salinity,1.5,Wakaw
+0,oxygenPercent,125,Wakaw
+0,oxygenConcentration,8.3,Wakaw
+0,pH,8.84,Wakaw
+0,temperature,20.48,Shannon
+0,conductivitySLS,2.628,Shannon
+0,TDS,1.87,Shannon
+0,salinity,1.5,Shannon
+0,oxygenPercent,127,Shannon
+0,oxygenConcentration,8.5,Shannon
+0,pH,9.51,Shannon
+0,temperature,22.42,Fishing
+0,conductivitySLS,3.091,Fishing
+0,TDS,2.113,Fishing
+0,salinity,1.7,Fishing
+0,oxygenPercent,158,Fishing
+0,oxygenConcentration,10.1,Fishing
+0,pH,9.39,Fishing
+0,temperature,21.11,Humbolt
+0,conductivitySLS,1.529,Humbolt
+0,TDS,1.074,Humbolt
+0,salinity,0.84,Humbolt
+0,oxygenPercent,127,Humbolt
+0,oxygenConcentration,8.4,Humbolt
+0,pH,9.1,Humbolt
+0,temperature,19.81,Deadmoose
+0,conductivitySLS,15.93,Deadmoose
+0,TDS,11.49,Deadmoose
+0,salinity,10.47,Deadmoose
+0,oxygenPercent,91,Deadmoose
+0,oxygenConcentration,6.1,Deadmoose
+0,pH,9.42,Deadmoose
+0,temperature,21.14,Waldsea
+0,conductivitySLS,14.67,Waldsea
+0,TDS,10.29,Waldsea
+0,salinity,9.28,Waldsea
+0,oxygenPercent,110,Waldsea
+0,oxygenConcentration,7.2,Waldsea
+0,pH,9.02,Waldsea
+0,temperature,21.55,Lenore SB
+0,conductivitySLS,3.869,Lenore SB
+0,TDS,2.692,Lenore SB
+0,salinity,2.2,Lenore SB
+0,oxygenPercent,69,Lenore SB
+0,oxygenConcentration,4.5,Lenore SB
+0,pH,9.4,Lenore SB
+0,temperature,23.04,Lenore
+0,conductivitySLS,3.974,Lenore
+0,TDS,2.681,Lenore
+0,salinity,2.18,Lenore
+0,oxygenPercent,90,Lenore
+0,oxygenConcentration,5.8,Lenore
+0,pH,9.31,Lenore
+0,temperature,22.59,Kipabiskau
+0,conductivitySLS,1.005,Kipabiskau
+0,TDS,0.685,Kipabiskau
+0,salinity,0.52,Kipabiskau
+0,oxygenPercent,125,Kipabiskau
+0,oxygenConcentration,8,Kipabiskau
+0,pH,9.14,Kipabiskau
+0,temperature,22.07,Clair
+0,conductivitySLS,1.537,Clair
+0,TDS,1.058,Clair
+0,salinity,0.82,Clair
+0,oxygenPercent,149,Clair
+0,oxygenConcentration,9.7,Clair
+0,pH,9.09,Clair
