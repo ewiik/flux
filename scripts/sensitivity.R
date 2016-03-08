@@ -1,6 +1,7 @@
 ## sensitivity analysis as to how much pH dominates the CO2 flux of our study sites
 ## see https://cran.r-project.org/web/packages/pse/vignettes/pse_tutorial.pdf
 ##    https://cran.r-project.org/web/packages/sensitivity/sensitivity.pdf
+## what indices to be used for expressing sensitivity?
 
 ## source necessary packages:
 library("mc2d")
@@ -69,12 +70,23 @@ par(opar)
 ## see list http://www.statmethods.net/advgraphs/probability.html
 ## decide which to look at and what likely dist to test with
 ## FIXME: not working very well for t distribution! 
-x <- fluxes$pH
-disttest <- "t"
-
+## "For the following named distributions, reasonable starting values will be computed 
+##    if start is omitted (i.e. NULL) : "norm", "lnorm", "exp" and "pois", "cauchy", 
+##    "gamma", "logis", "nbinom" (parametrized by mu and size), "geom", "beta", 
+##    "weibull" from the stats package; "invgamma", "llogis", "invweibull", "pareto1", 
+##    "pareto" from the actuar package. Note that these starting values may not be 
+##    good enough if the fit is poor. The function uses a closed-form formula to fit the 
+##    uniform distribution. If start is a list, then it should be a named list with the 
+##    same names as in the d,p,q,r functions of the chosen distribution. 
+##    If start is a function of data, then the function should return a named list with 
+##    the same names as in the d,p,q,r functions of the chosen distribution. 
+x <- fluxes$SalCalc
+disttest <- "weibull"
+## chisq may require this to run: start = list(df = 8) or some other number
+## t retuires same to run but behaves suspiciously (see plots with expected lines)
 {if(any(is.na(x))) {
   remove <- which(is.na(x)) 
-  fit.test <- fitdist(x[-remove], disttest, start = list(dt(x[-remove], df=3)))
+  fit.test <- fitdist(x[-remove], disttest)
   fit.norm <- fitdist(x[-remove], "norm")
 }
 else { fit.test <- fitdist(x, disttest)
@@ -87,3 +99,9 @@ plot(fit.norm)
 ## lower = better, not in the absolute value sense
 fit.test$aic
 fit.norm$aic
+## for temperature, weibull > normal > chisq | gamma --> weibull
+## for pH, logis > normal > cauchy
+## for cond, pressure: unif doesn't produce AIC but by eye, normal is better
+## for DICumol, normal > logis > cauchy
+## looking at dist plot, normal for windspeed
+## for SalCalc, weibull > normal
