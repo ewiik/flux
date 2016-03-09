@@ -2,11 +2,20 @@
 ## see https://cran.r-project.org/web/packages/pse/vignettes/pse_tutorial.pdf
 ##    https://cran.r-project.org/web/packages/sensitivity/sensitivity.pdf
 ## what indices to be used for expressing sensitivity?
+## resources:
+##  1. visual distribution cheat sheet http://www.itl.nist.gov/div898/handbook/eda/section3/eda366.htm
+##  2. list of R shorts for distributions http://www.statmethods.net/advgraphs/probability.html
+##  3. blurb on chisq: http://www.civil.uwaterloo.ca/brodland/EasyStats/EasyStats/Chi_squared_Distribution.html
+##  4. fitdist issues: http://stats.stackexchange.com/questions/158163/why-does-this-data-throw-an-error-in-r-fitdistr
+##  5. fitting distros: http://stats.stackexchange.com/questions/132652/how-to-determine-which-distribution-fits-my-data-best
+##  6. chisq: https://www.youtube.com/watch?v=hcDb12fsbBU
+##          http://www.civil.uwaterloo.ca/brodland/EasyStats/EasyStats/Chi_squared_Distribution.html
+
 
 ## source necessary packages:
 library("mc2d")
 library("pse")
-library("fitdistrplus")
+library("fitdistrplus") # loads MASS too
 
 ## source the function we want to decompose
 source("../functions/gasExchangeFlex.R")
@@ -16,15 +25,10 @@ regvars <- readRDS("../data/private/regvars.rds")
 fluxes <- readRDS("../data/private/params-flux.rds")
 
 ## define the parameters
-The 1st thing that must be done is to determine exactly what are the input pa-
-  rameters to your model.  You should list which parameters should be investigated,
-what are the probability density functions (PDFs) from which the parameter values
-will be calculated, and what are the arguments to these PDFs.
 factors <- c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", "TICumol", "Pressure")
-distro <- c("qnorm", "qnorm", "qunif")
-props <- list( list(mean=1.7, sd=0.3), list(mean=40, sd=1),
-                 +         list(min=1, max=50) )
 
+## Get distributions for each variables
+## ====================================
 ## basic distro plotting
 dplott <- function(vect) {
   plot(density(vect, na.rm = TRUE), ylab = mean(vect, na.rm = TRUE))
@@ -45,7 +49,6 @@ apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc",
 par(opar)
 apply(fluxes[,c(7:8,11,13,17:18,22)], 2, shapiro.test)   
 # normal: NONE
-# non-normal: salcalc, meanwind, pressure, TIC, pH, cond, temp
 ## see this: http://stats.stackexchange.com/questions/16646/
 ##    what-is-a-good-index-of-the-degree-of-violation-of-normality-and-what-descriptive
 
@@ -67,9 +70,7 @@ par(opar)
 ## normal-logistic: pH               
 ## bleurgh: temperature
 
-## see list http://www.statmethods.net/advgraphs/probability.html
-## decide which to look at and what likely dist to test with
-## FIXME: not working very well for t distribution! 
+## Look at uncertain-distro variables and test with likely distro 
 ## "For the following named distributions, reasonable starting values will be computed 
 ##    if start is omitted (i.e. NULL) : "norm", "lnorm", "exp" and "pois", "cauchy", 
 ##    "gamma", "logis", "nbinom" (parametrized by mu and size), "geom", "beta", 
@@ -80,10 +81,10 @@ par(opar)
 ##    same names as in the d,p,q,r functions of the chosen distribution. 
 ##    If start is a function of data, then the function should return a named list with 
 ##    the same names as in the d,p,q,r functions of the chosen distribution. 
-x <- fluxes$SalCalc
+x <- fluxes$Pressure
 disttest <- "weibull"
 ## chisq may require this to run: start = list(df = 8) or some other number
-## t retuires same to run but behaves suspiciously (see plots with expected lines)
+## t requires same to run but behaves suspiciously (see plots with expected lines)
 {if(any(is.na(x))) {
   remove <- which(is.na(x)) 
   fit.test <- fitdist(x[-remove], disttest)
@@ -105,3 +106,26 @@ fit.norm$aic
 ## for DICumol, normal > logis > cauchy
 ## looking at dist plot, normal for windspeed
 ## for SalCalc, weibull > normal
+
+## Continue defining parameters for the chosen distros
+distro <- c("qweibull", "qnorm", "qlogis", "qnorm", "qweibull", "qnorm", "qnorm") 
+# in order of 'factors'; retrieve args to list by calling the fit.[] object
+props <- list( list(shape=4.02, scale=18.65), list(mean=1013, sd=499), 
+               list(location=8.84,scale=0.31), list(mean=4.98, sd=0.83),
+               list(shape=2.13, scale=0.68), list(mean=3821, sd=1068),
+               list(mean=94.6, sd=0.17))
+
+## Consider interrelationships between parameters
+## FIXME: define this numerically once find out the best way to achieve
+pairs(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+                "TICumol", "Pressure")])
+## WHAT T ~ meanWind!! (though a lot of noise)
+## cond ~ SalCalc ~ TICumol --> these need a rank order combination
+
+# "The  model  that  you  wish  to  analyse  must  be  formulated  as  an R function  that
+# receives a data.frame in which every column represent a different parameter, and
+# every line represents a different combination of values for those parameters.  The
+# function must return an array with the same number of elements as there were lines
+# in the original data frame,  and each entry in the array should correspond to the
+# result  of  running  the  model  with  the  corresponding  parameter  combination"
+## CHECK!
