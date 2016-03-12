@@ -18,14 +18,15 @@ library("pse")
 library("fitdistrplus") # loads MASS too
 
 ## source the function we want to decompose
-source("../functions/gasExchangeFlex.R")
+source("../functions/gasExchangeSensitivity.R")
 
 ## source files with parameters
 regvars <- readRDS("../data/private/regvars.rds")
 fluxes <- readRDS("../data/private/params-flux.rds")
 
 ## define the parameters
-factors <- c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", "TICumol", "Pressure")
+factors <- c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", "TICumol", 
+             "Pressure", "pco2atm")
 
 ## Get distributions for each variables
 ## ====================================
@@ -35,7 +36,7 @@ dplott <- function(vect) {
 }
 opar <- par(mfrow = c(2,4))
 apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
-                "TICumol", "Pressure")], 2, dplott) 
+                "TICumol", "Pressure", "pco2atm")], 2, dplott) 
 par(opar)
 
 qqplott <- function(vect) {
@@ -44,7 +45,7 @@ qqplott <- function(vect) {
 }
 opar <- par(mfrow = c(2,4))
 apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
-                "TICumol", "Pressure")], 
+                "TICumol", "Pressure", "pco2atm")], 
       2, qqplott)  
 par(opar)
 apply(fluxes[,c(7:8,11,13,17:18,22)], 2, shapiro.test)   
@@ -62,11 +63,11 @@ giveDist <- function(vect) {
 }
 opar <- par(mfrow = c(2,4))
 apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
-                "TICumol", "Pressure")], 
+                "TICumol", "Pressure", "pco2atm")], 
       2, giveDist) 
 par(opar)
 ## --> normal:  dicumol, salcalc, (meanwind)
-## --> unif: cond, pressure
+## --> unif: cond, pressure, pco2atm
 ## normal-logistic: pH               
 ## bleurgh: temperature
 
@@ -81,8 +82,8 @@ par(opar)
 ##    same names as in the d,p,q,r functions of the chosen distribution. 
 ##    If start is a function of data, then the function should return a named list with 
 ##    the same names as in the d,p,q,r functions of the chosen distribution. 
-x <- fluxes$Pressure
-disttest <- "weibull"
+x <- fluxes$pco2atm
+disttest <- "unif"
 ## chisq may require this to run: start = list(df = 8) or some other number
 ## t requires same to run but behaves suspiciously (see plots with expected lines)
 {if(any(is.na(x))) {
@@ -106,19 +107,20 @@ fit.norm$aic
 ## for DICumol, normal > logis > cauchy
 ## looking at dist plot, normal for windspeed
 ## for SalCalc, weibull > normal
+## ngggg let's do unif for pco2atm
 
 ## Continue defining parameters for the chosen distros
-distro <- c("qweibull", "qnorm", "qlogis", "qnorm", "qweibull", "qnorm", "qnorm") 
+distro <- c("qweibull", "qnorm", "qlogis", "qnorm", "qweibull", "qnorm", "qnorm", "qunif") 
 # in order of 'factors'; retrieve args to list by calling the fit.[] object
 props <- list( list(shape=4.02, scale=18.65), list(mean=1013, sd=499), 
                list(location=8.84,scale=0.31), list(mean=4.98, sd=0.83),
                list(shape=2.13, scale=0.68), list(mean=3821, sd=1068),
-               list(mean=94.6, sd=0.17))
+               list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
 
 ## Consider interrelationships between parameters
 ## FIXME: define this numerically once find out the best way to achieve
 pairs(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
-                "TICumol", "Pressure")])
+                "TICumol", "Pressure", "pco2atm")])
 ## WHAT T ~ meanWind!! (though a lot of noise)
 ## cond ~ SalCalc ~ TICumol --> these need a rank order combination
 
@@ -129,3 +131,12 @@ pairs(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc",
 # in the original data frame,  and each entry in the array should correspond to the
 # result  of  running  the  model  with  the  corresponding  parameter  combination"
 ## CHECK!
+latin <- LHS(gasExchangeSens, factors = factors, N = 200, q = distro, q.arg = props, nboot = 50)
+
+## hmmm optional correlation structures??
+datacorr <- cor(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+                          "TICumol", "Pressure", "pco2atm")], method = "spearman",
+                  use = "complete.obs")
+latincorr <- LHS(gasExchangeSens, factors = factors, N = 200, q = distro, q.arg = props, 
+                 nboot = 200, opts = list(COR = datacorr, eps = 0.1))
+
