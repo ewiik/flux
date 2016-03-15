@@ -133,10 +133,40 @@ pairs(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc",
 ## CHECK!
 latin <- LHS(gasExchangeSens, factors = factors, N = 200, q = distro, q.arg = props, nboot = 50)
 
-## hmmm optional correlation structures??
+## introduce correlation structures
 datacorr <- cor(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
                           "TICumol", "Pressure", "pco2atm")], method = "spearman",
                   use = "complete.obs")
-latincorr <- LHS(gasExchangeSens, factors = factors, N = 200, q = distro, q.arg = props, 
-                 nboot = 200, opts = list(COR = datacorr, eps = 0.1))
+
+latincorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = props, 
+                 nboot = 200, opts = list(COR = datacorr, eps = 0.5))
+## FIXME: why not work for lower eps?
+
+## create an identical one for testing reproducibility (e.g. 200 had low sbma)
+testcorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = props, 
+                nboot = 200, opts = list(COR = datacorr, eps = 0.5))
+## test if N is large enough to produce reproducible results...
+(testSbma <- sbma(latincorr, testcorr))
+
+## look at diagnostic plots of objects
+want <- latincorr
+
+plotecdf(want)
+abline(v=0)
+plotscatter(want, ylim = c(-300,600))
+plotprcc(want)
+
+
+## now what happens when our DIC can explode to values like in Brian's data set?
+distro <- c("qweibull", "qnorm", "qlogis", "qnorm", "qweibull", "qnorm", "qnorm", "qunif") 
+# in order of 'factors'; retrieve args to list by calling the fit.[] object
+propsdic <- list( list(shape=4.02, scale=18.65), list(mean=1013, sd=499), 
+               list(location=8.84,scale=0.31), list(mean=4.98, sd=0.83),
+               list(shape=2.13, scale=0.68), list(mean=8000, sd=1068),
+               list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
+
+diccube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = propsdic, 
+                nboot = 200)
+
+plotscatter(diccube, ylim = c(-300,600))
 
