@@ -170,3 +170,15 @@ diccube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = 
 
 plotscatter(diccube, ylim = c(-300,600))
 
+### split by lake
+lakesub <- fluxes[,c("Lake","Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+                     "TICumol", "Pressure", "pco2atm")]
+lakesplit <- with(lakesub, split(lakesub, list(Lake)))
+lakesplit <- lapply(lakesplit, "[", -1) # remove lake before doing correlation matrix
+lakesplit <- lakesplit[sapply(lakesplit, function(x) nrow(x) >= 4)] #remove unwanted lakes
+
+lakecorr <- lapply(lakesplit, cor, method = "spearman",
+                use = "complete.obs")
+
+## GOT HERE: look at distros of variables for each lake
+## --> see how diff sensitivity turns out.
