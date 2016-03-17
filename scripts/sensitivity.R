@@ -11,6 +11,9 @@
 ##  6. chisq: https://www.youtube.com/watch?v=hcDb12fsbBU
 ##          http://www.civil.uwaterloo.ca/brodland/EasyStats/EasyStats/Chi_squared_Distribution.html
 
+## FIXME: redo once new pse pushed to cran so that can set maxIt
+## NB could not seem to extract prcc indices out of object table so copy pasted them
+##    manually into /private/lhs-prcc.csv
 
 ## source necessary packages:
 library("mc2d")
@@ -124,13 +127,7 @@ pairs(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc",
 ## WHAT T ~ meanWind!! (though a lot of noise)
 ## cond ~ SalCalc ~ TICumol --> these need a rank order combination
 
-# "The  model  that  you  wish  to  analyse  must  be  formulated  as  an R function  that
-# receives a data.frame in which every column represent a different parameter, and
-# every line represents a different combination of values for those parameters.  The
-# function must return an array with the same number of elements as there were lines
-# in the original data frame,  and each entry in the array should correspond to the
-# result  of  running  the  model  with  the  corresponding  parameter  combination"
-## CHECK!
+## make basic cube
 latin <- LHS(gasExchangeSens, factors = factors, N = 200, q = distro, q.arg = props, nboot = 50)
 
 ## introduce correlation structures
@@ -140,7 +137,7 @@ datacorr <- cor(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "Sa
 
 latincorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = props, 
                  nboot = 200, opts = list(COR = datacorr, eps = 0.5))
-## FIXME: why not work for lower eps?
+
 
 ## create an identical one for testing reproducibility (e.g. 200 had low sbma)
 testcorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = props, 
@@ -180,5 +177,120 @@ lakesplit <- lakesplit[sapply(lakesplit, function(x) nrow(x) >= 4)] #remove unwa
 lakecorr <- lapply(lakesplit, cor, method = "spearman",
                 use = "complete.obs")
 
-## GOT HERE: look at distros of variables for each lake
-## --> see how diff sensitivity turns out.
+## eyeball distros to guess at what to use now (probs same as for all lakes in most cases)
+varnames <- c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+                "TICumol", "Pressure", "pco2atm")
+#choose variable
+varname <- varnames[6]
+
+#plot chosen variable
+ggplot(lakesub, aes_string(x=varname)) + geom_density(aes(colour=Lake, group=Lake)) +
+facet_wrap( "Lake", scales = "free") 
+
+#write wrapper to look at probable distro
+giveDistdf <- function(df) { 
+  opar <- par(mfrow = c(2,4))
+  apply(df[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+            "TICumol", "Pressure", "pco2atm")], 
+      2, giveDist) 
+par(opar)
+}
+
+#apply to lake, plots in following order:
+# "B"  "C"  "D"  "K"  "L"  "P"  "WW"
+lapply(lakesplit, giveDistdf)
+densplot <- function(df) {
+  len <- length(names(df))
+  opar <- par(mfrow=c())
+}
+
+### play with this:
+x <- lakesplit$D$Temperature
+disttest <- "weibull"
+## chisq may require this to run: start = list(df = 8) or some other number
+## t requires same to run but behaves suspiciously (see plots with expected lines)
+{if(any(is.na(x))) {
+  remove <- which(is.na(x)) 
+  fit.test <- fitdist(x[-remove], disttest)
+  fit.norm <- fitdist(x[-remove], "norm")
+}
+else { fit.test <- fitdist(x, disttest)
+fit.norm <- fitdist(x, "norm")}
+}
+plot(fit.norm)
+plot(fit.test)
+
+fit.norm$aic
+fit.test$aic
+
+## lake-specific values:
+distrob <- c("qweibull", "qnorm", "qlogis", "qnorm", "qnorm", "qnorm", 
+             "qnorm", "qunif") 
+propsb <- list( list(shape=5.33, scale=19.6), list(mean=471.8, sd=83.2), 
+                  list(location=8.78,scale=0.32), list(mean=4.98, sd=0.83),
+                  list(mean=0.26, sd=0.04), list(mean=2719.1, sd=636.1),
+                  list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
+
+
+distrod <- c("qweibull", "qlogis", "qlogis", "qnorm", "qnorm", "qnorm", 
+             "qnorm", "qunif") 
+propsd <- list( list(shape=3.39, scale=17), list(location=359.6, scale=36.1), 
+                list(location=8.74,scale=0.29), list(mean=4.98, sd=0.84),
+                list(mean=0.23, sd=0.17), list(mean=2926.2, sd=720.5),
+                list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
+
+
+distrol <- c("qweibull", "qweibull", "qlogis", "qnorm", "qnorm", "qnorm", 
+             "qnorm", "qunif") 
+propsl <- list( list(shape=4.31, scale=18.34), list(shape=8.52, scale=1864), 
+                list(location=8.85,scale=0.27), list(mean=4.93, sd=0.82),
+                list(mean=1.07, sd=0.11), list(mean=4827.8, sd=930.6),
+                list(mean=94.6, sd=0.16), list(min=358.9, max=402.2))
+
+
+distrow <- c("qweibull", "qnorm", "qnorm", "qnorm", "qweibull", "qnorm", 
+             "qnorm", "qunif") 
+propsw <- list( list(shape=4.97, scale=19.58), list(mean=906, sd=295), 
+                list(mean=9.01,sd=0.67), list(mean=5.07, sd=0.81),
+                list(shape=3.54, scale=0.57), list(mean=3693, sd=1071),
+                list(mean=94.6, sd=0.17), list(min=361.1, max=402.2))
+
+## lake cubes:
+bcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrob, q.arg = propsb, 
+             nboot = 200, opts = list(COR = lakecorr$B, eps = 0.5))
+dcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrod, q.arg = propsd, 
+             nboot = 200, opts = list(COR = lakecorr$D, eps = 0.5))
+
+lcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrol, q.arg = propsl, 
+                          nboot = 200, opts = list(COR = lakecorr$L, eps = 0.5))
+wcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrow, q.arg = propsw, 
+             nboot = 200, opts = list(COR = lakecorr$WW, eps = 0.5))
+
+## lake plots: 
+want <- latincorr
+
+plotecdf(want)
+abline(v=0)
+plotscatter(want)
+plotprcc(want)
+
+(testSbma <- sbma(wcube, dcube))
+
+## NB created manually the csv for the prcc indices so recreate when script renewed:
+prcc <- read.csv("../data/private/lhs-prcc.csv")
+
+pd <- position_dodge(0.1)
+ggplot(prcc, aes(x=var, colour=lake, group=var)) + 
+  geom_errorbar(aes(ymin=minci, ymax=maxci), width=.1, position=pd) +
+  facet_wrap( "lake", scales = "free") +
+  geom_jitter(aes(y=original), position=pd) + 
+  ylim(-1,1)
+
+## general lake diffs
+melted <- melt(lakesub, id = "Lake")
+
+ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
+  geom_boxplot(outlier.colour="black", outlier.shape=8,
+               outlier.size=2) +
+  facet_wrap( "variable", scales = "free")
+  
