@@ -142,6 +142,8 @@ testcorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg =
                 nboot = 200, opts = list(COR = datacorr, eps = 0.1, maxIt=200))
 ## test if N is large enough to produce reproducible results...
 (testSbma <- sbma(latincorr, testcorr)) # > 90% agreement with eps 0.1, N=500
+# NB the default is to use absolute values since -ve correlations get given almost
+#   no weight by the method otherwise
 
 ## look at diagnostic plots of objects
 want <- latincorr
