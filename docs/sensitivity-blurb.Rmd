@@ -1,0 +1,62 @@
+---
+title: "Sensitivity"
+author: "Emma"
+date: "March 17, 2016"
+header-includes:
+- \usepackage{geometry} 
+output: pdf_document
+---
+
+### Sensitivity analysis -- rationale
+
+When running regressions on all lakes, it was found that pH accounted for ca 95% of the variation in CO2 flux, however looking at lakes individually, variation explained ranged from ca 75 to 95. Sensitivity analysis was decided upon in order to evaluate the influence of pH and all other variables on CO2 flux for all lakes. However, it was also used to hone in on the variation between lakes. 
+
+Seven further variables enter the calculations for CO2 flux: conductivity, wind, atmospheric pCO2, local air pressure, salinity, temperature, and DIC. The equations to calculate flux are sequential, and some intermediate indices include more than one variable for calculation. Therefore, there was no simple way of separating each variable in order to look at its effect on the outcome. Further, owing to the correlation between variables, random recombinations of simulated data could not be performed. Finally, the relationship between pH and flux is not linear (but rather monotonic), and therefore it was desirable to perform rank rather than linear relationship analysis between the variables and the outcome.
+
+In order to allow all variables to vary (which is more realistic than keeping all but one variable of interest at their mean), a latin hypercube approach (LHS) was taken following R packages `pse` and `sensitivity`. "entire parameter space of a model..." The method identifies the parameters most influential on the outcome, and ranks them their importance in contributing to this imprecision. The variation of the variables is set by the user, which in this case involved creating a density distribution of each variable (normal, skewed, etc.) roughly between the minimum and maximum values observed. Thus, the analysis shows all likely outcomes given the test case framework. 
+
+LHS analysis also calculates partial rank correlation coefficients (PRCCs) between each variable and the output, and works well where relationships between variables and outcomes are nonlinear (but monotonic -- e.g. here pH has a sigmoidal effect on CO2 flux but the function does not go back on itself).
+
+```{r, echo=FALSE, results='hide', include=FALSE}
+## source necessary packages
+library("ggplot2")
+
+## read in models
+acube <- readRDS("../data/private/LHSall-lakes.rds")
+bcube <- readRDS("../data/private/LHS-B.rds")
+dcube <- readRDS("../data/private/LHS-D.rds")
+lcube <- readRDS("../data/private/LHS-L.rds")
+
+## read in plots
+prccplot <- readRDS("../data/private/prccplot.rds")
+meltplot <- readRDS("../data/private/meltplot.rds")
+
+```
+
+### Variable space
+
+Owing to the proximity of the lakes to each other, as well as the near-identical sampling time frame, water temperature, atmospheric pCO2 (NOAA) and pressure and wind data (from the met office), were not very variable across the lakes (Fig. 1). Conductivity, salinity, and DIC were 
+the most variable between lakes and therefore are likely to contribute the most to observed differences in flux. 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+meltplot
+```
+
+While in the all-lakes case, pH was the most defining predictor of CO2, any of the remaining predictors could have been important depending on the sensitivity of the equations to their values.
+
+Rank correlations between variables were entered to the LHS function to prevent unrealistic combinations for sample simulation. 500 simulated data sets were produced for each model, with function parameters set to minimise the uncertainty of the output (\< 10% sought out by performing similarity checks for identical models).
+
+### LHS results
+
+Following regression analysis, three lakes (B, D, L) deviated considerably from the all-lakes trend in CO2 ~ pH -- these lakes were therefore used for lake-specific LHS analysis as a comparison against the all-lakes scenario.
+
+PRCCs for all scenarios show that, given the naturally occuring ranges of all variables in the routines data set, conductivity, air pressure and salinity have the least influence on CO2 flux. As expected, pH emerged as the most important variable. Intermediate values, in increasing order of influence (direction in parentheses), are atmospheric pCO2 (-), wind (+), temperature (-), and DIC (+) (Fig. 2). 
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(dev='pdf')
+```
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+prccplot
+```
+
+As the second-most influential variable, with antagonistic effects to pH on flux, differences between lakes could arise for example where DIC between lakes is more variable than pH. Following sensitivity analysis, it does appear that DIC is higher-than average influential in determining CO2 flux in B, D, and L (Fig. 2). In the former two, DIC concentrations are on average lower than in the other lakes, while they are higher than average in L (Fig. 1)
+
