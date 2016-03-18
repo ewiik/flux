@@ -11,7 +11,6 @@
 ##  6. chisq: https://www.youtube.com/watch?v=hcDb12fsbBU
 ##          http://www.civil.uwaterloo.ca/brodland/EasyStats/EasyStats/Chi_squared_Distribution.html
 
-## FIXME: redo once new pse pushed to cran so that can set maxIt
 ## NB could not seem to extract prcc indices out of object table so copy pasted them
 ##    manually into /private/lhs-prcc.csv
 
@@ -19,6 +18,7 @@
 library("mc2d")
 library("pse")
 library("fitdistrplus") # loads MASS too
+library("reshape2")
 
 ## source the function we want to decompose
 source("../functions/gasExchangeSensitivity.R")
@@ -121,7 +121,6 @@ props <- list( list(shape=4.02, scale=18.65), list(mean=1013, sd=499),
                list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
 
 ## Consider interrelationships between parameters
-## FIXME: define this numerically once find out the best way to achieve
 pairs(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
                 "TICumol", "Pressure", "pco2atm")])
 ## WHAT T ~ meanWind!! (though a lot of noise)
@@ -136,14 +135,13 @@ datacorr <- cor(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "Sa
                   use = "complete.obs")
 
 latincorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = props, 
-                 nboot = 200, opts = list(COR = datacorr, eps = 0.5))
-
+                 nboot = 200, opts = list(COR = datacorr, eps = 0.1, maxIt=200))
 
 ## create an identical one for testing reproducibility (e.g. 200 had low sbma)
 testcorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = props, 
-                nboot = 200, opts = list(COR = datacorr, eps = 0.5))
+                nboot = 200, opts = list(COR = datacorr, eps = 0.1, maxIt=200))
 ## test if N is large enough to produce reproducible results...
-(testSbma <- sbma(latincorr, testcorr))
+(testSbma <- sbma(latincorr, testcorr)) # > 90% agreement with eps 0.1, N=500
 
 ## look at diagnostic plots of objects
 want <- latincorr
@@ -236,9 +234,8 @@ distrod <- c("qweibull", "qlogis", "qlogis", "qnorm", "qnorm", "qnorm",
              "qnorm", "qunif") 
 propsd <- list( list(shape=3.39, scale=17), list(location=359.6, scale=36.1), 
                 list(location=8.74,scale=0.29), list(mean=4.98, sd=0.84),
-                list(mean=0.23, sd=0.17), list(mean=2926.2, sd=720.5),
+                list(mean=0.23, sd=0.03), list(mean=2926.2, sd=720.5),
                 list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
-
 
 distrol <- c("qweibull", "qweibull", "qlogis", "qnorm", "qnorm", "qnorm", 
              "qnorm", "qunif") 
@@ -257,14 +254,14 @@ propsw <- list( list(shape=4.97, scale=19.58), list(mean=906, sd=295),
 
 ## lake cubes:
 bcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrob, q.arg = propsb, 
-             nboot = 200, opts = list(COR = lakecorr$B, eps = 0.5))
+             nboot = 200, opts = list(COR = lakecorr$B, eps = 0.1, maxIt=200))
 dcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrod, q.arg = propsd, 
-             nboot = 200, opts = list(COR = lakecorr$D, eps = 0.5))
+             nboot = 200, opts = list(COR = lakecorr$D, eps = 0.1, maxIt=200))
 
 lcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrol, q.arg = propsl, 
-                          nboot = 200, opts = list(COR = lakecorr$L, eps = 0.5))
+                          nboot = 200, opts = list(COR = lakecorr$L, eps = 0.1, maxIt=200))
 wcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrow, q.arg = propsw, 
-             nboot = 200, opts = list(COR = lakecorr$WW, eps = 0.5))
+             nboot = 200, opts = list(COR = lakecorr$WW, eps = 0.1, maxIt=200))
 
 ## lake plots: 
 want <- latincorr
@@ -276,21 +273,58 @@ plotprcc(want)
 
 (testSbma <- sbma(wcube, dcube))
 
-## NB created manually the csv for the prcc indices so recreate when script renewed:
-prcc <- read.csv("../data/private/lhs-prcc.csv")
+## grab prcc's for a group plot:
+prcclist <- list(latincorr, bcube, dcube, lcube)
 
-pd <- position_dodge(0.1)
-ggplot(prcc, aes(x=var, colour=lake, group=var)) + 
+# wrapper to grab the df from each object (which is a list)
+grabs <- function(list) {
+  grabdf <- as.data.frame(list$prcc[[1]]['PRCC'])
+}
+
+#apply wrapper, sort out rest of columns + colnames
+prcclist <- lapply(prcclist, grabs)
+prccdf <- do.call(rbind, c(prcclist, make.row.names= FALSE))
+varnames <- c("Temperature","Conductivity","pH","meanWindMS","SalCalc","TICumol",
+            "Pressure","pco2atm")
+prccdf$var <- rep(varnames, times = 4)
+prccdf$lake <- rep(c("all","B","D","L"), each = 8)
+names(prccdf)[c(1:5)] <- c("original", "bias", "stderr", "minci", "maxci")
+
+# plot the prcc's
+pd <- position_dodge(0.7)
+prccdf$initial <- substr(prccdf$lake, 1, 1)
+
+prccplot <- ggplot(prccdf, aes(x=var, group=interaction(var,lake), label = initial)) + 
   geom_errorbar(aes(ymin=minci, ymax=maxci), width=.1, position=pd) +
-  facet_wrap( "lake", scales = "free") +
-  geom_jitter(aes(y=original), position=pd) + 
+  geom_jitter(aes(y=original, label=initial), size=1, position=pd) +
+  geom_text(aes(y=original, label=initial), size=2, position=position_dodge(.3)) + 
   ylim(-1,1)
+prccplot
+## FIXME: can't get this nice into r markdown...!
 
 ## general lake diffs
 melted <- melt(lakesub, id = "Lake")
 
-ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
-  geom_boxplot(outlier.colour="black", outlier.shape=8,
-               outlier.size=2) +
+meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
+  geom_boxplot(outlier.colour="black", outlier.shape=5,
+               outlier.size=1.5) +
   facet_wrap( "variable", scales = "free")
-  
+meltplot
+
+## save LHS's?
+saveLHS <- TRUE
+
+if(saveLHS) {
+  saveRDS(latincorr, file="../data/private/LHSall-lakes.rds")
+  saveRDS(bcube, file="../data/private/LHS-B.rds")
+  saveRDS(dcube, file="../data/private/LHS-D.rds")
+  saveRDS(lcube, file="../data/private/LHS-L.rds")
+}
+
+## save plots?
+saveplots <- TRUE
+
+if(saveplots) {
+  saveRDS(prccplot, file = "../data/private/prccplot.rds")
+  saveRDS(meltplot, file = "../data/private/meltplot.rds")
+}
