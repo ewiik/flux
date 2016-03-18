@@ -95,9 +95,11 @@ params[newcond, 'Conductivity'] <- 1385
 params[newcond, 'SalCalc'] <- with(params[newcond,], salcalc(Temperature, Conductivity, dbar))
 params[c(salcondtona, salcondtona2),c('Conductivity', 'SalCalc')] <- NA
 
-## found one more outlier for D in 1998
+## found one more outlier for D in 1998, and in 2012
 makena <- which(params$Conductivity >= 2700)
-params[makena, 'Conductivity'] <- NA
+params[makena, c('Conductivity', 'SalCalc')] <- NA
+makena <- which(params$TICumol > 7500)
+params[makena, c('TIC', 'TICumol')] <- NA
 
 ## insert DIC for 2013 and 2014; convert new DICs into umol
 dicdocnew <- transform(dicdocnew, Date = as.POSIXct(Date, format = "%d-%b-%y"))
