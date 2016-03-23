@@ -85,8 +85,8 @@ par(opar)
 ##    same names as in the d,p,q,r functions of the chosen distribution. 
 ##    If start is a function of data, then the function should return a named list with 
 ##    the same names as in the d,p,q,r functions of the chosen distribution. 
-x <- fluxes$pco2atm
-disttest <- "unif"
+x <- fluxes$Conductivity
+disttest <- "gamma"
 ## chisq may require this to run: start = list(df = 8) or some other number
 ## t requires same to run but behaves suspiciously (see plots with expected lines)
 {if(any(is.na(x))) {
@@ -144,6 +144,8 @@ testcorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg =
 (testSbma <- sbma(latincorr, testcorr)) # > 90% agreement with eps 0.1, N=500
 # NB the default is to use absolute values since -ve correlations get given almost
 #   no weight by the method otherwise
+targetLHS <- target.sbma(target=0.91, gasExchangeSens, factors, distro, props, 
+                          opts = list(COR = datacorr, eps = 0.1, maxIt=200))
 
 ## look at diagnostic plots of objects
 want <- latincorr
@@ -181,7 +183,7 @@ lakecorr <- lapply(lakesplit, cor, method = "spearman",
 varnames <- c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
                 "TICumol", "Pressure", "pco2atm")
 #choose variable
-varname <- varnames[6]
+varname <- varnames[1]
 
 #plot chosen variable
 ggplot(lakesub, aes_string(x=varname)) + geom_density(aes(colour=Lake, group=Lake)) +
@@ -199,14 +201,10 @@ par(opar)
 #apply to lake, plots in following order:
 # "B"  "C"  "D"  "K"  "L"  "P"  "WW"
 lapply(lakesplit, giveDistdf)
-densplot <- function(df) {
-  len <- length(names(df))
-  opar <- par(mfrow=c())
-}
 
 ### play with this:
-x <- lakesplit$D$Temperature
-disttest <- "weibull"
+x <- lakesplit$C$Temperature
+disttest <- "gamma"
 ## chisq may require this to run: start = list(df = 8) or some other number
 ## t requires same to run but behaves suspiciously (see plots with expected lines)
 {if(any(is.na(x))) {
@@ -223,7 +221,30 @@ plot(fit.test)
 fit.norm$aic
 fit.test$aic
 
-## lake-specific values:
+## lake-specific values
+distroc <- c("qnorm", "qnorm", "qlogis", "qnorm", "qlogis", "qnorm", 
+             "qnorm", "qunif") 
+propsc <- list( list(mean=17.6, sd=4.93), list(mean=1182.2, sd=200), 
+                list(location=8.79,scale=0.3), list(mean=4.97, sd=0.88),
+                list(location=0.73, scale=0.05), list(mean=4391.4, sd=733.6),
+                list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
+
+
+distrok <- c("qnorm", "qnorm", "qlogis", "qnorm", "qlogis", "qnorm", 
+             "qnorm", "qunif") 
+propsk <- list( list(mean=16.2, sd=5.67), list(mean=1241.3, sd=207), 
+                list(location=8.94,scale=0.33), list(mean=4.96, sd=0.82),
+                list(location=0.72, scale=0.05), list(mean=4171, sd=721.1),
+                list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
+
+
+distrop <- c("qweibull", "qnorm", "qnorm", "qnorm", "qnorm", "qnorm", 
+             "qnorm", "qnorm") 
+propsp <- list( list(shape=3.93, scale=18.6), list(mean=1196.5, sd=272.7), 
+                list(mean=8.84,sd=0.41), list(mean=4.98, sd=0.8),
+                list(mean=0.72, sd=0.15), list(mean=4054.3, sd=608.6),
+                list(mean=94.6, sd=0.16), list(mean=386.8, sd=7.09))
+
 distrob <- c("qweibull", "qnorm", "qlogis", "qnorm", "qnorm", "qnorm", 
              "qnorm", "qunif") 
 propsb <- list( list(shape=5.33, scale=19.6), list(mean=471.8, sd=83.2), 
@@ -264,6 +285,12 @@ lcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrol, q.arg = p
                           nboot = 200, opts = list(COR = lakecorr$L, eps = 0.1, maxIt=200))
 wcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrow, q.arg = propsw, 
              nboot = 200, opts = list(COR = lakecorr$WW, eps = 0.1, maxIt=200))
+ccube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distroc, q.arg = propsc, 
+             nboot = 200, opts = list(COR = lakecorr$C, eps = 0.1, maxIt=200))
+pcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrop, q.arg = propsp, 
+             nboot = 200, opts = list(COR = lakecorr$P, eps = 0.1, maxIt=200))
+kcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrok, q.arg = propsk, 
+             nboot = 200, opts = list(COR = lakecorr$K, eps = 0.1, maxIt=200))
 
 ## lake plots: 
 want <- latincorr
@@ -276,7 +303,7 @@ plotprcc(want)
 (testSbma <- sbma(wcube, dcube))
 
 ## grab prcc's for a group plot:
-prcclist <- list(latincorr, bcube, dcube, lcube)
+prcclist <- list(latincorr2, bcube, dcube, lcube, wcube, pcube, ccube, kcube)
 
 # wrapper to grab the df from each object (which is a list)
 grabs <- function(list) {
@@ -289,18 +316,21 @@ prccdf <- do.call(rbind, c(prcclist, make.row.names= FALSE))
 varnames <- c("Temperature","Conductivity","pH","meanWindMS","SalCalc","TICumol",
             "Pressure","pco2atm")
 prccdf$var <- rep(varnames, times = 4)
-prccdf$lake <- rep(c("all","B","D","L"), each = 8)
+prccdf$lake <- rep(c("all","B","D","L","W","P","C","K"), each = 8)
 names(prccdf)[c(1:5)] <- c("original", "bias", "stderr", "minci", "maxci")
 
 # plot the prcc's
 pd <- position_dodge(0.7)
 prccdf$initial <- substr(prccdf$lake, 1, 1)
 
-prccplot <- ggplot(prccdf, aes(x=var, group=interaction(var,lake), label = initial)) + 
+prccplot <- ggplot(prccdf, aes(x=var, group=interaction(var,lake), colour = lake, 
+                               label = initial)) + 
   geom_errorbar(aes(ymin=minci, ymax=maxci), width=.1, position=pd) +
-  geom_jitter(aes(y=original, label=initial), size=1, position=pd) +
-  geom_text(aes(y=original, label=initial), size=2, position=position_dodge(.3)) + 
-  ylim(-1,1)
+  geom_jitter(aes(y=original, label=initial), size=3, position=pd) +
+  #geom_text(aes(y=original, label=initial), size=2, position=position_dodge(.3)) + 
+  scale_color_brewer(palette="Paired") +
+  ylim(-1,1) +
+  ylab("PRCC")
 prccplot
 ## FIXME: can't get this nice into r markdown...!
 
