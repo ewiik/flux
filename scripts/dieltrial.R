@@ -93,13 +93,14 @@ pco2atm <- ml[ml$Month == 9 & ml$Year == 2015, 'pCO2interp']
 
 ## need to create DIC from conductivity since we don't have instantaneous DIC or alk measures
 ## using the equation used by kerri for missing DIC values.
-dic <- 26.57 + 0.018 * diel$Cond  # (mg/L)
-dic <- dic / 0.012 # --> uM
+diel$dic <- 26.57 + 0.018 * diel$Cond  # (mg/L)
+diel$dicumol <- diel$dic / 0.012 # --> uM
 
 ## run gasExchangeFlex, using mean wind (from kerri's means) and Wascana's altitude
 source("../functions/gasExchangeFlex.R")
-CO2Flux <- with(diel, gasExchangeFlex(Temp, Cond, pH, wind = 2.8, kerri = FALSE, altnotkpa = TRUE,
-                                                  salt = Sal, dic = dic, alt = 570.5, pco2atm = pco2atm))
-diel <- transform(diel, CO2Flux = CO2Flux$fluxenh)
+CO2Fluxz <- with(diel, gasExchangeFlex(Temp, Cond, pH, wind = 2.8, kerri = FALSE, altnotkpa = TRUE,
+                                                  salt = Sal, dic = dicumol, alt = 570.5, pco2atm = pco2atm))
+diel <- transform(diel, CO2Flux = CO2Fluxz$fluxenh)
+diel <- transform(diel, pCO2 = CO2Fluxz$pco2)
 
 with(diel, plot(CO2Flux ~ Date.Time, col = ifelse(Day, "red", "black")))
