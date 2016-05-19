@@ -1,4 +1,4 @@
-## quick look at Buffalo Pound monitoring data from 1985
+### quick look at Buffalo Pound monitoring data from 1985
 ## base file based on xlsx in fromkerri/
 
 buff <- read.csv("data/private/BuffaloP_Data1985_2011.csv", na.strings = c("<NA>", "", "<"), 
