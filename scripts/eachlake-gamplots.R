@@ -1,6 +1,7 @@
 ### Get site specific data/predictions
 ### FIXME: the co2 model still needs proper plotting, code needs adjusting for multiple lakes
 ###     scenario
+### FIXME: keep working on co2 mod section! y axis and shifted 0
 
 ## load in data
 regvars <- readRDS("../data/private/regvars.rds")
@@ -28,13 +29,13 @@ meanco2 <- with(regvarf2,
 ## generate predicted for co2 and ph for all signif variables
 ## co2 ~ ph
 N <- 200
-varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "phgen_ppm", "PDO", "SOI")
+varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "co2gen_ppm", "PDO", "SOI")
 lakeXbar <- with(regvarf2, do.call("rbind",
                                    lapply(split(regvarf2[, varWant], droplevels(Lake)), 
                                           colMeans, na.rm = TRUE)))
 lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
 
-ph.pdat <- with(droplevels(regvarf2),
+co2.pdat <- with(droplevels(regvarf2),
                   data.frame(`pH_surface` = rep(seq(7,
                                                     11,
                                                     length = N),
@@ -42,39 +43,37 @@ ph.pdat <- with(droplevels(regvarf2),
                              Lake = rep(levels(Lake), each = N),
                              Year = rep(2004, prod(nlevels(Lake), N)),
                              dummy = rep(0, prod(nlevels(Lake), N))))
-ph.pdat <- merge(ph.pdat, lakeXbar)
-ph.pred <- predict(co2mod, newdata = ph.pdat, type = "terms", se.fit = TRUE)
+co2.pdat <- merge(co2.pdat, lakeXbar)
+co2.pred <- predict(co2mod, newdata = co2.pdat, type = "terms", se.fit = TRUE)
 
-whichCols <- grep("pH", colnames(ph.pred$fit))
-whichColsSE <- grep("pH", colnames(ph.pred$se.fit))
-ph.pdat <- cbind(ph.pdat, Fitted = ph.pred$fit[, whichCols], 
-                  se.Fitted = ph.pred$se.fit[, whichColsSE])
+whichCols <- grep("pH", colnames(co2.pred$fit))
+whichColsSE <- grep("pH", colnames(co2.pred$se.fit))
+co2.pdat <- cbind(co2.pdat, Fitted = co2.pred$fit[, whichCols], 
+                  se.Fitted = co2.pred$se.fit[, whichColsSE])
 limits <- aes(ymax = Fitted + se.Fitted, ymin= Fitted - se.Fitted)
 
 ## make into original limits
-ph.pdat <- with(ph.pdat, transform(ph.pdat, Fittedplus = Fitted + se.Fitted))
-ph.pdat <- with(ph.pdat, transform(ph.pdat, Fittedminus = Fitted - se.Fitted))
+co2.pdat <- with(co2.pdat, transform(co2.pdat, Fittedplus = Fitted + se.Fitted))
+co2.pdat <- with(co2.pdat, transform(co2.pdat, Fittedminus = Fitted - se.Fitted))
 
-shiftph <- attr(predict(co2mod, newdata = ph.pdat, type = "iterms"), "constant")
-ph.pdatnorm <- ph.pdat
-ph.pdatnorm <- with(ph.pdatnorm, transform(ph.pdatnorm, Fitted = Fitted + shiftph, 
-                                             Fittedplus = Fittedplus + shiftph, 
-                                             Fittedminus = Fittedminus + shiftph))
-labdatph <- data.frame(x = 2.5, y = meanpH + 0.03, label = "mean pH")
+shiftco2 <- attr(predict(co2mod, newdata = co2.pdat, type = "iterms"), "constant")
+co2.pdatnorm <- co2.pdat
+co2.pdatnorm <- with(co2.pdatnorm, transform(co2.pdatnorm, Fitted = Fitted + shiftco2))
+labdatco2 <- data.frame(x = 9, y = meanco2 + 0.03, label = "mean")
 
-ggplot(ph.pdatnorm, aes(x = phgen_ppm, y = Fitted)) +
+ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted)) +
   geom_line() +
   theme_bw() +
-  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-              alpha = 0.25) +  
-  geom_text(data = labdatph, aes(label = label, x = x, y = y, size = 5), 
+  #geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              #alco2a = 0.25) +  
+  geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
             show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
-  xlab('phgen (mg/L)') + ylab('pH')
+  xlab('pH') + ylab('pH')
 
 
 
-ggplot(ph.pdat, aes(x = pH_surface, y = Fitted, 
+ggplot(co2.pdat, aes(x = pH_surface, y = Fitted, 
                     colour = ifelse(Lake == "L", "L", 
                                     ifelse(Lake == "B","B",
                                            ifelse(Lake == "C", "C",
@@ -82,7 +81,10 @@ ggplot(ph.pdat, aes(x = pH_surface, y = Fitted,
   geom_line() +
   scale_colour_manual(name = 'Lakes', values = c("#9900CC","#339900", "#E69F00",
                                                  "#CC9999","#000000")) +
-  xlab('pH') + ylab('mean-0 CO2 flux')
+  #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
+            #show.legend = FALSE) +
+  geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
+  xlab('pH') + ylab(expression(paste('CO'[2]*' (mmol m'^{-2}*d^{-1})))
 
 ## for oxygen
 N <- 200
@@ -117,7 +119,7 @@ oxy.pdatnorm <- oxy.pdat
 oxy.pdatnorm <- with(oxy.pdatnorm, transform(oxy.pdatnorm, Fitted = Fitted + shiftoxy, 
                                              Fittedplus = Fittedplus + shiftoxy, 
                                              Fittedminus = Fittedminus + shiftoxy))
-labdatoxy <- data.frame(x = 2.5, y = meanoxy + 0.03, label = "mean oxy")
+labdatoxy <- data.frame(x = 2.5, y = meanoxy + 0.03, label = "mean Oxygen")
 
 ggplot(oxy.pdatnorm, aes(x = Oxygen_ppm, y = Fitted)) +
   geom_line() +
@@ -127,11 +129,11 @@ ggplot(oxy.pdatnorm, aes(x = Oxygen_ppm, y = Fitted)) +
   geom_text(data = labdatoxy, aes(label = label, x = x, y = y, size = 5), 
             show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
-  xlab('Oxygen (mg/L)') + ylab('pH')
+  xlab(expression(paste(O[2]~"("*"mg"~L^{-1}*")"))) + ylab('pH')
 
 ## for GPP
 N <- 200
-varWant <- c("phgen_ppm", "TDN_ug_L", "DOC_mg_L", "Chl_a_ug_L", "PDO", "SOI")
+varWant <- c("Oxygen_ppm", "TDN_ug_L", "DOC_mg_L", "Chl_a_ug_L", "PDO", "SOI")
 lakeXbar <- with(regvarf2, do.call("rbind",
                                    lapply(split(regvarf2[, varWant], droplevels(Lake)), 
                                           colMeans, na.rm = TRUE)))
@@ -172,11 +174,11 @@ ggplot(GPP.pdatnorm, aes(x = GPP_h, y = Fitted)) +
   geom_text(data = labdatGPP, aes(label = label, x = x, y = y, size = 5), 
             show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
-  xlab('GPP/h') + ylab('pH')
+  xlab(expression(paste('GPP'~h^{-1}))) + ylab('pH')
 
 ## for TDN
 N <- 200
-varWant <- c("phgen_ppm", "GPP_h", "DOC_mg_L", "Chl_a_ug_L", "PDO", "SOI")
+varWant <- c("Oxygen_ppm", "GPP_h", "DOC_mg_L", "Chl_a_ug_L", "PDO", "SOI")
 lakeXbar <- with(regvarf2, do.call("rbind",
                                    lapply(split(regvarf2[, varWant], droplevels(Lake)), 
                                           colMeans, na.rm = TRUE)))
@@ -217,6 +219,6 @@ ggplot(TDN.pdatnorm, aes(x = TDN_ug_L, y = Fitted)) +
   geom_text(data = labdatN, aes(label = label, x = x, y = y, size = 5), 
             show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
-    xlab('TDN (ug/L)') + ylab('pH')
+    xlab(expression(paste("TDN ("~mu*"g"~L^{-1}*")"))) + ylab('pH')
 
 
