@@ -38,7 +38,7 @@ bdat2014 <- read.csv('../data/private/BuffPd_DataBlobs_Helen.csv', skip = 4,
                                    "relhum", "pressure", "dailyrain", "par1", "par2",
                                    "par3", "temp1", "ODOrel1", "ODOabs1", "temp2",
                                    "temp3", "temp4", "temp5", "co2corr"))
-bdat2014supp <- read.csv("../data/private/BPbuoy2014.csv", skip = 4, 
+bdat2014supp <- read.csv("../data/private/BPBuoy2014.csv", skip = 4, 
                          col.names = c('datetime',"batvolt", "winddir", "windsp", "airtemp", 
                                        "relhum", "pressure", "dailyrain", "par1", "par2",
                                        "par3", "cdom", "mvolts", "co2-1", "co2-2", "temp1",
