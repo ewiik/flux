@@ -16,6 +16,9 @@ scale_color_viridis(discrete = TRUE, option = 'plasma')
 ## symbols and italics
 expression(paste(italic('p')*'CO'[2]))
 ylab(expression(paste(mu*'atm')))
+~h^{-1}
+expression(paste("VAR ("~mu*"g"~L^{-1}*")"))
+
 
   
 
