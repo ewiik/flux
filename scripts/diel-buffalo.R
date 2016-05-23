@@ -1,5 +1,5 @@
 ## load in Helen's 2015 buoy data -- from file sent 28.01.2016
-## And 2014 data from... [FIXME]
+## And 2014 data from email sent Monday - April 25, 2016 
 ## two sonde depths, n.1 is the shallower one based on PAR..
 ## Not sure what cdom and mv are measures of.. and why so many temps?
 ## FIXME: really need to learn what's what with the column name matching (2015)
@@ -343,7 +343,7 @@ bdat <- read.csv("../data/private/BPBuoyData2015raw.csv", skip = 4,
                                "ph2mV", "bga2cell", "bga2rfu", "ODOrel2", "ODOabs2", "temp3", 
                                "temp4", "temp5", "temp6", "temp7"))
 
-press <- read.csv("bp-pressure2015.csv")
+press <- read.csv("../data/bp-pressure2015.csv")
 names(press)[which(names(press) == 'Pressure')] <- 'AirPressure'
 press <- press[,-which(names(press) == 'Year')]
 
