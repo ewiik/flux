@@ -334,15 +334,49 @@ prccplot <- ggplot(prccdf, aes(x=var, group=interaction(var,lake), colour = lake
 prccplot
 ## FIXME: can't get this nice into r markdown...!
 
-## general lake diffs
+## general lake diffs in variables
 melted <- melt(lakesub, id = "Lake")
 
+# create a list with strip labels
+varnames <- list(
+  'Temperature'=expression(paste("Temperature ("~degree*"C)")) ,
+  'Conductivity'= expression(paste("Conductivity ("*mu*"S"~"cm"^{-1}*")")),
+  'pH'="pH",
+  'meanWindMS'= expression(paste("Mean Wind (m"~"s"^{-1}*")")),
+  'SalCalc' = "Salinity (ppt)",
+  'TICumol' = expression(paste("DIC ("~mu*"mol"~"L"^{-1}*")")),
+  'Pressure' = 'Pressure (kPa)',
+  'pco2atm' = expression(paste("Air"~italic(p)*"CO"[2]~"(ppm)"))
+)
+
+# Create a 'labeller' function, and push it into facet_grid call:
+var_labeller <- function(variable,value){
+  return(varnames[value])
+}
+
+# run the ggplot
 meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
   geom_boxplot(outlier.colour="black", outlier.shape=5,
-               outlier.size=1.5) +
-  facet_wrap( "variable", scales = "free")
+               outlier.size=1) +
+  theme_bw() +
+  facet_wrap( "variable", scales = "free", labeller = var_labeller) +
+  theme(axis.title = element_blank())
 meltplot
+## FIXME: apparently var_labeller style labeling is deprecated but I can't get anything else to work
+##    for the expressions so going with this for now... new version wants df's but df doesn't accept
+##    expressions....
+# vardf <- c(expression(paste("Temperature ("~degree*"C)")),
+#                               expression(paste("Conductivity ("*mu*"S"~"cm"^{-1}*")")),
+#                               "pH", expression(paste("Mean Wind (m"~"s"^{-1}*")")),
+#                               "Salinity (ppt)", expression(paste("DIC ("~mu*"mol"~"L"^{-1}*")")),
+#                               'Pressure (kPa)', expression(paste(italic(p)*"CO"[2]~"(ppm)")))
+# as_labeller(vardf)  
 
+# save meltplot?
+savemelt <- TRUE
+if(savemelt) {
+  ggsave("../data/private/routines-boxplot.png", meltplot, width=15, units = "cm")
+}
 ## save LHS's?
 saveLHS <- TRUE
 
