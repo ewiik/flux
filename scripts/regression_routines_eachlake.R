@@ -117,36 +117,6 @@ par(op)
 dev.off()
 }
 
-## Get site-specific data/predictions
-N <- 200
-varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
-lakeXbar <- with(regvarf2, do.call("rbind",
-                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
-                                          colMeans, na.rm = TRUE)))
-lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
-
-chla.pdat <- with(droplevels(regvarf2),
-                  data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
-                                                    max(`Chl_a_ug_L`, na.rm = TRUE),
-                                                    length = N),
-                                                nlevels(Lake)),
-                             Lake = rep(levels(Lake), each = N),
-                             Year = rep(2004, prod(nlevels(Lake), N)),
-                             dummy = rep(0, prod(nlevels(Lake), N))))
-chla.pdat <- merge(chla.pdat, lakeXbar)
-chla.pred <- predict(egmod.red2, newdata = chla.pdat, type = "terms")
-whichCols <- grep("Chl", colnames(chla.pred))
-chla.pdat <- cbind(chla.pdat, Fitted = rowSums(chla.pred[, whichCols]))
-
-ggplot(chla.pdat, aes(x = Chl_a_ug_L, y = Fitted, colour = 
-                        ifelse(Lake == "WW", "Wascana", "others"))) +
-  geom_line() + 
-  scale_colour_manual(name = 'Lakes', values = c("#999999", "#E69F00")) +
-  xlab('Chl a (ug/L)') + ylab('mean-0 pH')
-## see http://stackoverflow.com/questions/11838278/
-##    plot-with-conditional-colors-based-on-values-in-r
-
-  
 ## use final models created for CO2, adapted to see if any one Lake deviates
 ##    from the global trend
 ## =================================================================================
@@ -182,6 +152,7 @@ co2modnull <- gam(co2Flux ~
               na.action = na.exclude,
               control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
 
+saveRDS(co2modnull, '../data/private/co2modnull.rds')
 anova(co2modnull, co2mod, test = "LRT")
 AIC(co2modnull, co2mod)
 # --> we need to take the more complex model
@@ -281,69 +252,6 @@ resmodredchl <- gam(res ~
 anova(resmodredchl, resmodred, test = "LRT")
 ## better to keep the more complicated model
 }
-
-### Get site specific data/predictions
-N <- 200
-varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
-lakeXbar <- with(regvarf2, do.call("rbind",
-                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
-                                          colMeans, na.rm = TRUE)))
-lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
-
-chla.pdat <- with(droplevels(regvarf2),
-                  data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
-                                                    max(`Chl_a_ug_L`, na.rm = TRUE),
-                                                    length = N),
-                                                nlevels(Lake)),
-                             Lake = rep(levels(Lake), each = N),
-                             Year = rep(2004, prod(nlevels(Lake), N)),
-                             dummy = rep(0, prod(nlevels(Lake), N))))
-chla.pdat <- merge(chla.pdat, lakeXbar)
-chla.pred <- predict(resmodred, newdata = chla.pdat, type = "terms")
-whichCols <- grep("Chl", colnames(chla.pred))
-chla.pdat <- cbind(chla.pdat, Fitted = rowSums(chla.pred[, whichCols]))
-
-ggplot(chla.pdat, aes(x = Chl_a_ug_L, y = Fitted, colour = Lake)) +
-  geom_line()
-
-## for co2modnull
-N <- 200
-null.pdat <- with(droplevels(regvarf),
-                 data.frame(`pH_surface` = rep(seq(7, 11, length = N),
-                                               nlevels(Lake)),
-                            Lake = rep(levels(Lake), each = N),
-                            Year = rep(2004, prod(nlevels(Lake), N))))
-null.pred <- predict(co2modnull, newdata = null.pdat, type = "iterms") 
-whichCols <- grep("pH", colnames(null.pred))
-
-null.predse <- predict(co2modnull, newdata = null.pdat, type = "iterms", se.fit = TRUE)
-null.predse <- as.data.frame(null.predse$se.fit)
-whichColsse <- grep("pH", colnames(null.predse))
-
-null.pdat <- cbind(null.pdat, Fitted = null.pred[, whichCols], Fittedse = null.predse[,whichColsse])
-null.pdat <- with(null.pdat, transform(null.pdat, Fittedplus = Fitted + Fittedse))
-null.pdat <- with(null.pdat, transform(null.pdat, Fittedminus = Fitted - Fittedse))
-
-shiftnull <- attr(predict(co2modnull, newdata = null.pdat, type = "iterms"), "constant")
-null.pdatnorm <- null.pdat
-null.pdatnorm <- with(null.pdatnorm, transform(null.pdatnorm, Fitted = Fitted + shiftnull, 
-                                             Fittedplus = Fittedplus + shiftnull, 
-                                             Fittedminus = Fittedminus + shiftnull))
-
-labdatnull <- data.frame(x = 9.1, y = 290, label = "mean pH")
-
-nullplot <- ggplot(null.pdatnorm, aes(x = pH_surface, y = Fitted)) +
-  geom_line() +
-  theme_bw() +
-  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-              alpha = 0.25) +  
-  geom_text(data = labdatnull, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
-  #geom_abline(slope = 0, intercept = -8.8, linetype="dotted") +
-  geom_vline(xintercept = 8.8, linetype="dotted") +
-  ylab(expression(paste(CO[2]~"flux (mmol"~"C "*m^{-2}*"d"^{-1}*')'))) + xlab('pH')
-
-ggsave("../data/private/co2modnull-spline.png", nullplot)
 
 ## ==========================================================================
 ## RUN MODELS FOR WASCANA ONLY -- USE regvarf2 WITH <0 made to 0, +1
