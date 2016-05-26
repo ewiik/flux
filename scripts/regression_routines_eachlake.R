@@ -84,13 +84,13 @@ egmodredsum
 sink()
 }
 
-## 3. model that removes further unnecessary elements to make fitting faster and simpler
-##    AND introduces scat() again. Testing to see if the step failure can be averted
-##    by setting maxHalf = 60
-egmod.red2 <- gam(pH_surface ~ 
-                    s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
+# 3. model that removes further unnecessary elements to make fitting faster and simpler
+#    AND introduces scat() again. Testing to see if the step failure can be averted
+#    by setting maxHalf = 60
+egmod.red2 <- gam(pH_surface ~
+                    s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1,k=5) +
                     s(GPP_h) +
-                    s(log10(TDN_ug_L)) + 
+                    s(log10(TDN_ug_L)) +
                     s(log10(DOC_mg_L)) +
                     s(Oxygen_ppm) +
                     te(PDO, SOI) +
@@ -103,7 +103,7 @@ egmod.red2 <- gam(pH_surface ~
 saveRDS(egmod.red2, "../data/private/egmodred2.rds")
 egmodred2sum <- summary(egmod.red2)
 if (plotmods) {
-sink("../data/private/egmodred2summary.txt")
+sink("../docs/private/egmodred2summary.txt")
 egmodred2sum
 sink()
 }
