@@ -3,12 +3,18 @@
 ###     scenario
 ### FIXME: keep working on co2 mod section! y axis and shifted 0
 
+## load packages
+library('ggplot2')
+library('viridis')
+library('cowplot')
+
 ## load in data
 regvars <- readRDS("../data/private/regvars.rds")
 
 ## Load in gam models
 co2mod <- readRDS("../data/private/co2mod.rds")
 egmod.red2 <- readRDS("../data/private/egmodred2.rds")
+co2modnull <- readRDS("../data/private/co2modnull.rds")
 
 ## change to match what was used to create the models
 regvarf <- regvars
@@ -25,13 +31,11 @@ meanpH <- with(regvarf2[which(regvarf2$pH_surface >7 & regvarf$pH_surface < 11.1
                mean(pH_surface, na.rm=TRUE)) # some outliers in there
 meanco2 <- with(regvarf2, 
                mean(co2Flux, na.rm=TRUE))
-meanoxy <- with(regvarf2, 
-                mean(Oxygen_ppm, na.rm=TRUE))
 
 ## generate predicted for co2 and ph for all signif variables
-## co2 ~ ph
+## co2 ~ ph: full model
 N <- 200
-varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "co2gen_ppm", "PDO", "SOI")
+varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
 lakeXbar <- with(regvarf2, do.call("rbind",
                                    lapply(split(regvarf2[, varWant], droplevels(Lake)), 
                                           colMeans, na.rm = TRUE)))
@@ -50,45 +54,76 @@ co2.pred <- predict(co2mod, newdata = co2.pdat, type = "terms", se.fit = TRUE)
 
 whichCols <- grep("pH", colnames(co2.pred$fit))
 whichColsSE <- grep("pH", colnames(co2.pred$se.fit))
-co2.pdat <- cbind(co2.pdat, Fitted = co2.pred$fit[, whichCols], 
-                  se.Fitted = co2.pred$se.fit[, whichColsSE])
+co2.pdat <- cbind(co2.pdat, Fitted = rowSums(co2.pred$fit[, whichCols]), 
+                  se.Fitted = rowSums(co2.pred$se.fit[, whichColsSE]))
 limits <- aes(ymax = Fitted + se.Fitted, ymin= Fitted - se.Fitted)
 
-## make into original limits
 co2.pdat <- with(co2.pdat, transform(co2.pdat, Fittedplus = Fitted + se.Fitted))
 co2.pdat <- with(co2.pdat, transform(co2.pdat, Fittedminus = Fitted - se.Fitted))
 
+## make into original limits
 shiftco2 <- attr(predict(co2mod, newdata = co2.pdat, type = "iterms"), "constant")
 co2.pdatnorm <- co2.pdat
 co2.pdatnorm <- with(co2.pdatnorm, transform(co2.pdatnorm, Fitted = Fitted + shiftco2))
-labdatco2 <- data.frame(x = 9, y = meanco2 + 0.03, label = "mean")
+labdatco2 <- data.frame(x = 7.5, y = meanco2 - 18, label = "mean flux")
 
-ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted)) +
+co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted, 
+                    colour = ifelse(Lake == "L", "Last Mountain", 
+                                    ifelse(Lake == "B","Buffalo Pound",
+                                           ifelse(Lake == "C", "Crooked",
+                                                  ifelse(Lake == "D", 
+                                      "Diefenbaker", "Others: \n Wascana, Pasqua, Katepwa")))))) +
   geom_line() +
   theme_bw() +
   #geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-              #alco2a = 0.25) +  
+   #           alpha = 0.25, fill='white') +  
+  scale_color_viridis(name = 'Lake', discrete = TRUE, option = 'plasma') +
   geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
-  geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
-  xlab('pH') + ylab('pH')
-
-
-
-ggplot(co2.pdat, aes(x = pH_surface, y = Fitted, 
-                    colour = ifelse(Lake == "L", "L", 
-                                    ifelse(Lake == "B","B",
-                                           ifelse(Lake == "C", "C",
-                                                  ifelse(Lake == "D", "D", "others")))))) +
-  geom_line() +
-  scale_colour_manual(name = 'Lakes', values = c("#9900CC","#339900", "#E69F00",
-                                                 "#CC9999","#000000")) +
-  #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
-            #show.legend = FALSE) +
+            show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
+  theme(legend.position='top') +
   xlab('pH') + ylab(expression(paste('CO'[2]*' (mmol m'^{-2}*d^{-1})))
 
-## for oxygen
+## for the null model:
+## for co2modnull
+N <- 200
+null.pdat <- with(droplevels(regvarf),
+                  data.frame(`pH_surface` = rep(seq(7, 11, length = N),
+                                                nlevels(Lake)),
+                             Lake = rep(levels(Lake), each = N),
+                             Year = rep(2004, prod(nlevels(Lake), N))))
+null.pred <- predict(co2modnull, newdata = null.pdat, type = "iterms") 
+whichCols <- grep("pH", colnames(null.pred))
+
+null.predse <- predict(co2modnull, newdata = null.pdat, type = "iterms", se.fit = TRUE)
+null.predse <- as.data.frame(null.predse$se.fit)
+whichColsse <- grep("pH", colnames(null.predse))
+
+null.pdat <- cbind(null.pdat, Fitted = null.pred[, whichCols], Fittedse = null.predse[,whichColsse])
+null.pdat <- with(null.pdat, transform(null.pdat, Fittedplus = Fitted + Fittedse))
+null.pdat <- with(null.pdat, transform(null.pdat, Fittedminus = Fitted - Fittedse))
+
+shiftnull <- attr(predict(co2modnull, newdata = null.pdat, type = "iterms"), "constant")
+null.pdatnorm <- null.pdat
+null.pdatnorm <- with(null.pdatnorm, transform(null.pdatnorm, Fitted = Fitted + shiftnull, 
+                                               Fittedplus = Fittedplus + shiftnull, 
+                                               Fittedminus = Fittedminus + shiftnull))
+
+labdatco2 <- data.frame(x = 7.5, y = meanco2 - 18, label = "mean flux")
+
+nullplot <- ggplot(null.pdatnorm, aes(x = pH_surface, y = Fitted)) +
+  geom_line() +
+  theme_bw() +
+  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              alpha = 0.25) +  
+  geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
+            show.legend = FALSE) +
+  geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
+  #geom_vline(xintercept = 8.8, linetype="dotted") +
+  ylab(expression(paste(CO[2]~"flux (mmol"~"C "*m^{-2}*"d"^{-1}*')'))) + xlab('pH')
+
+## for egmod.red2
+## oxygen
 N <- 200
 varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Chl_a_ug_L", "PDO", "SOI")
 lakeXbar <- with(regvarf2, do.call("rbind",
@@ -223,54 +258,118 @@ TDNplot <- ggplot(TDN.pdatnorm, aes(x = TDN_ug_L, y = Fitted)) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
     xlab(expression(paste("TDN ("~mu*"g"~L^{-1}*")"))) + ylab('pH')
 
-# for chl a
-## for GPP
-N <- 200
-varWant <- c("Oxygen_ppm", "TDN_ug_L", "DOC_mg_L", "GPP_h", "PDO", "SOI")
+## for chl a
+## Get site-specific data/predictions
+N <- 1000
+varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
 lakeXbar <- with(regvarf2, do.call("rbind",
                                    lapply(split(regvarf2[, varWant], droplevels(Lake)), 
                                           colMeans, na.rm = TRUE)))
 lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
 
-chl.pdat <- with(droplevels(regvarf2),
-                 data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
-                                              max(`Chl_a_ug_L`, na.rm = TRUE),
-                                              length = N),
-                                          nlevels(Lake)),
-                            Lake = rep(levels(Lake), each = N),
-                            Year = rep(2004, prod(nlevels(Lake), N)),
-                            dummy = rep(0, prod(nlevels(Lake), N))))
-chl.pdat <- merge(chl.pdat, lakeXbar)
-chl.pred <- predict(egmod.red2, newdata = chl.pdat, type = "terms", se.fit = TRUE)
-whichCols <- grep("Chl", colnames(chl.pred$fit))
-whichColsSE <- grep("Chl", colnames(chl.pred$se.fit))
-chl.pdat <- cbind(chl.pdat, Fitted = chl.pred$fit[, whichCols], 
-                  se.Fitted = chl.pred$se.fit[, whichColsSE])
-limits <- aes(ymax = Fitted + se.Fitted, ymin= Fitted - se.Fitted)
+chla.pdat <- with(droplevels(regvarf2),
+                  data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    max(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    length = N),
+                                                nlevels(Lake)),
+                             Lake = rep(levels(Lake), each = N),
+                             Year = rep(2004, prod(nlevels(Lake), N)),
+                             dummy = rep(0, prod(nlevels(Lake), N))))
+chla.pdat <- merge(chla.pdat, lakeXbar)
+chla.pred <- predict(egmod.red2, newdata = chla.pdat, type = "terms")
+whichCols <- grep("Chl", colnames(chla.pred))
+chla.pdat <- cbind(chla.pdat, Fitted = rowSums(chla.pred[, whichCols]))
 
-## make into original limits
-chl.pdat <- with(chl.pdat, transform(chl.pdat, Fittedplus = Fitted + se.Fitted))
-chl.pdat <- with(chl.pdat, transform(chl.pdat, Fittedminus = Fitted - se.Fitted))
+shiftchl <- attr(predict(egmod.red2, newdata = chla.pdat, type = "iterms"), "constant")
+chl.pdatnorm <- chla.pdat
+chl.pdatnorm <- with(chl.pdatnorm, transform(chl.pdatnorm, Fitted = Fitted + shiftchl))
+labdatchl <- data.frame(x = 100, y = meanpH + 0.08, label = "mean pH")
 
-shiftchl <- attr(predict(egmod.red2, newdata = chl.pdat, type = "iterms"), "constant")
-chl.pdatnorm <- chl.pdat
-chl.pdatnorm <- with(chl.pdatnorm, transform(chl.pdatnorm, Fitted = Fitted + shiftchl, 
-                                             Fittedplus = Fittedplus + shiftchl, 
-                                             Fittedminus = Fittedminus + shiftchl))
-labdatchl <- data.frame(x = 0, y = meanpH + 0.01, label = "mean pH")
-
-chlplot <- ggplot(chl.pdatnorm, aes(x = chl_h, y = Fitted)) +
-  geom_line() +
-  theme_bw() +
-  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-              alpha = 0.25) +  
-  geom_text(data = labdatchl, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
+chl.pdatnorm$Lake <- factor(chl.pdatnorm$Lake, levels = c('B','WW','C','D','K','L','P'))
+chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, colour = 
+                        ifelse(Lake == "WW", "Wascana", 
+                               ifelse(Lake == "B", "Buffalo Pound", 
+                                      "Katepwa, Pasqua, Diefenbaker, \n Last Mountain, Crooked")))) +
+  geom_line() + 
+  geom_text(data = labdatchl, aes(label = label, x = x, y = y, size = 5),
+            show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
-  xlab(expression(paste('Chl a ('~mu*g~L^{-1}*")"))) + ylab('pH')
+  theme_bw() + 
+  scale_color_viridis(name = 'Lake', discrete = TRUE, option = 'plasma',
+                      end=0.8, begin = 0.3) +
+  theme(legend.position = 'top') +
+  #coord_trans(x = "log10") +
+  xlab(expression(paste("Chl"~italic(a)~"("~mu*"g"~"L"^{-1}*")"))) + 
+  ylab('pH')
+## see http://stackoverflow.com/questions/11838278/
+##    plot-with-conditional-colors-based-on-values-in-r
+## make this bit into soi-pdo
+N <- 100
+simSOI <- c(-1,-0.75, -0.5, 0.5, 0.75, 1, 1.5, 1.75, 2)
+SOIgroup <- factor(rep(1:3, times=c(3,3,3)))
+SOIgroup <- factor(rep(c('-1:-0.5', '0.5:1', '1.5:2'), each=300, times=7))  # 7*900
+reptimes <- length(simSOI)
+preddf <- data.frame(`PDO` = rep(seq(min(regvarf2$PDO, na.rm=TRUE),
+                                      max(regvarf2$PDO, na.rm=TRUE),
+                                      length = N), times=reptimes),
+                     `SOI` = rep(simSOI, each = N))
+superN <- nrow(preddf)
 
-## save plots:
-plots <- c('TDNplot', 'oxyplot', 'GPPplot')
+varWant <- c("Oxygen_ppm", "GPP_h", "DOC_mg_L", "Chl_a_ug_L", "TDN_ug_L")
+lakeXbar <- with(regvarf2, do.call("rbind",
+                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
+                                          colMeans, na.rm = TRUE)))
+lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar))) # 7 lakes, 7 rows
 
-ggsave('../data/private/TDNplot.png', TDNplot)
+SOI.pdat <- with(droplevels(regvarf2),
+                 data.frame(`PDO` = rep(preddf$PDO,
+                                             nlevels(Lake)), # 900*7
+                            `SOI` = rep(preddf$SOI,
+                                        nlevels(Lake)), # 900*7
+                            Lake = rep(levels(Lake), each = superN),
+                            Year = rep(2004, prod(nlevels(Lake), superN)),
+                            dummy = rep(0, prod(nlevels(Lake), superN))))
 
+SOI.pdat <- merge(SOI.pdat, lakeXbar)
+SOI.pred <- predict(egmod.red2, newdata = SOI.pdat, type = "link")
+SOI.pdat <- cbind(SOI.pdat, SOI.pred)
+SOI.pdat$SOIgroup <- SOIgroup
+
+names(SOI.pdat)[which(names(SOI.pdat)=='SOI.pred')] <- 'pH'
+
+# need to take away places where PDO*SOI combo has not occurred in the data!!
+SOI.pdatsub <- subset(SOI.pdat, !(SOI >= 1.2 & PDO > -0.3 ) & Lake=="B")
+SOI.pdatsub <- subset(SOI.pdatsub, !(SOI <= -0.5 & PDO < -1))
+SOI.pdatsub <- subset(SOI.pdatsub, !(SOI > 0.5 & PDO > 1.3))
+SOI.pdatsub <- subset(SOI.pdatsub, !(pH <7))
+
+labdatSOI <- data.frame(x = 2.5, y = meanpH + 0.08, label = "mean pH")
+
+#reorder factors
+SOI.pdatsub$SOIgroup <- factor(SOI.pdatsub$SOIgroup, levels = c('-1:-0.5', '0.5:1', '1.5:2'))
+
+SOIplot <- ggplot(SOI.pdatsub, aes(x = PDO, y = pH, group= SOI, col=SOIgroup)) +
+  theme_bw() +
+  geom_line() +
+  #scale_colour_discrete(name="SOI") +
+  theme(legend.position="top") +
+  scale_color_viridis(name = "SOI", discrete = TRUE, option = 'plasma',
+                      end=0.8, begin=0.3) +
+  geom_text(data = labdatSOI, aes(label = label, x = x, y = y, size = 5),
+            show.legend = FALSE, inherit.aes = FALSE) +
+  geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
+  xlab('PDO') + ylab('pH')
+
+## save objects:
+plots <- list(TDNplot, oxyplot, GPPplot, chlaplot, SOIplot, nullplot, co2plot)
+plotnames <- c('TDNplot', 'oxyplot', 'GPPplot','chlaplot', 'nullplot')
+invisible( # this means I don't get the list [[1:3]] returned on screen
+  lapply(
+    seq_along(plots), 
+    function(x) ggsave(filename=paste0("../docs/private/gam-plots-", plotnames[x], ".png"), plot=plots[[x]])
+  ) )
+
+## arrange plots
+allgam <- plot_grid(chlaplot, SOIplot, oxyplot, TDNplot, ncol = 2)
+
+ggsave("../docs/private/ph-allgams.png", allgam)
