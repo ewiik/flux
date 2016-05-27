@@ -297,6 +297,8 @@ anova(m1, m2, test = "LRT")
 
 m3 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
           data = bdat2014full)
+mco2 <- gam(co2corr ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
+          data = bdat2014full)
 
 plot(m2, scheme=2, ylab='mean-0 pH', main='mean-0 pH') # latter works for 3D plot
 #   former for the 2D plot
@@ -331,6 +333,55 @@ ggplot(predicted, aes(x = Time, y = pH, group= DOY, col=DOYgroups)) +
   theme(legend.position="top") +
   xlab('Time of Day') + ylab('pH')
 
+## for co2
+N <- 200
+simDOY <- c(168:170, 190:192, 228:230)
+DOYgroup <- factor(rep(1:3, times=c(3,3,3)))
+DOYgroup <- factor(rep(c('Jun 17-19', 'Jul 9-11', 'Aug 16-18'), times=c(3,3,3)))  
+reptimes <- length(simDOY)
+preddf <- data.frame(`Time` = rep(seq(min(bdat2014full$Time, na.rm=TRUE),
+                                      max(bdat2014full$Time, na.rm=TRUE),
+                                      length = N), times=reptimes),
+                     `DOY` = rep(simDOY, each = N))
+mco2pred <- predict(mco2, newdata = preddf, type = "link")
+
+DOYgroups <- rep(DOYgroup, each = N)
+
+predicted <- cbind(preddf, mco2pred, DOYgroups)
+names(predicted)[which(names(predicted)=='mco2pred')] <- 'pCO2'
+
+labdatco2 <- data.frame(x = 3, y = 380, label = "Atmospheric mean")
+
+co2modplot <- ggplot(predicted, aes(x = Time, y = pCO2, group= DOY, col=DOYgroups)) +
+  theme_bw() +
+  scale_colour_brewer(name = "Date", type = 'qual', palette = 'Dark2', direction=1) +
+  geom_line() +
+  theme(legend.position="top") +
+  xlab('Time of Day') + ylab(expression(paste(italic(p)*"CO"[2]~"(ppm)"))) +
+  geom_abline(intercept = 398, slope = 0, linetype='dotted') +
+  geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
+            show.legend = FALSE, inherit.aes = FALSE)
+ggsave('../docs/private/bp-diel-co2gam.png', width=20, height=15, units='cm')
+
+## gam on other params
+bdat2014fullf <- transform(bdat2014fullf, daylength = sunset-sunrise)
+bdat2014fullf$daylength <- as.numeric(bdat2014fullf$daylength)
+bpmod <- gam(ph1 ~
+                    s(chl) +
+                    s(airtemp) +
+                    s(daylength) +
+                    s(ODOrel1),
+                  data = bdat2014fullf,
+                  select = TRUE, method = "REML", family = gaussian(),
+                  na.action = na.exclude,
+                  control = gam.control(nthreads = 3, trace = TRUE,
+                                        newton = list(maxHalf = 60)))
+saveRDS(bpmod, '../data/private/bpmod.rds')
+
+bpco2phmod <- gam(co2corr ~ s(ph1), method = "REML", family = gaussian,
+                  na.action = na.exclude, data=bdat2014fullf,
+                  control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+saveRDS(bpco2phmod, '../data/private/bpco2phmod.rds')
 ## ==========================================================================================
 ## 2015
 ## ==========================================================================================
