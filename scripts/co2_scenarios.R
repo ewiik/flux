@@ -72,6 +72,15 @@ dbar <- kpa/10 + 1
 params <- transform(params, SalCalc = salcalc(Temperature, Conductivity, dbar))
 
 ### deal with outliers based on database checks:
+### NB: when rerunning this script params date suddenly indicated time of day also, which
+###   means the matching isn't working! need to correct for this event
+if(length(grep(":", as.character(params$Date)[1])) ==1) { # check for hour minute sep
+  params <- transform(params, Date = trunc(Date, unit = 'days'))
+  params <- transform(params, Date = as.POSIXct(Date, format = "%Y-%m-%d"))
+} else {
+  print("noooo")
+}
+
 checkdates <- transform(checkdates, Date = as.POSIXct(Date, format = "%m/%d/%Y"))
 wrongs <- params[params$Date %in% c(checkdates$Date),c("Lake", "Date", "Year", "pH", 
                                                        "Conductivity","Salinity", "SalCalc")]

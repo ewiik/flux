@@ -18,6 +18,15 @@ temp <- readRDS("../data/temperaturedata.rds")# Year, Month, Superstation...
 ## get CO2 flux estimates (alter calculation arguments in co2_scenarios.R)
 fluxes <- readRDS("../data/private/params-flux.rds")
 
+ ## NB: when rerunning this script co2expl date suddenly indicated time of day also, which
+###   means the matching isn't working! need to correct for this event
+if(length(grep(":", as.character(co2expl$Date)[1])) ==1) { # check for hour minute sep
+  co2expl <- transform(co2expl, Date = trunc(Date, unit = 'days'))
+  co2expl <- transform(co2expl, Date = as.POSIXct(Date, format = "%Y-%m-%d"))
+} else {
+  print("noooo")
+}
+
 ## choose params that we want in model from co2expl offerings
 ## at the mo, relative humidity is in as a proxy for evaporation effects.. Considered this better than using
 ##    just precipitation since that may not be directly linked due to advective-dominated precip
@@ -25,7 +34,7 @@ fluxes <- readRDS("../data/private/params-flux.rds")
 ##    1:1 is generally in favour of NPP
 regvars <- subset(co2expl,
                   select = c("YEAR", "Month", "Date", "DOY", "LAKE", "Chl_a_ug_L", "GPP_h",
-                  "TDN_ug_L", "pH_surface", "DOC_mg_L", "Oxygen_ppm",
+                  "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm",
                   "AirTempMonthly", "RelHum"))
 
 ## do whatever needs to be done with precip data. and March things
@@ -99,10 +108,14 @@ fluxdiff <- fluxes$Date[fluxes$Date %in% regvars$Date == FALSE]
 vardiff[order(vardiff)] # 26 dates not in fluxes
 fluxdiff[order(fluxdiff)]
 # bottle production estimates only started in 1996.... so if we want -94 and -95 we can't use NPP, R.
-regvars <- merge(regvars, fluxes[,c('Lake', 'Date', 'co2Flux', 'lakepCO2', 'meanWindMS')], all = TRUE)
+regvars <- merge(regvars, fluxes[,c('Lake', 'Date', 'co2Flux', 'lakepCO2', 'meanWindMS','pH')], 
+                 all = TRUE)
 
 ## subset to lakes we want
 regvars <- subset(regvars, Lake %in% c("K", "L", "B", "C", "D", "WW", "P"))
+
+## rename pH column for following scripts
+names(regvars)[which(names(regvars) == 'pH')] <- 'pH_surface'
 
 ## deal with outliers and other data issues
 ## =============================================================================
