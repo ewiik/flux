@@ -31,6 +31,14 @@ meanpH <- with(regvarf2[which(regvarf2$pH_surface >7 & regvarf$pH_surface < 11.1
                mean(pH_surface, na.rm=TRUE)) # some outliers in there
 meanco2 <- with(regvarf2, 
                mean(co2Flux, na.rm=TRUE))
+meanO2 <- with(regvarf2, 
+                mean(Oxygen_ppm, na.rm=TRUE))
+meanchl <- with(regvarf2, 
+                mean(Chl_a_ug_L, na.rm=TRUE))
+meanTDN <- with(regvarf2, 
+                mean(TDN_ug_L, na.rm=TRUE))
+meanGPP <- with(regvarf2, 
+                mean(GPP_h, na.rm=TRUE))
 
 ## generate predicted for co2 and ph for all signif variables
 ## co2 ~ ph: full model
@@ -42,8 +50,8 @@ lakeXbar <- with(regvarf2, do.call("rbind",
 lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
 
 co2.pdat <- with(droplevels(regvarf2),
-                  data.frame(`pH_surface` = rep(seq(7,
-                                                    11,
+                  data.frame(`pH_surface` = rep(seq(min(`pH_surface`, na.rm = TRUE),
+                                                    max(`pH_surface`, na.rm = TRUE),
                                                     length = N),
                                                 nlevels(Lake)),
                              Lake = rep(levels(Lake), each = N),
@@ -72,15 +80,16 @@ co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted,
                                     ifelse(Lake == "B","Buffalo Pound",
                                            ifelse(Lake == "C", "Crooked",
                                                   ifelse(Lake == "D", 
-                                      "Diefenbaker", "Others: \n Wascana, Pasqua, Katepwa")))))) +
+                                      "Diefenbaker", "Wascana, Pasqua, Katepwa")))))) +
   geom_line() +
   theme_bw() +
   #geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
    #           alpha = 0.25, fill='white') +  
-  scale_color_viridis(name = 'Lake', discrete = TRUE, option = 'plasma') +
-  geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE, inherit.aes = FALSE) +
+  scale_colour_brewer(name = "Lake", type = 'qual', palette = 'Dark2', direction=1) +
+  #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
+   #         show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
+  geom_vline(xintercept = meanpH, linetype = 'dotted') +
   theme(legend.position='top') +
   xlab('pH') + ylab(expression(paste('CO'[2]*' (mmol m'^{-2}*d^{-1})))
 
@@ -116,10 +125,10 @@ nullplot <- ggplot(null.pdatnorm, aes(x = pH_surface, y = Fitted)) +
   theme_bw() +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
-  geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
+  #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
+          #  show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
-  #geom_vline(xintercept = 8.8, linetype="dotted") +
+  geom_vline(xintercept = meanpH, linetype="dotted") +
   ylab(expression(paste(CO[2]~"flux (mmol"~"C "*m^{-2}*"d"^{-1}*')'))) + xlab('pH')
 
 ## for egmod.red2
@@ -156,16 +165,17 @@ oxy.pdatnorm <- oxy.pdat
 oxy.pdatnorm <- with(oxy.pdatnorm, transform(oxy.pdatnorm, Fitted = Fitted + shiftoxy, 
                                              Fittedplus = Fittedplus + shiftoxy, 
                                              Fittedminus = Fittedminus + shiftoxy))
-labdatoxy <- data.frame(x = 2.5, y = meanpH + 0.03, label = "mean pH")
+labdatoxy <- data.frame(x = c(2.5, 11), y = c(meanpH + 0.03, 8.4), label = c("mean pH", 'mean oxygen'))
 
 oxyplot <- ggplot(oxy.pdatnorm, aes(x = Oxygen_ppm, y = Fitted)) +
   geom_line() +
   theme_bw() +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
-  geom_text(data = labdatoxy, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
+  #geom_text(data = labdatoxy, aes(label = label, x = x, y = y, size = 5), 
+   #         show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
+  geom_vline(xintercept = meanO2, linetype="dotted") +
   xlab(expression(paste(O[2]~"("*"mg"~L^{-1}*")"))) + ylab('pH')
 
 ## for GPP
@@ -208,9 +218,10 @@ GPPplot <- ggplot(GPP.pdatnorm, aes(x = GPP_h, y = Fitted)) +
   theme_bw() +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
-  geom_text(data = labdatGPP, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
+  #geom_text(data = labdatGPP, aes(label = label, x = x, y = y, size = 5), 
+   #         show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
+  geom_vline(xintercept = meanGPP, linetype='dotted')
   xlab(expression(paste('GPP ('~O[2]~h^{-1}*")"))) + ylab('pH')
 
 ## for TDN
@@ -253,10 +264,12 @@ TDNplot <- ggplot(TDN.pdatnorm, aes(x = TDN_ug_L, y = Fitted)) +
   theme_bw() +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
                                      alpha = 0.25) +  
-  geom_text(data = labdatN, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
+  #geom_text(data = labdatN, aes(label = label, x = x, y = y, size = 5), 
+   #         show.legend = FALSE) +
+  scale_x_log10(breaks = c(100,200,400,800,1600,3200,6400)) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
-    xlab(expression(paste("TDN ("~mu*"g"~L^{-1}*")"))) + ylab('pH')
+  geom_vline(xintercept = meanTDN, linetype = 'dotted') +
+  xlab(expression(paste("TDN ("~mu*"g"~L^{-1}*")"))) + ylab('pH')
 
 ## for chl a
 ## Get site-specific data/predictions
@@ -283,23 +296,24 @@ chla.pdat <- cbind(chla.pdat, Fitted = rowSums(chla.pred[, whichCols]))
 shiftchl <- attr(predict(egmod.red2, newdata = chla.pdat, type = "iterms"), "constant")
 chl.pdatnorm <- chla.pdat
 chl.pdatnorm <- with(chl.pdatnorm, transform(chl.pdatnorm, Fitted = Fitted + shiftchl))
-labdatchl <- data.frame(x = 100, y = meanpH + 0.08, label = "mean pH")
+labdatchl <- data.frame(x = 100, y = meanpH + 0.04, label = "mean pH")
 
-chl.pdatnorm$Lake <- factor(chl.pdatnorm$Lake, levels = c('B','WW','C','D','K','L','P'))
 chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, colour = 
                         ifelse(Lake == "WW", "Wascana", 
                                ifelse(Lake == "B", "Buffalo Pound", 
                                       "Katepwa, Pasqua, Diefenbaker, \n Last Mountain, Crooked")))) +
   geom_line() + 
-  geom_text(data = labdatchl, aes(label = label, x = x, y = y, size = 5),
-            show.legend = FALSE, inherit.aes = FALSE) +
+  #geom_text(data = labdatchl, aes(label = label, x = x, y = y, size = 5),
+  #          show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
+  geom_vline(xintercept = meanchl, linetype='dotted') +
   theme_bw() + 
-  scale_color_viridis(name = 'Lake', discrete = TRUE, option = 'plasma',
-                      end=0.8, begin = 0.3) +
-  theme(legend.position = 'top') +
-  #coord_trans(x = "log10") +
+  scale_colour_brewer(name = "Lake", type = 'qual', palette = 'Dark2', direction=1) +
+  theme(legend.position = 'top', legend.direction = "vertical", 
+        axis.text.x = element_text(angle = 45)) +
+  scale_x_log10(breaks = c(5,10,25,50,100,200,300)) +
   xlab(expression(paste("Chl"~italic(a)~"("~mu*"g"~"L"^{-1}*")"))) + 
+  guides(colour=guide_legend(ncol=2,bycol =TRUE,title.position = 'left')) +
   ylab('pH')
 ## see http://stackoverflow.com/questions/11838278/
 ##    plot-with-conditional-colors-based-on-values-in-r
@@ -353,16 +367,15 @@ SOIplot <- ggplot(SOI.pdatsub, aes(x = PDO, y = pH, group= SOI, col=SOIgroup)) +
   geom_line() +
   #scale_colour_discrete(name="SOI") +
   theme(legend.position="top") +
-  scale_color_viridis(name = "SOI", discrete = TRUE, option = 'plasma',
-                      end=0.8, begin=0.3) +
-  geom_text(data = labdatSOI, aes(label = label, x = x, y = y, size = 5),
-            show.legend = FALSE, inherit.aes = FALSE) +
+  scale_colour_brewer(name = "SOI", type = 'qual', palette = 'Dark2', direction=1) +
+  #geom_text(data = labdatSOI, aes(label = label, x = x, y = y, size = 5),
+  #          show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   xlab('PDO') + ylab('pH')
 
 ## save objects:
 plots <- list(TDNplot, oxyplot, GPPplot, chlaplot, SOIplot, nullplot, co2plot)
-plotnames <- c('TDNplot', 'oxyplot', 'GPPplot','chlaplot', 'nullplot')
+plotnames <- c('TDNplot', 'oxyplot', 'GPPplot','chlaplot', 'SOIplot','nullplot','co2plot')
 invisible( # this means I don't get the list [[1:3]] returned on screen
   lapply(
     seq_along(plots), 
@@ -372,4 +385,4 @@ invisible( # this means I don't get the list [[1:3]] returned on screen
 ## arrange plots
 allgam <- plot_grid(chlaplot, SOIplot, oxyplot, TDNplot, ncol = 2)
 
-ggsave("../docs/private/ph-allgams.png", allgam)
+ggsave("../docs/private/ph-allgams.png", allgam, width=22, height=18, units = 'cm')

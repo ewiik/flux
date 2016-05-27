@@ -21,6 +21,15 @@ regvars <- readRDS("../data/private/regvars.rds")
 regvarf <- regvars
 regvarf <- transform(regvarf, Year = as.factor(Year)) # make Year into factor for re
 
+## In fact, good to log some of the more skewed distributions
+## change -ve values to 0, then add 1
+regvarf2 <- regvarf
+regvarf2$`Chl_a_ug_L`[regvarf2$`Chl_a_ug_L` <=0 ] <- 0
+regvarf2$`DOC_mg_L`[regvarf2$`DOC_mg_L` <=0 ] <- 0
+regvarf2$`Chl_a_ug_L` <- regvarf2$`Chl_a_ug_L` + 1
+regvarf2$`DOC_mg_L` <- regvarf2$`DOC_mg_L` + 1
+regvarf2 <- transform(regvarf2, dummy = rep(1, nrow(regvarf2)))
+
 ## split regvarf by lake then remove all NAs from list
 regsplit <- with(regvarf, split(regvarf, list(Lake)))
 regsplit <- regsplit[lapply(regsplit,nrow) > 1]
@@ -51,17 +60,9 @@ sink("../data/private/egmodsummary.txt")
 egmodsum
 sink()
 }
-## 2. In fact, good to log some of the more skewed distributions
-## change -ve values to 0, then add 1
-regvarf2 <- regvarf
-regvarf2$`Chl_a_ug_L`[regvarf2$`Chl_a_ug_L` <=0 ] <- 0
-regvarf2$`DOC_mg_L`[regvarf2$`DOC_mg_L` <=0 ] <- 0
-regvarf2$`Chl_a_ug_L` <- regvarf2$`Chl_a_ug_L` + 1
-regvarf2$`DOC_mg_L` <- regvarf2$`DOC_mg_L` + 1
-regvarf2 <- transform(regvarf2, dummy = rep(1, nrow(regvarf2)))
 
-## for this model, we are removing some of the Lake-specificity where nothing signif
-##    was found in previous model
+## 2. for this model, we are removing some of the Lake-specificity where nothing signif
+##    was found in previous model + using regvarf2
 if(runextras) {
 egmod.red <- gam(pH_surface ~ 
                    s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
@@ -110,7 +111,7 @@ sink()
 
 ## plot output of model
 if (plotmods) {
-pdf("../docs/egmod-reduced-log-covariates.pdf")
+pdf("../docs/private/egmod-reduced-log-covariates.pdf")
 op <- par(mar = c(4,4,1,1) + 0.1)
 plot(egmod.red2, pages = 4, scheme = 2)
 par(op)
