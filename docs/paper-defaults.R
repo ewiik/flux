@@ -7,11 +7,14 @@ library('viridis')
 ## plot background: white
 theme_bw() 
   
-## viridis colour scheme
+## viridis colour scheme for contour plots
 scale_fill_viridis()
 scale_color_viridis()
 # for discrete/factor variables
 scale_color_viridis(discrete = TRUE, option = 'plasma')
+
+## colour brewer scheme for regular plots
+scale_colour_brewer(type = 'qual', ...)
 
 ## symbols and italics
 expression(paste(italic('p')*'CO'[2]))
