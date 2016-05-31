@@ -25,6 +25,10 @@ buffsub$salcalc <- with(buffsub, salcalc(temp = temp, cond = cond, dbar=dbar))
 saltozero <- which(buffsub$salcalc < 0) # some -ves
 buffsub[saltozero, 'salcalc'] <- 0
 
+## some 0 dic should be na (bicarb and carb as na)
+dicna <- which(buffsub$bicarb == 0)
+buffsub[dicna,c('bicarb','carb')] <- NA
+
 ## do TIC as per pham's stuff (see pham-DICcalcs.R)
 ## proportion of (H)CO3 weight that is C * total weight
 ## molecular weights of ions as g/mol:
