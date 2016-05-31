@@ -3,6 +3,7 @@
 ## load packages
 library('ggplot2')
 library('mgcv')
+library('cowplot')
 
 ## read in models
 co2mod <- readRDS('../data/private/bpco2phmod.rds')
@@ -50,7 +51,7 @@ phplot <- ggplot(null.pdatnorm, aes(x = ph1, y = Fitted)) +
   #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
   #  show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
-  geom_vline(xintercept = meanpH, linetype="dotted") +
+  geom_vline(xintercept = meanph, linetype="dotted") +
   ylab(expression(paste(italic(p)*"CO"[2]~"(ppm)"))) + xlab('pH')
 
 ## predict for phmod
@@ -89,7 +90,7 @@ oxyplot <- ggplot(oxy.pdatnorm, aes(x = ODOrel1, y = Fitted)) +
               alpha = 0.25) +  
   #geom_text(data = labdatoxy, aes(label = label, x = x, y = y, size = 5), 
   #         show.legend = FALSE) +
-  geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
+  geom_abline(slope = 0, intercept = meanph, linetype="dotted") +
   geom_vline(xintercept = meanoxy, linetype="dotted") +
   xlab(expression(paste(O[2]~"%"))) + ylab('pH')
 
