@@ -39,7 +39,7 @@ ggplot(alldat, aes(isDay, pCO2, fill=Lake)) +
   geom_text(x=1.5, y=1950, label='probe limit') +
   xlab(label = '')
 
-ggplot(bp, aes(factor(Hour), co2corr, col=Month, fill=Month)) +
+ggplot(bp, aes(factor(Hour), co2corr, col=factor(Month), fill=factor(Month))) +
   geom_boxplot(outlier.colour = NULL) +
   geom_hline(yintercept = c(2000,400)) +
   #geom_text(x=1.5, y=450, label='~atmospheric pCO2') +
