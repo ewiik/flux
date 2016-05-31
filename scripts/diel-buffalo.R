@@ -13,7 +13,8 @@ library('viridis')
 library('reshape2')
 
 ## load necessary functions
-source('../functions/gasExchangeExtra.R')
+source('../functions/gasExchangeUser.R')
+source('../data/private/salcalc.R')
 
 ## load in supplementary data
 regvars <- readRDS('../data/private/regvars.rds')
@@ -78,13 +79,16 @@ dates <- as.POSIXct(dates, format = "%d/%m/%Y")
 datesDOY <- format(dates, "%j")
 
 ## homogenise data
-bdat2014supp$dic <- rep(NA)
 bdat2014supp$pressureKPAwater <- bdat2014supp$pressureKPA + .08
 bdat2014supp <- merge(bdat2014supp, ml)
-bdat2014suppflux <- with(bdat2014supp, gasExchangeExtra(temp = temp1, cond = cond1, ph=ph1, 
+
+## calculate salinity
+bdat2014supp <- transform(bdat2014supp, salcalc = salcalc(temp=temp1, cond=cond1, 
+                                                         dbar=pressureKPAwater/10))
+bdat2014suppflux <- with(bdat2014supp, gasExchangeUser(temp = temp1, cond = cond1, ph=ph1, 
                                                        wind=windsp, alknotdic = FALSE, 
-                                                       kerri = TRUE, dic = dic, kpa=pressureKPA,
-                                                       pco2atm = maunaloa))
+                                                       salt = salcalc, kpa=pressureKPA,
+                                                       pco2atm = maunaloa, diccalc = TRUE))
 bdat2014suppall <- cbind(bdat2014supp, bdat2014suppflux)
 bdat2014corr <- subset(bdat2014, select=c('datetime', 'co2corr'))
 bdat2014full <- merge(bdat2014suppall, bdat2014corr, all.x = TRUE)
