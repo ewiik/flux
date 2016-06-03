@@ -122,14 +122,32 @@ labdatco2 <- data.frame(x = 7.5, y = meanco2 - 18, label = "mean flux")
 
 nullplot <- ggplot(null.pdatnorm, aes(x = pH_surface, y = Fitted)) +
   geom_line() +
-  theme_bw() +
+  theme_bw(base_size = 15) +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
   #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
           #  show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
+  #geom_point(data=regvars, aes(x=pH_surface, y=co2Flux)) +
   geom_vline(xintercept = meanpH, linetype="dotted") +
   ylab(expression(paste(CO[2]~"flux (mmol"~"C "*m^{-2}*"d"^{-1}*')'))) + xlab('pH')
+
+# plot something for demonstrating GAMs
+lmplot <- ggplot(regvars, aes(x = pH_surface, y = co2Flux)) +
+  geom_point() +
+  theme_bw(base_size = 15) +
+  stat_smooth(method = "lm", linetype = "dotted", col='black') +
+  theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
+
+nullplotnodots <- ggplot(null.pdatnorm, aes(x = pH_surface, y = Fitted)) +
+  geom_line(linetype='dotted') +
+  theme_bw(base_size = 15) +
+  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              alpha = 0.25) +  
+  geom_point(data=regvars, aes(x=pH_surface, y=co2Flux)) +
+  theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
+gamdemo <- plot_grid(lmplot, nullplotnodots)
+ggsave("../docs/private/gamdemo.png", gamdemo, width=10, height=4, units = 'in')
 
 ## for egmod.red2
 ## oxygen
@@ -169,7 +187,7 @@ labdatoxy <- data.frame(x = c(2.5, 11), y = c(meanpH + 0.03, 8.4), label = c("me
 
 oxyplot <- ggplot(oxy.pdatnorm, aes(x = Oxygen_ppm, y = Fitted)) +
   geom_line() +
-  theme_bw() +
+  theme_bw(base_size = 15) +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
   #geom_text(data = labdatoxy, aes(label = label, x = x, y = y, size = 5), 
@@ -215,7 +233,7 @@ labdatGPP <- data.frame(x = 0, y = meanpH + 0.01, label = "mean pH")
 
 GPPplot <- ggplot(GPP.pdatnorm, aes(x = GPP_h, y = Fitted)) +
   geom_line() +
-  theme_bw() +
+  theme_bw(base_size = 15) +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
   #geom_text(data = labdatGPP, aes(label = label, x = x, y = y, size = 5), 
@@ -261,7 +279,7 @@ labdatN <- data.frame(x = 3000, y = meanpH + 0.03, label = "mean pH")
 
 TDNplot <- ggplot(TDN.pdatnorm, aes(x = TDN_ug_L, y = Fitted)) +
   geom_line() +
-  theme_bw() +
+  theme_bw(base_size = 15) +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
                                      alpha = 0.25) +  
   #geom_text(data = labdatN, aes(label = label, x = x, y = y, size = 5), 
@@ -307,7 +325,7 @@ chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, c
   #          show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   geom_vline(xintercept = meanchl, linetype='dotted') +
-  theme_bw() + 
+  theme_bw(base_size = 15) + 
   scale_colour_brewer(name = "Lake", type = 'qual', palette = 'Dark2', direction=1) +
   theme(legend.position = 'top', legend.direction = "vertical", 
         axis.text.x = element_text(angle = 45)) +
@@ -363,7 +381,7 @@ labdatSOI <- data.frame(x = 2.5, y = meanpH + 0.08, label = "mean pH")
 SOI.pdatsub$SOIgroup <- factor(SOI.pdatsub$SOIgroup, levels = c('-1:-0.5', '0.5:1', '1.5:2'))
 
 SOIplot <- ggplot(SOI.pdatsub, aes(x = PDO, y = pH, group= SOI, col=SOIgroup)) +
-  theme_bw() +
+  theme_bw(base_size = 15) +
   geom_line() +
   #scale_colour_discrete(name="SOI") +
   theme(legend.position="top") +
@@ -379,10 +397,11 @@ plotnames <- c('TDNplot', 'oxyplot', 'GPPplot','chlaplot', 'SOIplot','nullplot',
 invisible( # this means I don't get the list [[1:3]] returned on screen
   lapply(
     seq_along(plots), 
-    function(x) ggsave(filename=paste0("../docs/private/gam-plots-", plotnames[x], ".png"), plot=plots[[x]])
+    function(x) ggsave(filename=paste0("../docs/private/gam-plots-", plotnames[x], ".png"), 
+                       plot=plots[[x]], width=7, height=5, units = 'in')
   ) )
 
 ## arrange plots
 allgam <- plot_grid(chlaplot, SOIplot, oxyplot, TDNplot, ncol = 2)
 
-ggsave("../docs/private/ph-allgams.png", allgam, width=22, height=18, units = 'cm')
+ggsave("../docs/private/ph-allgams.png", allgam, width=28, height=18, units = 'cm')

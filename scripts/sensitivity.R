@@ -152,7 +152,7 @@ want <- latincorr
 
 plotecdf(want)
 abline(v=0)
-plotscatter(want, ylim = c(-300,600))
+plotscatter(want, ylim = c(-300,600), add.lm = FALSE)
 plotprcc(want)
 
 
@@ -303,7 +303,7 @@ plotprcc(want)
 (testSbma <- sbma(wcube, dcube))
 
 ## grab prcc's for a group plot:
-prcclist <- list(latincorr2, bcube, dcube, lcube, wcube, pcube, ccube, kcube)
+prcclist <- list(latincorr, bcube, dcube, lcube, wcube, pcube, ccube, kcube)
 
 # wrapper to grab the df from each object (which is a list)
 grabs <- function(list) {
@@ -333,6 +333,28 @@ prccplot <- ggplot(prccdf, aes(x=var, group=interaction(var,lake), colour = lake
   ylab("PRCC")
 prccplot
 ## FIXME: can't get this nice into r markdown...!
+
+## plot only the main one
+prcclist <- list(latincorr)
+prcclist <- lapply(prcclist, grabs)
+prccdf <- do.call(rbind, c(prcclist, make.row.names= FALSE))
+varnames <- c("Temperature","Conductivity","pH","Wind","Salinity","DIC",
+              "Pressure","Air pCO2")
+prccdf$var <- varnames
+names(prccdf)[c(1:5)] <- c("original", "bias", "stderr", "minci", "maxci")
+
+prccdf$var  <- factor(prccdf$var, levels = (prccdf$var)[rev(order(abs(prccdf$original)))])
+
+prccplot <- ggplot(prccdf, aes(x=var)) + 
+  geom_errorbar(aes(ymin=minci, ymax=maxci), width=.1) +
+  geom_point(aes(y=original)) +
+  #geom_text(aes(y=original, label=initial), size=2, position=position_dodge(.3)) + 
+  #scale_color_brewer(palette="Paired") +
+  theme_bw(base_size = 15) +
+  theme(axis.text.x=element_text(angle=45, vjust=0.5), axis.title.x=element_blank()) +
+  ylim(-1,1) +
+  ylab("Correlation")
+ggsave('../docs/private/prccplot.png', prccplot, width=8, height=4, units = 'in')
 
 ## general lake diffs in variables
 melted <- melt(lakesub, id = "Lake")

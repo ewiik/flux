@@ -108,6 +108,10 @@ bdat2014full <- merge(bdat2014full, sundat)
 bdat2014full$isDay <- ifelse(bdat2014full$Time < bdat2014full$DownTime & 
                                bdat2014full$Time > bdat2014full$UpTime, 
                              TRUE, FALSE)
+bdat2014full$TimeofDay <- ifelse(bdat2014full$Time < bdat2014full$DownTime & 
+                               bdat2014full$Time > bdat2014full$UpTime, 
+                             'Day', 'Night')
+
 
 ## save object for other purposes
 saveRDS(bdat2014full, '../data/private/bpbuoy2014-mod.rds')
@@ -151,11 +155,17 @@ ggplot(data=bdat2014fullf, aes(y = ph1, x = Time, col = isDay)) + # ifelse(Hour 
   ylab("pH") +
   xlab("Hour")
 
-ggplot(data=bdat2014full, aes(y = co2corr, x = ODOrel1, col=isDay)) +
+dielplot <- ggplot(data=bdat2014full, aes(y = co2corr, x = ODOrel1, col=TimeofDay)) +
   geom_point() +
-  ylab('CO2 (ppm)') +
-  xlab('Oxygen (%)') +
-  geom_text(label='2014', x=8.8, y=1600, col='black')
+  scale_color_viridis(discrete=TRUE, alpha = 0.4, option='viridis', begin= 0.3, end=0.8, direction = -1) +
+  #scale_color_distiller(palette = 'Greens') +
+  ylab(expression(paste(italic(p)*"CO"[2]~"(ppm)"))) +
+  xlab(expression(paste("O"[2]~"(%)"))) +
+  geom_abline(slope=0,intercept = 400, linetype='dotted') +
+  geom_vline(xintercept = 100, linetype='dotted') +
+  theme_bw(base_size = 10) +
+  theme(legend.title=element_blank(), legend.position='top')
+ggsave(plot=dielplot, filename='../docs/private/bp-o2-co2.png')
 
 ## compare 2014 data with calculated data
 real2014 <- subset(bdat2014full, select = c('DOY', 'ODOrel1','co2corr', 'Hour', 'ph1'), 
@@ -354,18 +364,22 @@ DOYgroups <- rep(DOYgroup, each = N)
 predicted <- cbind(preddf, mco2pred, DOYgroups)
 names(predicted)[which(names(predicted)=='mco2pred')] <- 'pCO2'
 
-labdatco2 <- data.frame(x = 3, y = 380, label = "Atmospheric mean")
+labdatco2 <- data.frame(x = 3, y = 380, label = "Mean (atm)")
 
 co2modplot <- ggplot(predicted, aes(x = Time, y = pCO2, group= DOY, col=DOYgroups)) +
-  theme_bw() +
+  theme_bw(base_size = 10) +
   scale_colour_brewer(name = "Date", type = 'qual', palette = 'Dark2', direction=1) +
   geom_line() +
   theme(legend.position="top") +
   xlab('Time of Day') + ylab(expression(paste(italic(p)*"CO"[2]~"(ppm)"))) +
   geom_abline(intercept = 398, slope = 0, linetype='dotted') +
-  geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE, inherit.aes = FALSE)
+  geom_text(data = labdatco2, aes(label = label, x = x, y = y), 
+            show.legend = FALSE, inherit.aes = FALSE,  size = 3)
 ggsave('../docs/private/bp-diel-co2gam.png', width=20, height=15, units='cm')
+
+## arrange a few plots
+asloplots <- plot_grid(co2modplot, dielplot, ncol=2,label_size = 10)
+ggsave('../docs/private/dielplots.png', asloplots, width=20, height=10, units='cm')
 
 ## gam on other params
 bdat2014fullf <- transform(bdat2014fullf, daylength = sunset-sunrise)
