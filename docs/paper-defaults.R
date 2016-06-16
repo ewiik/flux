@@ -1,8 +1,23 @@
 ## These are the defaults for plotting my paper figures
+## assuming L&O guidelines:
+## When possible, submit figures in the size you wish to have them appear in the journal. 
+## Most illustrations, except some maps and very wide graphs, should be 1-column size (3.5 inches) 
+## and a resolution of 300 dpi. The font size on the x and y axes should not be larger than that 
+## of the title, and the same font (Arial or Times New Roman is preferred) should be used throughout. 
+## Numbers on the x and y axes should be smaller than the descriptive title, which should be 
+## 12-point font. Fonts smaller than 12 points are generally not legible when reduced to 
+## 1 column size. Use boldface type with care; if illustrations are to be reduced, the letters 
+## with open spaces will disappear. Use sentence case (capitalize the first word ONLY) 
+## for axis titles, labels, and legends.
+## http://aslopubs.onlinelibrary.wiley.com/hub/journal/10.1002/(ISSN)1939-5590/about/author-guidelines.html
+
+## http://www.fromthebottomoftheheap.net/2013/09/09/preparing-figures-for-plos-one-with-r/
 
 ## packages
 library('ggplot2')
 library('viridis')
+library('cowplot')
+library('extrafont')
 
 ## plot background: white
 theme_bw() 
@@ -35,8 +50,12 @@ varnames <- list(
   'pco2atm' = expression(paste(italic(p)*"CO"[2]~"(ppm)"))
 )
 
-## how to get independent labeling to ggplot
-
+## how get correct figure sizes and text
+ggsave(.., width=3.5, units='in') # one column
+# optional way to control scale of text vs plot: ggsave(.., scale=)
+theme_bw(base_size = 12, base_family = 'Arial') # set baseline font size  
+# optional level of control: only applies to legends and axis labels, not tick labels
+# (..., text = element_text(size = ))
 
   
 

@@ -1,12 +1,15 @@
 ### Get site specific data/predictions
-### FIXME: the co2 model still needs proper plotting, code needs adjusting for multiple lakes
-###     scenario
-### FIXME: keep working on co2 mod section! y axis and shifted 0
 
 ## load packages
 library('ggplot2')
 library('viridis')
 library('cowplot')
+library('mgcv')
+library('extrafont')
+library('gridExtra')
+
+## Set defaults
+theme_set(theme_bw())
 
 ## load in data
 regvars <- readRDS("../data/private/regvars.rds")
@@ -39,6 +42,10 @@ meanTDN <- with(regvarf2,
                 mean(TDN_ug_L, na.rm=TRUE))
 meanGPP <- with(regvarf2, 
                 mean(GPP_h, na.rm=TRUE))
+
+## create a theme to save linespace in plots
+papertheme <- theme_bw(base_family='Arial') +
+  theme(legend.position='top') 
 
 ## generate predicted for co2 and ph for all signif variables
 ## co2 ~ ph: full model
@@ -75,14 +82,18 @@ co2.pdatnorm <- co2.pdat
 co2.pdatnorm <- with(co2.pdatnorm, transform(co2.pdatnorm, Fitted = Fitted + shiftco2))
 labdatco2 <- data.frame(x = 7.5, y = meanco2 - 18, label = "mean flux")
 
+## add quantiles
+phquants <- quantile(regvarf2$pH_surface, c(.05,.95), na.rm = TRUE)
+
 co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted, 
                     colour = ifelse(Lake == "L", "Last Mountain", 
                                     ifelse(Lake == "B","Buffalo Pound",
                                            ifelse(Lake == "C", "Crooked",
                                                   ifelse(Lake == "D", 
-                                      "Diefenbaker", "Wascana, Pasqua, Katepwa")))))) +
+                                      "Diefenbaker", "Wascana, Pasqua,\nKatepwa")))))) +
+  annotate("rect", xmin=phquants[1], xmax=phquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
   geom_line() +
-  theme_bw() +
+  theme_bw(base_size = 12, base_family = 'Arial') +
   #geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
    #           alpha = 0.25, fill='white') +  
   scale_colour_brewer(name = "Lake", type = 'qual', palette = 'Dark2', direction=1) +
@@ -91,7 +102,8 @@ co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted,
   geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
   geom_vline(xintercept = meanpH, linetype = 'dotted') +
   theme(legend.position='top') +
-  xlab('pH') + ylab(expression(paste('CO'[2]*' (mmol m'^{-2}*d^{-1})))
+  guides(colour=guide_legend(ncol=3,bycol =TRUE,title.position = 'left')) +
+  xlab('pH') + ylab(expression(paste('CO'[2]*' (mmol m'^{-2}*d^{-1}*')')))
 
 ## for the null model:
 ## for co2modnull
@@ -185,9 +197,12 @@ oxy.pdatnorm <- with(oxy.pdatnorm, transform(oxy.pdatnorm, Fitted = Fitted + shi
                                              Fittedminus = Fittedminus + shiftoxy))
 labdatoxy <- data.frame(x = c(2.5, 11), y = c(meanpH + 0.03, 8.4), label = c("mean pH", 'mean oxygen'))
 
+oxyquants <- quantile(regvarf2$Oxygen_ppm, c(.05,.95), na.rm = TRUE)
+
 oxyplot <- ggplot(oxy.pdatnorm, aes(x = Oxygen_ppm, y = Fitted)) +
+  annotate("rect", xmin=oxyquants[1], xmax=oxyquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
   geom_line() +
-  theme_bw(base_size = 15) +
+  theme_bw(base_size = 12) +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
   #geom_text(data = labdatoxy, aes(label = label, x = x, y = y, size = 5), 
@@ -277,9 +292,12 @@ TDN.pdatnorm <- with(TDN.pdatnorm, transform(TDN.pdatnorm, Fitted = Fitted + shi
                                              Fittedminus = Fittedminus + shiftTDN))
 labdatN <- data.frame(x = 3000, y = meanpH + 0.03, label = "mean pH")
 
+TDNquants <- quantile(regvarf2$TDN_ug_L, c(.05,.95), na.rm = TRUE)
+
 TDNplot <- ggplot(TDN.pdatnorm, aes(x = TDN_ug_L, y = Fitted)) +
+  annotate("rect", xmin=TDNquants[1], xmax=TDNquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
   geom_line() +
-  theme_bw(base_size = 15) +
+  theme_bw(base_size = 12) +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
                                      alpha = 0.25) +  
   #geom_text(data = labdatN, aes(label = label, x = x, y = y, size = 5), 
@@ -316,16 +334,18 @@ chl.pdatnorm <- chla.pdat
 chl.pdatnorm <- with(chl.pdatnorm, transform(chl.pdatnorm, Fitted = Fitted + shiftchl))
 labdatchl <- data.frame(x = 100, y = meanpH + 0.04, label = "mean pH")
 
+chlquants <- quantile(regvarf2$Chl_a_ug_L, c(.05,.95), na.rm = TRUE)
 chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, colour = 
                         ifelse(Lake == "WW", "Wascana", 
                                ifelse(Lake == "B", "Buffalo Pound", 
-                                      "Katepwa, Pasqua, Diefenbaker, \n Last Mountain, Crooked")))) +
+                                      "Katepwa, Pasqua, Diefenbaker,\nLast Mountain, Crooked")))) +
+  annotate("rect", xmin=chlquants[1], xmax=chlquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
   geom_line() + 
   #geom_text(data = labdatchl, aes(label = label, x = x, y = y, size = 5),
   #          show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   geom_vline(xintercept = meanchl, linetype='dotted') +
-  theme_bw(base_size = 15) + 
+  papertheme + 
   scale_colour_brewer(name = "Lake", type = 'qual', palette = 'Dark2', direction=1) +
   theme(legend.position = 'top', legend.direction = "vertical", 
         axis.text.x = element_text(angle = 45)) +
@@ -337,14 +357,13 @@ chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, c
 ##    plot-with-conditional-colors-based-on-values-in-r
 ## make this bit into soi-pdo
 N <- 100
-simSOI <- c(-1,-0.75, -0.5, 0.5, 0.75, 1, 1.5, 1.75, 2)
-SOIgroup <- factor(rep(1:3, times=c(3,3,3)))
-SOIgroup <- factor(rep(c('-1:-0.5', '0.5:1', '1.5:2'), each=300, times=7))  # 7*900
-reptimes <- length(simSOI)
-preddf <- data.frame(`PDO` = rep(seq(min(regvarf2$PDO, na.rm=TRUE),
+simSOI <- c(-1, 0.3, 1.1)
+SOIgroup <- factor(rep(c('-1', '0.3', '1.1'), each=100, times=7))  # 7*300
+reptimes <- length(simSOI) #3
+preddf <- data.frame(PDO = rep(seq(min(regvarf2$PDO, na.rm=TRUE),
                                       max(regvarf2$PDO, na.rm=TRUE),
                                       length = N), times=reptimes),
-                     `SOI` = rep(simSOI, each = N))
+                     SOI = rep(simSOI, each = N)) #300
 superN <- nrow(preddf)
 
 varWant <- c("Oxygen_ppm", "GPP_h", "DOC_mg_L", "Chl_a_ug_L", "TDN_ug_L")
@@ -354,10 +373,10 @@ lakeXbar <- with(regvarf2, do.call("rbind",
 lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar))) # 7 lakes, 7 rows
 
 SOI.pdat <- with(droplevels(regvarf2),
-                 data.frame(`PDO` = rep(preddf$PDO,
-                                             nlevels(Lake)), # 900*7
-                            `SOI` = rep(preddf$SOI,
-                                        nlevels(Lake)), # 900*7
+                 data.frame(PDO = rep(preddf$PDO,
+                                             nlevels(Lake)), # 300*7
+                            SOI = rep(preddf$SOI,
+                                        nlevels(Lake)), # 300*7
                             Lake = rep(levels(Lake), each = superN),
                             Year = rep(2004, prod(nlevels(Lake), superN)),
                             dummy = rep(0, prod(nlevels(Lake), superN))))
@@ -370,38 +389,135 @@ SOI.pdat$SOIgroup <- SOIgroup
 names(SOI.pdat)[which(names(SOI.pdat)=='SOI.pred')] <- 'pH'
 
 # need to take away places where PDO*SOI combo has not occurred in the data!!
-SOI.pdatsub <- subset(SOI.pdat, !(SOI >= 1.2 & PDO > -0.3 ) & Lake=="B")
-SOI.pdatsub <- subset(SOI.pdatsub, !(SOI <= -0.5 & PDO < -1))
-SOI.pdatsub <- subset(SOI.pdatsub, !(SOI > 0.5 & PDO > 1.3))
-SOI.pdatsub <- subset(SOI.pdatsub, !(pH <7))
+toofar <- exclude.too.far(SOI.pdat$PDO, SOI.pdat$SOI, regvarf2$PDO, regvarf2$SOI, dist=0.1)
+SOI.pdat$pH[toofar] <- NA
 
 labdatSOI <- data.frame(x = 2.5, y = meanpH + 0.08, label = "mean pH")
 
 #reorder factors
-SOI.pdatsub$SOIgroup <- factor(SOI.pdatsub$SOIgroup, levels = c('-1:-0.5', '0.5:1', '1.5:2'))
+SOI.pdat$SOIgroup <- factor(SOI.pdat$SOIgroup, levels = c('-1', '0.3', '1.1'))
 
-SOIplot <- ggplot(SOI.pdatsub, aes(x = PDO, y = pH, group= SOI, col=SOIgroup)) +
-  theme_bw(base_size = 15) +
+SOIplot <- ggplot(SOI.pdat[SOI.pdat$Lake=='B',], aes(x = PDO, y = pH, group= SOI, col=SOIgroup)) +
+  papertheme +
   geom_line() +
-  #scale_colour_discrete(name="SOI") +
-  theme(legend.position="top") +
-  scale_colour_brewer(name = "SOI", type = 'qual', palette = 'Dark2', direction=1) +
-  #geom_text(data = labdatSOI, aes(label = label, x = x, y = y, size = 5),
-  #          show.legend = FALSE, inherit.aes = FALSE) +
-  geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
+  scale_color_discrete(name='SOI') +
+  #scale_colour_brewer(name = "SOI", type = 'qual', palette = 'Dark2', direction=1) +
+  #geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   xlab('PDO') + ylab('pH')
 
+## now slices for PDO
+N <- 100
+simPDO <- c(-1.5, 0, 1.6)
+PDOgroup <- factor(rep(c('-1.5', '0', '1.6'), each=100, times=7))  # 7*300
+reptimes <- length(simPDO) #3
+preddf <- data.frame(SOI = rep(seq(min(regvarf2$SOI, na.rm=TRUE),
+                                   max(regvarf2$SOI, na.rm=TRUE),
+                                   length = N), times=reptimes),
+                     PDO = rep(simPDO, each = N)) #300
+superN <- nrow(preddf)
+
+varWant <- c("Oxygen_ppm", "GPP_h", "DOC_mg_L", "Chl_a_ug_L", "TDN_ug_L")
+lakeXbar <- with(regvarf2, do.call("rbind",
+                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
+                                          colMeans, na.rm = TRUE)))
+lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar))) # 7 lakes, 7 rows
+
+PDO.pdat <- with(droplevels(regvarf2),
+                 data.frame(SOI = rep(preddf$SOI,
+                                      nlevels(Lake)), # 300*7
+                            PDO = rep(preddf$PDO,
+                                      nlevels(Lake)), # 300*7
+                            Lake = rep(levels(Lake), each = superN),
+                            Year = rep(2004, prod(nlevels(Lake), superN)),
+                            dummy = rep(0, prod(nlevels(Lake), superN))))
+
+PDO.pdat <- merge(PDO.pdat, lakeXbar)
+PDO.pred <- predict(egmod.red2, newdata = PDO.pdat, type = "link")
+PDO.pdat <- cbind(PDO.pdat, PDO.pred)
+PDO.pdat$PDOgroup <- PDOgroup
+
+names(PDO.pdat)[which(names(PDO.pdat)=='PDO.pred')] <- 'pH'
+
+# need to take away places where PDO*PDO combo has not occurred in the data!!
+toofar <- exclude.too.far(PDO.pdat$PDO, PDO.pdat$SOI, regvarf2$PDO, regvarf2$SOI, dist=0.1)
+PDO.pdat$pH[toofar] <- NA
+
+labdatPDO <- data.frame(x = 2.5, y = meanpH + 0.08, label = "mean pH")
+
+#reorder factors
+PDO.pdat$PDOgroup <- factor(PDO.pdat$PDOgroup, levels = c('-1.5', '0', '1.6'))
+
+PDOplot <- ggplot(PDO.pdat[PDO.pdat$Lake=='B',], aes(x = SOI, y = pH, group= PDO, col=PDOgroup)) +
+  papertheme +
+  geom_line() +
+  scale_color_discrete(name='PDO') +
+  #scale_colour_brewer(name = "PDO", type = 'qual', palette = 'Dark2', direction=1) +
+  #geom_abline(slope = 0, intercept = meanpH) +
+  xlab('SOI') + ylab('pH')
+
+## get expand grid object to plot a ggplot contour/heatmap
+preddf <- with(regvarf2, expand.grid(PDO = seq(min(PDO), max(PDO), length = 100), 
+                                   SOI = seq(min(SOI), max(SOI), length = 100)))
+superN <- nrow(preddf)
+
+varWant <- c("Oxygen_ppm", "GPP_h", "DOC_mg_L", "Chl_a_ug_L", "TDN_ug_L")
+lakeXbar <- with(regvarf2, do.call("rbind",
+                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
+                                          colMeans, na.rm = TRUE)))
+lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar))) # 7 lakes, 7 rows
+
+comb.pdat <- with(droplevels(regvarf2),
+                 data.frame(PDO = rep(preddf$PDO,
+                                        nlevels(Lake)), 
+                            SOI = rep(preddf$SOI,
+                                        nlevels(Lake)),
+                            Lake = rep(levels(Lake), each = superN),
+                            Year = rep(2004, prod(nlevels(Lake), superN)),
+                            dummy = rep(0, prod(nlevels(Lake), superN))))
+
+comb.pdat <- merge(comb.pdat, lakeXbar, sort=FALSE)
+comb.pred <- predict(egmod.red2, newdata = comb.pdat, type = "terms")
+
+whichCols <- grep("SOI", colnames(comb.pred))
+comb.pdat <- cbind(comb.pdat, Fitted = comb.pred[, whichCols])
+
+shiftcomb <- attr(comb.pred, "constant")
+comb.pdatnorm <- comb.pdat
+comb.pdatnorm <- with(comb.pdatnorm, transform(comb.pdatnorm, Fitted = Fitted + shiftcomb))
+
+#exclude things too far from real
+toofar <- exclude.too.far(comb.pdatnorm$PDO, comb.pdatnorm$SOI, regvarf2$PDO, regvarf2$SOI, dist=0.1)
+comb.pdatnorm$pH <- comb.pdatnorm$Fitted
+comb.pdatnorm$pH[toofar] <- NA
+
+names(comb.pdat)[which(names(comb.pdat)=='SOI.pred')] <- 'pH'
+comboplot <- ggplot(comb.pdatnorm, aes(x = SOI, y = PDO, z=pH)) + #, z=Fitted
+  papertheme +
+  geom_raster(aes(fill=pH)) + # change to turn grey background into nothing
+  scale_fill_viridis(na.value='transparent') +
+  geom_point(data=regvarf2, aes(x=SOI, y=PDO, z=NULL)) +
+  theme(legend.key.width=unit(2,"cm")) +
+  geom_vline(linetype='dotted', xintercept = c(-1,0.3, 1.1)) +
+  geom_abline(slope = 0, intercept = c(-1.5, 0, 1.6), linetype='dashed')
+
 ## save objects:
-plots <- list(TDNplot, oxyplot, GPPplot, chlaplot, SOIplot, nullplot, co2plot)
-plotnames <- c('TDNplot', 'oxyplot', 'GPPplot','chlaplot', 'SOIplot','nullplot','co2plot')
+plots <- list(TDNplot, oxyplot, GPPplot, chlaplot, SOIplot, PDOplot, comboplot, nullplot, co2plot)
+plotnames <- c('TDNplot', 'oxyplot', 'GPPplot','chlaplot', 'SOIplot', 'PDOplot', 'comboplot',
+               'nullplot','co2plot')
+
 invisible( # this means I don't get the list [[1:3]] returned on screen
   lapply(
     seq_along(plots), 
-    function(x) ggsave(filename=paste0("../docs/private/gam-plots-", plotnames[x], ".png"), 
-                       plot=plots[[x]], width=7, height=5, units = 'in')
+    function(x) ggsave(filename=paste0("../docs/private/gam-plots-", plotnames[x], ".pdf"), 
+                       plot=plots[[x]], scale=0.8) # width=7, height=5, units = 'in'
   ) )
 
 ## arrange plots
-allgam <- plot_grid(chlaplot, SOIplot, oxyplot, TDNplot, ncol = 2)
+## ## FIXME: get relative sizes of plots!!
+allgam <- plot_grid(co2plot, chlaplot, oxyplot, TDNplot, ncol = 2, rel_heights = c(2,1.5), 
+                    labels='AUTO')
 
-ggsave("../docs/private/ph-allgams.png", allgam, width=28, height=18, units = 'cm')
+climgam <- grid.arrange(comboplot, SOIplot, PDOplot, ncol = 2, layout_matrix = cbind(c(1,1,2), c(1,1,3)))
+
+ggsave("../docs/private/ph-allgams.pdf", allgam, scale=0.77) #width=28, height=18, units = 'cm'
+ggsave("../docs/private/climgam.pdf", climgam, scale=0.77, width = 7.5)
