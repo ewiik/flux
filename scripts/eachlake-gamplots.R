@@ -554,10 +554,11 @@ tempplot <- ggplot(regvarf2, aes(x = Year, y = pH_surface, group= Lake)) +
   ylab('pH')
 
 ## or maybe this could be an approach
-testing <- gam(data=regvars[regvars$Month > 4 & regvars$Month < 9,], pH_surface ~ s(Year) + s(Year, by=Lake, m=1) + 
+testing <- gam(data=regvars[regvars$Month > 4 & regvars$Month < 9,], pH_surface ~ s(Year) + 
+                 s(Year, by=Lake, m=1, k=10) + 
                  s(Month, k=3) + s(Month, by=Lake, m=1, k=3) +
                  s(Lake, bs='re'), family='gaussian', na.action=na.exclude, select=TRUE)
-N <- 21
+N <- 200
 varWant <- "Month"
 lakeXbar <- with(regvars, do.call(rbind, lapply(split(regvars[, varWant], droplevels(Lake)), 
                                                 mean, na.rm = TRUE)))
