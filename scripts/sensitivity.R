@@ -380,8 +380,8 @@ var_labeller <- function(variable,value){
 meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
   geom_boxplot(outlier.colour="black", outlier.shape=5,
                outlier.size=1) +
-  theme_bw() +
-  facet_wrap( "variable", scales = "free", labeller = var_labeller) +
+  theme_bw(base_size = 14, base_family = 'Arial') +
+  facet_wrap( "variable", scales = "free", labeller = var_labeller, ncol=2) +
   theme(axis.title = element_blank())
 meltplot
 ## FIXME: apparently var_labeller style labeling is deprecated but I can't get anything else to work
@@ -397,7 +397,7 @@ meltplot
 # save meltplot?
 savemelt <- TRUE
 if(savemelt) {
-  ggsave("../data/private/routines-boxplot.png", meltplot, width=15, units = "cm")
+  ggsave("../docs/private/routines-boxplot.pdf", meltplot, width=15, units = "cm")
 }
 ## save LHS's?
 saveLHS <- TRUE

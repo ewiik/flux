@@ -7,12 +7,14 @@ library('cowplot')
 library('mgcv')
 library('extrafont')
 library('gridExtra')
+library("reshape2")
 
 ## Set defaults
 theme_set(theme_bw())
 
 ## load in data
 regvars <- readRDS("../data/private/regvars.rds")
+fluxes <- readRDS("../data/private/params-flux.rds")
 
 ## Load in gam models
 co2mod <- readRDS("../data/private/co2mod.rds")
@@ -29,6 +31,10 @@ regvarf2$`Chl_a_ug_L` <- regvarf2$`Chl_a_ug_L` + 1
 regvarf2$`DOC_mg_L` <- regvarf2$`DOC_mg_L` + 1
 regvarf2 <- transform(regvarf2, dummy = rep(1, nrow(regvarf2)))
 
+## subset flux df
+lakesub <- fluxes[,c("Lake","Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+                     "TICumol", "Pressure", "pco2atm")]
+
 ## what is mean pH? perhaps add a dotted line at this point in the plots
 meanpH <- with(regvarf2[which(regvarf2$pH_surface >7 & regvarf$pH_surface < 11.1),], 
                mean(pH_surface, na.rm=TRUE)) # some outliers in there
@@ -44,8 +50,9 @@ meanGPP <- with(regvarf2,
                 mean(GPP_h, na.rm=TRUE))
 
 ## create a theme to save linespace in plots
-papertheme <- theme_bw(base_family='Arial') +
-  theme(legend.position='top') 
+papertheme <- theme_bw(base_size=18, base_family = 'Arial') +
+  theme(legend.position='top')
+  
 
 ## generate predicted for co2 and ph for all signif variables
 ## co2 ~ ph: full model
@@ -91,12 +98,12 @@ co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted,
                                            ifelse(Lake == "C", "Crooked",
                                                   ifelse(Lake == "D", 
                                       "Diefenbaker", "Wascana, Pasqua,\nKatepwa")))))) +
+  papertheme +
   annotate("rect", xmin=phquants[1], xmax=phquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
   geom_line() +
-  theme_bw(base_size = 12, base_family = 'Arial') +
   #geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
    #           alpha = 0.25, fill='white') +  
-  scale_colour_brewer(name = "Lake", type = 'qual', palette = 'Dark2', direction=1) +
+  scale_colour_discrete(name = "Lake") +
   #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
    #         show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
@@ -200,9 +207,9 @@ labdatoxy <- data.frame(x = c(2.5, 11), y = c(meanpH + 0.03, 8.4), label = c("me
 oxyquants <- quantile(regvarf2$Oxygen_ppm, c(.05,.95), na.rm = TRUE)
 
 oxyplot <- ggplot(oxy.pdatnorm, aes(x = Oxygen_ppm, y = Fitted)) +
+  papertheme +
   annotate("rect", xmin=oxyquants[1], xmax=oxyquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
   geom_line() +
-  theme_bw(base_size = 12) +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
   #geom_text(data = labdatoxy, aes(label = label, x = x, y = y, size = 5), 
@@ -295,9 +302,9 @@ labdatN <- data.frame(x = 3000, y = meanpH + 0.03, label = "mean pH")
 TDNquants <- quantile(regvarf2$TDN_ug_L, c(.05,.95), na.rm = TRUE)
 
 TDNplot <- ggplot(TDN.pdatnorm, aes(x = TDN_ug_L, y = Fitted)) +
+  papertheme +
   annotate("rect", xmin=TDNquants[1], xmax=TDNquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
   geom_line() +
-  theme_bw(base_size = 12) +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
                                      alpha = 0.25) +  
   #geom_text(data = labdatN, aes(label = label, x = x, y = y, size = 5), 
@@ -339,14 +346,14 @@ chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, c
                         ifelse(Lake == "WW", "Wascana", 
                                ifelse(Lake == "B", "Buffalo Pound", 
                                       "Katepwa, Pasqua, Diefenbaker,\nLast Mountain, Crooked")))) +
+  papertheme + 
   annotate("rect", xmin=chlquants[1], xmax=chlquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
   geom_line() + 
   #geom_text(data = labdatchl, aes(label = label, x = x, y = y, size = 5),
   #          show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   geom_vline(xintercept = meanchl, linetype='dotted') +
-  papertheme + 
-  scale_colour_brewer(name = "Lake", type = 'qual', palette = 'Dark2', direction=1) +
+  scale_color_discrete(name = "Lake") +
   theme(legend.position = 'top', legend.direction = "vertical", 
         axis.text.x = element_text(angle = 45)) +
   scale_x_log10(breaks = c(5,10,25,50,100,200,300)) +
@@ -509,7 +516,7 @@ invisible( # this means I don't get the list [[1:3]] returned on screen
   lapply(
     seq_along(plots), 
     function(x) ggsave(filename=paste0("../docs/private/gam-plots-", plotnames[x], ".pdf"), 
-                       plot=plots[[x]], scale=0.8) # width=7, height=5, units = 'in'
+                       plot=plots[[x]], scale=0.6) # width=7, height=5, units = 'in'
   ) )
 
 ## arrange plots
@@ -521,3 +528,108 @@ climgam <- grid.arrange(comboplot, SOIplot, PDOplot, ncol = 2, layout_matrix = c
 
 ggsave("../docs/private/ph-allgams.pdf", allgam, scale=0.77) #width=28, height=18, units = 'cm'
 ggsave("../docs/private/climgam.pdf", climgam, scale=0.77, width = 7.5)
+
+## var vs time option for case where peter might want some temporal info
+var_labeller <- function(variable,value){
+  return(varnames[value])
+}
+varnames <- list(
+  'L'="Last Mountain" ,
+  'K'= 'Katepwa',
+  'B'="Buffalo Pound",
+  'C'= 'Crooked',
+  'D' = "Diefenbaker",
+  'WW' = 'Wascana',
+  'P' = 'Pasqua')
+## order lakes in prep for ggplot by water flow chain:
+levels(regvarf2$Lake) 
+regvarf2$Lake <- factor(regvarf$Lake, levels = regvarf2$Lake[c(5,3,2,6,7,1,4,8:12)])
+x$name  # notice the changed order of factor levels
+
+tempplot <- ggplot(regvarf2, aes(x = Year, y = pH_surface, group= Lake)) +
+  papertheme +
+  facet_wrap( "Lake", scales = "fixed", ncol=2) +
+  geom_point() +
+  theme(axis.text.x=element_text(angle=45, vjust=0.5), axis.title.x=element_blank()) +
+  ylab('pH')
+
+## or maybe this could be an approach
+testing <- gam(data=regvars[regvars$Month > 4 & regvars$Month < 9,], pH_surface ~ s(Year) + s(Year, by=Lake, m=1) + 
+                 s(Month, k=3) + s(Month, by=Lake, m=1, k=3) +
+                 s(Lake, bs='re'), family='gaussian', na.action=na.exclude, select=TRUE)
+N <- 21
+varWant <- "Month"
+lakeXbar <- with(regvars, do.call(rbind, lapply(split(regvars[, varWant], droplevels(Lake)), 
+                                                mean, na.rm = TRUE)))
+lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
+
+Year.pdat <- with(droplevels(regvars),
+                  data.frame(Year = rep(seq(min(`Year`, na.rm = TRUE),
+                                            max(`Year`, na.rm = TRUE),
+                                            length = N),
+                                        nlevels(Lake)),
+                             Lake = rep(levels(Lake), each = N)
+                  ))
+Year.pdat <- merge(Year.pdat, lakeXbar)
+names(Year.pdat)[which(names(Year.pdat)=='X_data')] <- 'Month'
+Year.pred <- predict(testing, newdata = Year.pdat, type = "terms")
+whichCols <- grep("Year", colnames(Year.pred))
+Year.pdat <- cbind(Year.pdat, Fitted = rowSums(Year.pred[, whichCols]))
+
+shiftYear <- attr(Year.pred, "constant")
+Year.pdatnorm <- Year.pdat
+Year.pdatnorm <- with(Year.pdatnorm, transform(Year.pdatnorm, Fitted = Fitted + shiftYear))
+labdatYear <- data.frame(x = 100, y = meanpH + 0.04, label = "mean pH")
+
+Yearplot <- ggplot(Year.pdatnorm, aes(x = Year, y = Fitted, group = Lake, colour = 
+                                       ifelse(Lake == "WW", "Wascana", 
+                                              ifelse(Lake == "D", "Diefenbaker",
+                                                     ifelse(Lake == 'K', "Katepwa", 
+                                                            ifelse(Lake == 'P', "Pasqua", 
+ifelse(Lake == 'B', 'Buffalo Pound', ifelse(Lake=='L','Last Mountain',
+'Crooked')))))))) +
+  theme_bw(base_size=14, base_family = 'Arial') +
+  theme(legend.position='top') +
+  #annotate("rect", xmin=Yearquants[1], xmax=Yearquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
+  geom_line() + 
+  #geom_text(data = labdatYear, aes(label = label, x = x, y = y, size = 5),
+  #          show.legend = FALSE, inherit.aes = FALSE) +
+  #geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
+  #geom_vline(xintercept = meanYear, linetype='dotted') +
+  scale_colour_discrete(name = "Lake") +
+  xlab("Year") + 
+  guides(colour=guide_legend(ncol=2,bycol =TRUE,title.position = 'left')) +
+  ylab('pH')
+
+## general lake diffs in variables
+melted <- melt(lakesub, id = "Lake")
+
+# create a list with strip labels
+varnames <- list(
+  'Temperature'=expression(paste("Temperature ("~degree*"C)")) ,
+  'Conductivity'= expression(paste("Conductivity ("*mu*"S"~"cm"^{-1}*")")),
+  'pH'="pH",
+  'meanWindMS'= expression(paste("Mean Wind (m"~"s"^{-1}*")")),
+  'SalCalc' = "Salinity (ppt)",
+  'TICumol' = expression(paste("DIC ("~mu*"mol"~"L"^{-1}*")")),
+  'Pressure' = 'Pressure (kPa)',
+  'pco2atm' = expression(paste("Air"~italic(p)*"CO"[2]~"(ppm)"))
+)
+
+# Create a 'labeller' function, and push it into facet_grid call:
+var_labeller <- function(variable,value){
+  return(varnames[value])
+}
+
+# run the ggplot
+meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
+  geom_boxplot(outlier.colour="black", outlier.shape=5,
+               outlier.size=1) +
+  theme_bw(base_size = 14, base_family = 'Arial') +
+  facet_wrap( "variable", scales = "free", labeller = var_labeller, ncol=2) +
+  theme(axis.title = element_blank())
+
+boxgrid <- plot_grid(meltplot, Yearplot, ncol = 1, nrow=2, 
+                     rel_heights = c(3,1), labels = 'AUTO')
+ggsave("../docs/private/summaryfig.pdf", boxgrid, width=20, height=40, units = "cm")
+
