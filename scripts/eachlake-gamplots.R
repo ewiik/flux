@@ -93,17 +93,29 @@ labdatco2 <- data.frame(x = 7.5, y = meanco2 - 18, label = "mean flux")
 phquants <- quantile(regvarf2$pH_surface, c(.05,.95), na.rm = TRUE)
 
 co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted, 
-                    colour = ifelse(Lake == "L", "Last Mountain", 
-                                    ifelse(Lake == "B","Buffalo Pound",
-                                           ifelse(Lake == "C", "Crooked",
-                                                  ifelse(Lake == "D", 
-                                      "Diefenbaker", "Wascana, Pasqua,\nKatepwa")))))) +
+                    colour = ifelse(Lake == "WW", "Wascana", 
+                                    ifelse(Lake == "D", "Diefenbaker",
+                                           ifelse(Lake == 'K', "Katepwa", 
+                                                  ifelse(Lake == 'P', "Pasqua", 
+                                                         ifelse(Lake == 'B', 'Buffalo Pound', 
+                                                                ifelse(Lake=='L','Last Mountain',
+                                                                       'Crooked')))))),
+                    lty=ifelse(Lake == "WW", "Wascana", 
+                               ifelse(Lake == "D", "Diefenbaker",
+                                      ifelse(Lake == 'K', "Katepwa", 
+                                             ifelse(Lake == 'P', "Pasqua", 
+                                                    ifelse(Lake == 'B', 'Buffalo Pound', 
+                                                           ifelse(Lake=='L','Last Mountain',
+                                                                  'Crooked')))))))) +
   papertheme +
-  annotate("rect", xmin=phquants[1], xmax=phquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
+  annotate("rect", xmin=phquants[1], xmax=phquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
   geom_line() +
   #geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
    #           alpha = 0.25, fill='white') +  
-  scale_colour_discrete(name = "Lake") +
+  scale_linetype_manual(name='Lake', values = c("solid", "dotdash","longdash", "solid", "longdash", 
+                                                "solid", "solid")) +
+  scale_colour_manual(name="Lake", values = c("#b2abd2", "#5e3c99","#b2abd2", "#5e3c99", "#e66101",
+                                              "#5e3c99", "#5e3c99"))+
   #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
    #         show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
@@ -112,6 +124,8 @@ co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted,
   guides(colour=guide_legend(ncol=3,bycol =TRUE,title.position = 'left')) +
   xlab('pH') + ylab(expression(paste('CO'[2]*' (mmol m'^{-2}*d^{-1}*')')))
 
+## oranges: #E6550D, #FD8D3C, blues: #A6BDDB, #67A9CF, #02818A
+## '#e66101','#fdb863','#b2abd2','#5e3c99' (order red:light:dark)
 ## for the null model:
 ## for co2modnull
 N <- 200
@@ -208,7 +222,7 @@ oxyquants <- quantile(regvarf2$Oxygen_ppm, c(.05,.95), na.rm = TRUE)
 
 oxyplot <- ggplot(oxy.pdatnorm, aes(x = Oxygen_ppm, y = Fitted)) +
   papertheme +
-  annotate("rect", xmin=oxyquants[1], xmax=oxyquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
+  annotate("rect", xmin=oxyquants[1], xmax=oxyquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
   geom_line() +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
@@ -303,7 +317,7 @@ TDNquants <- quantile(regvarf2$TDN_ug_L, c(.05,.95), na.rm = TRUE)
 
 TDNplot <- ggplot(TDN.pdatnorm, aes(x = TDN_ug_L, y = Fitted)) +
   papertheme +
-  annotate("rect", xmin=TDNquants[1], xmax=TDNquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
+  annotate("rect", xmin=TDNquants[1], xmax=TDNquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
   geom_line() +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
                                      alpha = 0.25) +  
@@ -343,23 +357,40 @@ labdatchl <- data.frame(x = 100, y = meanpH + 0.04, label = "mean pH")
 
 chlquants <- quantile(regvarf2$Chl_a_ug_L, c(.05,.95), na.rm = TRUE)
 chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, colour = 
-                        ifelse(Lake == "WW", "Wascana", 
-                               ifelse(Lake == "B", "Buffalo Pound", 
-                                      "Katepwa, Pasqua, Diefenbaker,\nLast Mountain, Crooked")))) +
+                                       ifelse(Lake == "WW", "Wascana", 
+                                                    ifelse(Lake == "D", "Diefenbaker",
+                                                           ifelse(Lake == 'K', "Katepwa", 
+                                                                  ifelse(Lake == 'P', "Pasqua", 
+                                                                         ifelse(Lake == 'B', 'Buffalo Pound', 
+                                                                                ifelse(Lake=='L','Last Mountain',
+                                                                                       'Crooked')))))),
+                                           lty=ifelse(Lake == "WW", "Wascana", 
+                                                      ifelse(Lake == "D", "Diefenbaker",
+                                                             ifelse(Lake == 'K', "Katepwa", 
+                                                                    ifelse(Lake == 'P', "Pasqua", 
+                                                                           ifelse(Lake == 'B', 'Buffalo Pound', 
+                                                                                  ifelse(Lake=='L','Last Mountain',
+                                                                                         'Crooked')))))))) +
   papertheme + 
-  annotate("rect", xmin=chlquants[1], xmax=chlquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
+  annotate("rect", xmin=chlquants[1], xmax=chlquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60', fill='gray60') +
   geom_line() + 
   #geom_text(data = labdatchl, aes(label = label, x = x, y = y, size = 5),
   #          show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   geom_vline(xintercept = meanchl, linetype='dotted') +
-  scale_color_discrete(name = "Lake") +
+  scale_linetype_manual(name='Lake', values = c("longdash", "solid","dotdash", "solid", "solid", 
+                                                "solid", "solid")) +
+  scale_colour_manual(name="Lake", values = c("#e66101", "#5e3c99","#5e3c99", "#5e3c99", "#5e3c99",
+                                              "#5e3c99", "#b2abd2"))+
   theme(legend.position = 'top', legend.direction = "vertical", 
         axis.text.x = element_text(angle = 45)) +
   scale_x_log10(breaks = c(5,10,25,50,100,200,300)) +
   xlab(expression(paste("Chl"~italic(a)~"("~mu*"g"~"L"^{-1}*")"))) + 
-  guides(colour=guide_legend(ncol=2,bycol =TRUE,title.position = 'left')) +
+  guides(colour=guide_legend(ncol=4,nrow=2,bycol =TRUE,title.position = 'left'),
+         lty=guide_legend(ncol=4,nrow=2, bycol =TRUE,title.position = 'left')) +
   ylab('pH')
+## '#e66101','#fdb863','#b2abd2','#5e3c99' (order red:light:dark)
+
 ## see http://stackoverflow.com/questions/11838278/
 ##    plot-with-conditional-colors-based-on-values-in-r
 ## make this bit into soi-pdo
@@ -404,13 +435,17 @@ labdatSOI <- data.frame(x = 2.5, y = meanpH + 0.08, label = "mean pH")
 #reorder factors
 SOI.pdat$SOIgroup <- factor(SOI.pdat$SOIgroup, levels = c('-1', '0.3', '1.1'))
 
-SOIplot <- ggplot(SOI.pdat[SOI.pdat$Lake=='B',], aes(x = PDO, y = pH, group= SOI, col=SOIgroup)) +
-  papertheme +
+SOIplot <- ggplot(SOI.pdat[SOI.pdat$Lake=='B',], aes(x = PDO, y = pH, group= SOI, col=SOIgroup, 
+                                                     lty=SOIgroup)) +
+  theme_bw(base_size=14, base_family = 'Arial') +
+  theme(legend.position='top') +
   geom_line() +
-  scale_color_discrete(name='SOI') +
+  scale_color_manual(name='SOI', values = c("#5e3c99", "#b2abd2", "#e66101"))+
+  scale_linetype_manual(name='SOI', values = c("solid", "solid","longdash")) +
   #scale_colour_brewer(name = "SOI", type = 'qual', palette = 'Dark2', direction=1) +
   #geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   xlab('PDO') + ylab('pH')
+## '#e66101','#fdb863','#b2abd2','#5e3c99' (order red:light:dark)
 
 ## now slices for PDO
 N <- 100
@@ -454,10 +489,13 @@ labdatPDO <- data.frame(x = 2.5, y = meanpH + 0.08, label = "mean pH")
 #reorder factors
 PDO.pdat$PDOgroup <- factor(PDO.pdat$PDOgroup, levels = c('-1.5', '0', '1.6'))
 
-PDOplot <- ggplot(PDO.pdat[PDO.pdat$Lake=='B',], aes(x = SOI, y = pH, group= PDO, col=PDOgroup)) +
-  papertheme +
+PDOplot <- ggplot(PDO.pdat[PDO.pdat$Lake=='B',], aes(x = SOI, y = pH, group= PDO, col=PDOgroup,
+                                                     lty=PDOgroup)) +
+  theme_bw(base_size=14, base_family = 'Arial') +
+  theme(legend.position='top') +
   geom_line() +
-  scale_color_discrete(name='PDO') +
+  scale_color_manual(name='PDO', values = c("#5e3c99", "#b2abd2", "#e66101"))+
+  scale_linetype_manual(name='PDO', values = c("solid", "solid","longdash")) +
   #scale_colour_brewer(name = "PDO", type = 'qual', palette = 'Dark2', direction=1) +
   #geom_abline(slope = 0, intercept = meanpH) +
   xlab('SOI') + ylab('pH')
@@ -499,7 +537,8 @@ comb.pdatnorm$pH[toofar] <- NA
 
 names(comb.pdat)[which(names(comb.pdat)=='SOI.pred')] <- 'pH'
 comboplot <- ggplot(comb.pdatnorm, aes(x = SOI, y = PDO, z=pH)) + #, z=Fitted
-  papertheme +
+  theme_bw(base_size=14, base_family = 'Arial') +
+  theme(legend.position='top') +
   geom_raster(aes(fill=pH)) + # change to turn grey background into nothing
   scale_fill_viridis(na.value='transparent') +
   geom_point(data=regvarf2, aes(x=SOI, y=PDO, z=NULL)) +
@@ -530,22 +569,6 @@ ggsave("../docs/private/ph-allgams.pdf", allgam, scale=0.77) #width=28, height=1
 ggsave("../docs/private/climgam.pdf", climgam, scale=0.77, width = 7.5)
 
 ## var vs time option for case where peter might want some temporal info
-var_labeller <- function(variable,value){
-  return(varnames[value])
-}
-varnames <- list(
-  'L'="Last Mountain" ,
-  'K'= 'Katepwa',
-  'B'="Buffalo Pound",
-  'C'= 'Crooked',
-  'D' = "Diefenbaker",
-  'WW' = 'Wascana',
-  'P' = 'Pasqua')
-## order lakes in prep for ggplot by water flow chain:
-levels(regvarf2$Lake) 
-regvarf2$Lake <- factor(regvarf$Lake, levels = regvarf2$Lake[c(5,3,2,6,7,1,4,8:12)])
-x$name  # notice the changed order of factor levels
-
 tempplot <- ggplot(regvarf2, aes(x = Year, y = pH_surface, group= Lake)) +
   papertheme +
   facet_wrap( "Lake", scales = "fixed", ncol=2) +
@@ -555,10 +578,10 @@ tempplot <- ggplot(regvarf2, aes(x = Year, y = pH_surface, group= Lake)) +
 
 ## or maybe this could be an approach
 testing <- gam(data=regvars[regvars$Month > 4 & regvars$Month < 9,], pH_surface ~ s(Year) + 
-                 s(Year, by=Lake, m=1, k=10) + 
-                 s(Month, k=3) + s(Month, by=Lake, m=1, k=3) +
+                 s(Year, by=Lake, m=1, k=7) + 
+                 s(DOY) + s(DOY, by=Lake, m=1) +
                  s(Lake, bs='re'), family='gaussian', na.action=na.exclude, select=TRUE)
-N <- 200
+N <- 500
 varWant <- "Month"
 lakeXbar <- with(regvars, do.call(rbind, lapply(split(regvars[, varWant], droplevels(Lake)), 
                                                 mean, na.rm = TRUE)))
@@ -573,6 +596,11 @@ Year.pdat <- with(droplevels(regvars),
                   ))
 Year.pdat <- merge(Year.pdat, lakeXbar)
 names(Year.pdat)[which(names(Year.pdat)=='X_data')] <- 'Month'
+
+toofar <- c(which(Year.pdat$Lake == 'WW' & Year.pdat$Year < 1996),
+            which(Year.pdat$Lake == 'P' & Year.pdat$Year < 2004))
+Year.pdat <- Year.pdat[-toofar,]
+
 Year.pred <- predict(testing, newdata = Year.pdat, type = "terms")
 whichCols <- grep("Year", colnames(Year.pred))
 Year.pdat <- cbind(Year.pdat, Fitted = rowSums(Year.pred[, whichCols]))
@@ -580,27 +608,40 @@ Year.pdat <- cbind(Year.pdat, Fitted = rowSums(Year.pred[, whichCols]))
 shiftYear <- attr(Year.pred, "constant")
 Year.pdatnorm <- Year.pdat
 Year.pdatnorm <- with(Year.pdatnorm, transform(Year.pdatnorm, Fitted = Fitted + shiftYear))
-labdatYear <- data.frame(x = 100, y = meanpH + 0.04, label = "mean pH")
 
-Yearplot <- ggplot(Year.pdatnorm, aes(x = Year, y = Fitted, group = Lake, colour = 
-                                       ifelse(Lake == "WW", "Wascana", 
-                                              ifelse(Lake == "D", "Diefenbaker",
-                                                     ifelse(Lake == 'K', "Katepwa", 
-                                                            ifelse(Lake == 'P', "Pasqua", 
-ifelse(Lake == 'B', 'Buffalo Pound', ifelse(Lake=='L','Last Mountain',
-'Crooked')))))))) +
+
+Yearplot <- ggplot(Year.pdatnorm, 
+                   aes(x = Year, y = Fitted, group = Lake, 
+                       colour = 
+                         ifelse(Lake == "WW", "Wascana", 
+                                ifelse(Lake == "D", "Diefenbaker",
+                                       ifelse(Lake == 'K', "Katepwa", 
+                                              ifelse(Lake == 'P', "Pasqua", 
+                                                     ifelse(Lake == 'B', 'Buffalo Pound', 
+                                                            ifelse(Lake=='L','Last Mountain',
+                                                                   'Crooked')))))),
+                       lty=ifelse(Lake == "WW", "Wascana", 
+                                  ifelse(Lake == "D", "Diefenbaker",
+                                         ifelse(Lake == 'K', "Katepwa", 
+                                                ifelse(Lake == 'P', "Pasqua", 
+                                                       ifelse(Lake == 'B', 'Buffalo Pound', 
+                                                              ifelse(Lake=='L','Last Mountain',
+                                                                     'Crooked')))))))) +
   theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top') +
-  #annotate("rect", xmin=Yearquants[1], xmax=Yearquants[2], ymin=-Inf, ymax=Inf, alpha = .2) +
   geom_line() + 
-  #geom_text(data = labdatYear, aes(label = label, x = x, y = y, size = 5),
-  #          show.legend = FALSE, inherit.aes = FALSE) +
-  #geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
-  #geom_vline(xintercept = meanYear, linetype='dotted') +
-  scale_colour_discrete(name = "Lake") +
   xlab("Year") + 
-  guides(colour=guide_legend(ncol=2,bycol =TRUE,title.position = 'left')) +
-  ylab('pH')
+  guides(colour=guide_legend(ncol=2,bycol =TRUE,title.position = 'left')) + 
+  scale_linetype_manual(name='Lake', values = c("solid", "longdash","dotdash", "solid", "solid", 
+                                                "solid", "longdash")) +
+  scale_colour_manual(name="Lake", values = c("#5e3c99", "#b2abd2","#5e3c99", "#5e3c99", "#b2abd2",
+                                              "#e66101", "#e66101"))+
+  #c("black", "#02818A","black", "black", "#02818A",
+  #"#A6BDDB", "#A6BDDB"))+
+  ylab('pH') + #02818A", "#A6BDDB" 
+  #theme(legend.position = "none")+
+  #guides(colour=guide_legend(nrow=1,byrow=TRUE))+
+  scale_x_continuous(breaks=c(1995, 2000,2005, 2010, 2014), labels = c(1995, 2000,2005, 2010, 2014))
 
 ## general lake diffs in variables
 melted <- melt(lakesub, id = "Lake")

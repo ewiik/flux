@@ -58,4 +58,6 @@ theme_bw(base_size = 12, base_family = 'Arial') # set baseline font size
 # (..., text = element_text(size = ))
 
   
+## play with colour selections...
+show_col(brewer_pal("seq", palette='Oranges')(5))
 
