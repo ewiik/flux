@@ -1,5 +1,7 @@
 ### quick look at Buffalo Pound monitoring data from 1985
 ## base file based on csv in frompeter/
+## Update 24.06: the file actually had mistakes in date entries and rows need to be shifted
+##    down: see email from Helen Baulch 23.06.
 
 ## read files and subset
 if(!file.exists("../data/private/MasterfileBuffaloPoundWaterQualityData15032016.csv")) {
@@ -79,7 +81,7 @@ condtona <- which(buffsub$cond < 10)
 buffsub[condtona, 'cond'] <- NA
 
 ## merge with mauna loa data
-buffsub <- merge(buffsub, ml, by.x = c('year', 'month'), by.y = c('Year','Month'))
+buffsub <- merge(buffsub, ml, by.x = c('year', 'month'), by.y = c('Year','Month'), sort = FALSE)
 names(buffsub)[which(names(buffsub) == 'pCO2')] <- 'pCO2atm'
 
 ## calculate flux
@@ -90,6 +92,24 @@ gasfluxes <- with(buffsub, gasExchangeExtra(temp = temp, cond = cond, ph=ph, win
 with(gasfluxes,plot(density(pco2, na.rm=TRUE)))
 
 buffsub <- cbind(buffsub, gasfluxes)
+
+## now move down rows as necessary: weeks not actually sampled: 14,27,40
+# order data by week
+buffsub <- buffsub[order(buffsub$year, buffsub$week),]
+rownames(buffsub) <- NULL
+
+## shift down one row except for date columns
+shifts <- c(14, 27, 40)
+datecols <- which(names(buffsub) %in% c('year', 'month', 'week'))
+shiftlengths <- c(nrow(buffsub[buffsub$week == shifts[1] & buffsub$year == 2014,]),
+                 nrow(buffsub[buffsub$week == shifts[2] & buffsub$year == 2014,,]),
+                 nrow(buffsub[buffsub$week == shifts[3] & buffsub$year == 2014,,]))
+if (prod(shiftlengths) == 1) {
+for (i in 1:length(shifts)) {
+  notsampled <- which(buffsub$week %in% shifts[i] & buffsub$year == 2014)
+  buffsub[notsampled:nrow(buffsub), -datecols] <- 
+    rbind(NA, head(buffsub[notsampled:nrow(buffsub), -datecols], -1))
+}} else {stop('inconsistency in weekly sampling -- check data sheet')}
 
 ## plot stuff
 with(buffsub, plot(pco2 ~ ph))

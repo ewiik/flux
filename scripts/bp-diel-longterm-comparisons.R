@@ -3,6 +3,7 @@
 ## load packages
 library('ggplot2')
 library('mgcv')
+library('viridis')
 
 ## read in data
 blong <- readRDS('../data/private/bp-longterm-mod.rds')
@@ -30,7 +31,7 @@ allMondays$Year <- format(allMondays$Date, '%Y')
 bdatall <- merge(bdat, allMondays, by.x = c('week','year'), by.y = c('Week','Year'))
 
 ## take all days, and only days that are the same
-with(bdiel,plot(co2corr ~ Date, col='red', ylab='pCO2'))
+with(bdiel,plot(co2corr ~ Date, col='red', ylab='pCO2', ylim=c(0,2000)))
 points(bdatall$pCO2uatm ~ bdatall$Date, pch=21, bg='black')
 legend('topright', legend = 'red=measured \n black=calculated', border = FALSE)
 
