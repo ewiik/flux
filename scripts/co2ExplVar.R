@@ -149,11 +149,12 @@ chl <- transform(chl, LAKE = gsub(" ", "", LAKE))
 ## take out all chl data that isn't from an integrated sample, as that's what we're working with
 ##    (though worth thinking that surface could be played with since they're quite different!!)
 chlsub <- subset(chl, TreatmentNewLabel == "Integrated")
+chlsur <- subset(chl, TreatmentNewLabel == "Surface")
 
 ## split produc and chl for getting means for replicated production estimates
 prodsplit <- with(produc, split(produc, list(LAKE, Date), drop = TRUE))
 chlsplit <- with(chlsub, split(chlsub, list(LAKE, Date), drop = TRUE))
-
+chlsursplit <- with(chlsur, split(chlsur, list(LAKE, Date), drop = TRUE))
 ## create wrapper that does colmeans for the columns we want and spits out df we can merge
 mycolMeans <- function(df, cols) {
   df <- as.data.frame(df)
@@ -167,6 +168,12 @@ chlmeans <- lapply(chlsplit, mycolMeans, cols = c("Chl_a_ug_L")) # , "Total_chl"
 chlmeans <- do.call(rbind, chlmeans)
 rownames(chlmeans) <- NULL
 chlmeans <- chlmeans[with(chlmeans, order(LAKE, Date)),]
+
+chlsurmeans <- lapply(chlsursplit, mycolMeans, cols = c("Chl_a_ug_L")) # , "Total_chl"
+chlsurmeans <- do.call(rbind, chlsurmeans)
+rownames(chlsurmeans) <- NULL
+chlsurmeans <- chlsurmeans[with(chlsurmeans, order(LAKE, Date)),]
+names(chlsurmeans)[grep("Chl", names(chlsurmeans))] <- "Chl_a_ug_L_sur"
 
 prodmeans <- lapply(prodsplit, mycolMeans, cols = c("LIGHT_O2_ppm", "DARK_O2_ppm", "LIGHT_Pois_O2_ppm",
                                                     "DARK_Pois_O2_ppm", "NetOxy_ppm", "RespOxy_ppm",
@@ -204,6 +211,7 @@ prodsub <- transform(prodsub, lakeR = R_h*(Secchi_m* (LakeArea_km2 * 100000)))
 
 ## merge all dfs by LAKE and Date
 co2explained <- merge(chlmeans, prodsub, all = TRUE)
+co2explained <- merge(co2explained, chlsurmeans, all=TRUE)
 co2explained <- merge(co2explained, routines[,-which(names(routines) %in% 'RunNo')], all = TRUE)
 # don't need this column which is cryptic anyway
 co2expl <- merge(co2explained, oxtemp[,c('Date', 'LAKE', 'Temperature_deg_C','Oxygen_ppm')],
@@ -260,7 +268,7 @@ take$TIC_mg_L <- take$TIC_mg_L.y
 take$DOC_mg_L <- take$DOC_mg_L.y
 take <- take[,-which(names(take) %in% c('TIC_mg_L.x','TIC_mg_L.y', 'DOC_mg_L.x', 'DOC_mg_L.y'))]
 take <- take[,c("YEAR", "Month", "Date", "LAKE", "Chl_a_ug_L", "GPP_h", "NPP_h", "R_h", "LakeArea_km2", 
-                "Secchi_m", "lakeGPP", "lakeNPP", "lakeR", "DOY", "pH_surface", "SRP_ug_L", "TDP_ug_L", 
+                "Secchi_m", "lakeGPP", "lakeNPP", "lakeR", "Chl_a_ug_L_sur", "DOY", "pH_surface", "SRP_ug_L", "TDP_ug_L", 
                 "TDN_ug_L", "NO2_ug_L", "NH4_ug_L", "DOC_mg_L", "TIC_mg_L", "SO4_mg_L", "Si_mg_L", 
                 "NO3_ug_L", "Temperature_deg_C", "Oxygen_ppm", "AirTempMonthly", "AirTempAnnual", "RelHum")] 
 # now in same co2expl order

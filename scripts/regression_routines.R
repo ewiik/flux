@@ -18,15 +18,26 @@ temp <- readRDS("../data/temperaturedata.rds")# Year, Month, Superstation...
 ## get CO2 flux estimates (alter calculation arguments in co2_scenarios.R)
 fluxes <- readRDS("../data/private/params-flux.rds")
 
- ## NB: when rerunning this script co2expl date suddenly indicated time of day also, which
-###   means the matching isn't working! need to correct for this event
+## NB: when rerunning this script co2expl & fluxes date suddenly indicated 
+##    time of day also, which means the matching isn't working!
+##    need to correct for this event. Also fluxes is 1 day behind co2expl (&chl) suddenly!? 
+##    Even though the Day in fluxes is correct... so this has happened after I created the
+##    Day et al columns... checked and this error is CONSISTENT! So will add 1 if needed
 if(length(grep(":", as.character(co2expl$Date)[1])) ==1) { # check for hour minute sep
   co2expl <- transform(co2expl, Date = trunc(Date, unit = 'days'))
   co2expl <- transform(co2expl, Date = as.POSIXct(Date, format = "%Y-%m-%d"))
 } else {
   print("noooo")
 }
-
+if(length(grep(":", as.character(fluxes$Date)[1])) ==1) { # check for hour minute sep
+  fluxes <- transform(fluxes, Date = trunc(Date, unit = 'days'))
+  fluxes <- transform(fluxes, Date = as.POSIXct(Date, format = "%Y-%m-%d"))
+} else {
+  print("No hour minutes in Date")
+}
+if(all(fluxes$Day != as.numeric(format(fluxes$Date, "%d")))) { # are Day and Date$Day off?
+  stop("Rerun co2_scenarios.R and check how the Date column comes out")
+}
 ## choose params that we want in model from co2expl offerings
 ## at the mo, relative humidity is in as a proxy for evaporation effects.. Considered this better than using
 ##    just precipitation since that may not be directly linked due to advective-dominated precip
@@ -34,7 +45,7 @@ if(length(grep(":", as.character(co2expl$Date)[1])) ==1) { # check for hour minu
 ##    1:1 is generally in favour of NPP
 regvars <- subset(co2expl,
                   select = c("YEAR", "Month", "Date", "DOY", "LAKE", "Chl_a_ug_L", "GPP_h",
-                  "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm",
+                  "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "Chl_a_ug_L_sur",
                   "AirTempMonthly", "RelHum"))
 
 ## do whatever needs to be done with precip data. and March things
@@ -132,6 +143,8 @@ regvars$DOC_mg_L[lowdoc] <- NA
 ## change NaN chlorophylls to NA
 chlnan <- which(is.nan(regvars$Chl_a_ug_L))
 regvars$Chl_a_ug_L[chlnan] <- NA
+chlnan <- which(is.nan(regvars$Chl_a_ug_L_sur))
+regvars$Chl_a_ug_L_sur[chlnan] <- NA
 
 ## any outliers left?
 drops <- c("Month", "Year", "Lake", "DOY")
@@ -152,7 +165,7 @@ saveRDS(regvars, "../data/private/regvars.rds")
 
 ## look at relationships etc.
 with(regvars, plot(MarchTemp ~ MarchSnowFallcm))
-with(regvars, plot(lakeGPP ~ pH_surface))
+with(regvars, plot(GPP_h ~ pH_surface))
 with(regvars, plot(RelHum ~ PDO))
 with(regvars, plot(pH_surface ~ MarchTemp))
 with(regvars, plot(PDO ~ SOI))
