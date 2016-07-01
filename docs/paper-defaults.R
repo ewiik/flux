@@ -19,6 +19,7 @@ library('viridis')
 library('cowplot')
 library('extrafont')
 
+library('scales')
 ## plot background: white
 theme_bw() 
   
