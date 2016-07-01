@@ -1,0 +1,62 @@
+---
+title: "Diel stuff"
+author: "Emma"
+date: "July 1, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, results='hide', include=FALSE}
+## source necessary packages
+library("mgcv")
+library("ggplot2")
+
+## read in data
+bp <- readRDS('../data/private/bpbuoy2014-mod.rds')
+```
+
+## Diel data: What we've got
+    * Buffalo Pound 2014 three monthsish Jun-Sep with enough accompanying data to calculate CO2 flux
+    * Wascana 2015 trial three weeks in September; enough data to estimate CO2 flux
+    * incoming Wascana data for 2016 from June-Sep!!!
+These are the parameters we have for Buffalo Pound:
+    * wind speed and direction
+    * air temp, pressure and relative humidity
+    * daily rain
+    * water (in addition to that for calculating CO2): PAR, cDOM, chlorophyll, O2, turbidity, some other algal index ('rfu')
+And for Wascana (other than those for calculating CO2):
+    * can use Regina weather station wind and pressure data
+    * O2
+## Diel data: Rationale
+1. Diel oxygen, pH, CO2 etc data is scarce especially for hardwater lakes
+    * We don't need mega awesome data sets for them to be worth publishing at this stage, cause so little is known
+    * We can therefore simply *characterise* what is going on... but also test things a little bit...
+2. Predictions and questions: Diel amplitude? What drives the amplitude? What drives the general pattern? (metabolism, convection, wind, lake depth...)
+    * Hardwater lakes have dampened pH amplitudes because of chemical buffering and are less susceptible to have massive nightly CO2 release (--> less of a relationship between respiration and CO2 flux/pH)
+    * Highest influx during the peak summer period. Less as days get shorter and temperature decreases and a build-up of summer's dead stuff to decompose (however complication in that respiration typically more sensitive to T than photosynthesis so plankton may keep trucking while respiration gets increasingly slow)
+    * Drivers of seasonal cycles?
+3. How to test....
+    * lit search on amplitudes of diel O2 etc in different and similar systems + comparison with our data
+    * model seasonal patterns in BP and Wascana and see how things change with time
+    * model diel data (co2 for BP and pH for Wascana) against wind, temperature, O2, ...
+
+## The diel cycles for Wascana and Buffalo are SURPRISINGLY different!
+```{r, echo=FALSE}
+ggplot(data=bp, aes(y = co2corr, x = DOY, col = isDay)) + # ifelse(Hour >= 8 & Hour <=20, 
+    #   'red', 'black')
+    #scale_color_identity() + # means it understands red and black in ifelse
+    scale_color_manual(values=c('black', 'red')) +
+    geom_point() +
+    geom_vline(xintercept = as.numeric(datesDOY)) +
+    ylab("CO2 (ppm)") +
+    xlab("Day of year 2014 (vertical lines cleaning dates)")
+
+
+```
+
+
+    
+
