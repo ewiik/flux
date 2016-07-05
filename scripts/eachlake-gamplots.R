@@ -562,11 +562,16 @@ invisible( # this means I don't get the list [[1:3]] returned on screen
 ## ## FIXME: get relative sizes of plots!!
 allgam <- plot_grid(co2plot, chlaplot, oxyplot, TDNplot, ncol = 2, rel_heights = c(2,1.5), 
                     labels='AUTO')
-
 climgam <- grid.arrange(comboplot, SOIplot, PDOplot, ncol = 2, layout_matrix = cbind(c(1,1,2), c(1,1,3)))
-
+#papergam <- grid.arrange(climgam, chlaplot, oxyplot, TDNplot, 
+    #                     layout_matrix=rbind(c(2,1),c(2,1), c(2,1), c(3,1), c(3,1), c(4,1), c(4,1)))
+    ## FIXME: how to get labels in grid.arrange??
+splineplots <- plot_grid(chlaplot, oxyplot, TDNplot, ncol = 1, nrow=3, rel_heights = c(2, 1.5, 1.5), 
+                     labels='AUTO')
+vararrange <- plot_grid(splineplots, climgam, ncol = 2, labels=c('', "D"))
 ggsave("../docs/private/ph-allgams.pdf", allgam, scale=0.77) #width=28, height=18, units = 'cm'
 ggsave("../docs/private/climgam.pdf", climgam, scale=0.77, width = 7.5)
+ggsave("../docs/private/paper-gams.pdf", vararrange, scale=1.2, width = 12)
 
 ## var vs time option for case where peter might want some temporal info
 tempplot <- ggplot(regvarf2, aes(x = Year, y = pH_surface, group= Lake)) +
