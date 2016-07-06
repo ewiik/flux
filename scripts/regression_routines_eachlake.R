@@ -108,7 +108,39 @@ sink("../docs/private/egmodred2summary.txt")
 egmodred2sum
 sink()
 }
-
+## testing to makes sure we really want SOI and PDO as te()
+##  however couldn't get nointer to stabilise unless family was set to gaussian so
+##      did this in order to compare.
+if(runextras) {
+  nointer <- gam(pH_surface ~ 
+                   s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1,k=5) +
+                   s(GPP_h) +
+                   s(log10(TDN_ug_L)) +
+                   s(log10(DOC_mg_L)) +
+                   s(Oxygen_ppm) +
+                   ti(PDO) + ti(SOI) +
+                   s(Year, Lake, bs = "re", by = dummy), 
+                 data = regvarf2,
+                 select = TRUE, method = "REML", family = gaussian(),
+                 na.action = na.exclude,
+                 control = gam.control(nthreads = 3, trace = TRUE,
+                                       newton = list(maxHalf = 150)))
+  
+  inter <- gam(pH_surface ~ 
+                 s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1,k=5) +
+                 s(GPP_h) +
+                 s(log10(TDN_ug_L)) +
+                 s(log10(DOC_mg_L)) +
+                 s(Oxygen_ppm) +
+                 ti(PDO) + ti(SOI) + ti(PDO, SOI) +
+                 s(Year, Lake, bs = "re", by = dummy), 
+               data = regvarf2,
+               select = TRUE, method = "REML", family = gaussian(),
+               na.action = na.exclude,
+               control = gam.control(nthreads = 3, trace = TRUE,
+                                     newton = list(maxHalf = 60)))
+  anova(nointer, inter, test = "LRT")
+}
 ## plot output of model
 if (plotmods) {
 pdf("../docs/private/egmod-reduced-log-covariates.pdf")
