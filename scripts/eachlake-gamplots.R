@@ -21,6 +21,7 @@ co2mod <- readRDS("../data/private/co2mod.rds")
 egmod.red2 <- readRDS("../data/private/egmodred2.rds")
 co2modnull <- readRDS("../data/private/co2modnull.rds")
 
+source("../functions/geom_rug3.R")
 ## change to match what was used to create the models
 regvarf <- regvars
 regvarf <- transform(regvarf, Year = as.factor(Year)) # make Year into factor for re
@@ -120,6 +121,8 @@ co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted,
    #         show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
   geom_vline(xintercept = meanpH, linetype = 'dotted') +
+  geom_rug3(aes(x=pH_surface, y=co2Flux), data = regvarf2, stat = "identity", position = "identity", 
+           sides = "bl", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
   theme(legend.position='top') +
   guides(colour=guide_legend(ncol=3,bycol =TRUE,title.position = 'left')) +
   xlab('pH') + ylab(expression(paste('CO'[2]*' (mmol m'^{-2}*d^{-1}*')')))
