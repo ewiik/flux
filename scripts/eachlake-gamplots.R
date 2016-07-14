@@ -8,6 +8,7 @@ library('mgcv')
 library('extrafont')
 library('gridExtra')
 library("reshape2")
+library('grid')
 
 ## Set defaults
 theme_set(theme_bw())
@@ -443,8 +444,8 @@ SOIplot <- ggplot(SOI.pdat[SOI.pdat$Lake=='B',], aes(x = PDO, y = pH, group= SOI
   theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top') +
   geom_line() +
-  scale_color_manual(name='SOI', values = c("#5e3c99", "#b2abd2", "#e66101"))+
-  scale_linetype_manual(name='SOI', values = c("solid", "solid","longdash")) +
+  scale_color_manual(name=expression(paste(bold('E')~'      SOI')), values = c("#5e3c99", "#b2abd2", "#e66101"))+
+  scale_linetype_manual(name=expression(paste(bold('E')~'      SOI')), values = c("solid", "solid","longdash")) +
   #scale_colour_brewer(name = "SOI", type = 'qual', palette = 'Dark2', direction=1) +
   #geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   xlab('PDO') + ylab('pH')
@@ -497,8 +498,8 @@ PDOplot <- ggplot(PDO.pdat[PDO.pdat$Lake=='B',], aes(x = SOI, y = pH, group= PDO
   theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top') +
   geom_line() +
-  scale_color_manual(name='PDO', values = c("#5e3c99", "#b2abd2", "#e66101"))+
-  scale_linetype_manual(name='PDO', values = c("solid", "solid","longdash")) +
+  scale_color_manual(name=expression(paste(bold('F')~'      PDO')), values = c("#5e3c99", "#b2abd2", "#e66101"))+
+  scale_linetype_manual(name=expression(paste(bold('F')~ '      PDO')), values = c("solid", "solid","longdash")) +
   #scale_colour_brewer(name = "PDO", type = 'qual', palette = 'Dark2', direction=1) +
   #geom_abline(slope = 0, intercept = meanpH) +
   xlab('SOI') + ylab('pH')
