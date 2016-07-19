@@ -97,6 +97,23 @@ naoframe[naoframe <= -999] <- NA
 ## create rds for later
 saveRDS(naoframe, "../data/naoseasonal.rds")
 
+## download EMI (El Nino Modoki) url and create data frame structure with numerics
+if (!file.exists("../data/emi.txt")) {
+  download.file("http://www.jamstec.go.jp/frsgc/research/d1/iod/DATA/emi.monthly.txt", 
+                "../data/emi.txt")
+}
+
+emi <- read.table(file = "../data/emi.txt", header = TRUE)
+
+colnames(emi)[grep("EMI", colnames(emi))] <- "EMI"
+emi$Date <- as.character(emi$Date)
+emidates <- do.call(rbind, strsplit(emi$Date, ":"))
+emi$Year <- as.integer(emidates[,1])
+emi$Month <- as.integer(emidates[,2])
+
+## create rds for later
+saveRDS(emi, "../data/emi.rds")
+
 ## Part 2: 1039 rows, 415 rows of one or more NAs
 ## ==================================================================================================
 

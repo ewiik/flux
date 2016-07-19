@@ -1,6 +1,5 @@
 ## regression model development for routines CO2 flux
-## FIXME: do we want precip even when we have humidity? ALSO: still need to decide on what to replace
-##    ice-off with... Do we want March precip/snow AND temperature and do another interaction term?
+## PNA data from Heather
 
 ## get necessary packages
 library("ggplot2")
@@ -14,6 +13,8 @@ nao <- readRDS("../data/naoseasonal.rds") # trimonth subsets for a whole year; a
 soistand <- readRDS("../data/soi_stand.rds") # monthly; all colnames uppercase
 pdo <- readRDS("../data/pdo.rds") # monthly, and annual mean: all colnames lowercase
 temp <- readRDS("../data/temperaturedata.rds")# Year, Month, Superstation...
+pna <- read.csv("../data/dataforallteleconectionsuptoFeb2015.csv") # file from Heather 19th Jul 2016
+emi <- readRDS("../data/emi.rds") # file from Heather 19th Jul 2016
 
 ## get CO2 flux estimates (alter calculation arguments in co2_scenarios.R)
 fluxes <- readRDS("../data/private/params-flux.rds")
@@ -113,6 +114,9 @@ regvars <- merge(regvars, pdostack) # 1264
 regvars <- merge(regvars, soistack) # 1264
 regvars <- merge(regvars, marchtemp) # 1264
 regvars <- merge(regvars, snowtotal) # 1264
+regvars <- merge(regvars, pna[,c('year', 'month','PNA')], by.x = c('Year', 'Month'),
+                 by.y = c('year','month'))
+regvars <- merge(regvars, emi[,c('Year','Month','EMI')])
 
 vardiff <- regvars$Date[regvars$Date %in% fluxes$Date == FALSE]
 fluxdiff <- fluxes$Date[fluxes$Date %in% regvars$Date == FALSE]
