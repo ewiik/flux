@@ -18,10 +18,11 @@ regvars <- readRDS("../data/private/regvars.rds")
 fluxes <- readRDS("../data/private/params-flux.rds")
 
 ## Load in gam models
-co2mod <- readRDS("../data/private/co2mod.rds")
-egmod.red2 <- readRDS("../data/private/egmodred2.rds")
 co2modnull <- readRDS("../data/private/co2modnull.rds")
+co2mod <- readRDS("../data/private/co2mod.rds")
 
+egmod.red2 <- readRDS("../data/private/egmodred2.rds")
+egmodSPEI <- readRDS("../data/private/egmodred2.rds")
 source("../functions/geom_rug3.R")
 ## change to match what was used to create the models
 regvarf <- regvars
@@ -376,7 +377,7 @@ chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, c
                                                                                   ifelse(Lake=='L','Last Mountain',
                                                                                          'Crooked')))))))) +
   papertheme + 
-  annotate("rect", xmin=chlquants[1], xmax=chlquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60', fill='gray60') +
+  annotate("rect", xmin=chlquants[1], xmax=chlquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
   geom_line() + 
   #geom_text(data = labdatchl, aes(label = label, x = x, y = y, size = 5),
   #          show.legend = FALSE, inherit.aes = FALSE) +
