@@ -17,7 +17,13 @@ library("ggplot2")
 if (!file.exists("../data/private/regvars.rds")) {
   source("../scripts/regression_routines.R")
 }
+weathers <- readRDS('../data/weathers.rds')
+
+if (!file.exists("../data/weathers.rds")) {
+  source("../scripts/climate-weather-modeling.R")
+}
 regvars <- readRDS("../data/private/regvars.rds")
+regvars <- merge(regvars, weathers)
 regvarf <- regvars
 regvarf <- transform(regvarf, Year = as.factor(Year)) # make Year into factor for re
 
@@ -108,6 +114,30 @@ sink("../docs/private/egmodred2summary.txt")
 egmodred2sum
 sink()
 }
+# 4. model that uses lagged SOI and PDO, and includes SPEI (see climate-weather-modeling.R)
+egmodlagged <- gam(pH_surface ~
+                   s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1,k=5) +
+                   s(GPP_h) +
+                   s(log10(TDN_ug_L)) +
+                   s(log10(DOC_mg_L)) +
+                   s(Oxygen_ppm) +
+                   s(SPEI02) +
+                   te(PDOmean, SOImean) + # tested this and we need interaction
+                   s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator
+                 data = regvarf2,
+                 select = TRUE, method = "REML", family = scat(),
+                 na.action = na.exclude,
+                 control = gam.control(nthreads = 3, trace = TRUE,
+                                       newton = list(maxHalf = 60)))
+
+egmodlaggedti <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) + ti(PDOmean) + ti(SOImean) + ti(PDOmean, SOImean))
+egmodlaggedtimarg <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) + ti(PDOmean) + ti(SOImean))
+anova(egmodlaggedti, egmodlaggedtimarg, test = "LRT")
+
+egmodlaggedsimp <- update(egmodlagged, . ~ . -s(GPP_h) - s((log10(DOC_mg_L))))
+egmodlaggedsimp2 <- update(egmodlagged, . ~ . -s(GPP_h) - s((log10(DOC_mg_L))) - s(SPEI02))
+summary(egmodlaggedsimp)
+
 ## testing to makes sure we really want SOI and PDO as te()
 ##  however couldn't get nointer to stabilise unless family was set to gaussian so
 ##      did this in order to compare.
