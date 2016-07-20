@@ -1,5 +1,6 @@
 ## honing in on appropriate inclusion of climate in the models
 ## also calculating the evaporative balance by month using the spei index
+##    http://sac.csic.es/spei/database.html
 
 ## read in data and merge
 regvars <- readRDS("../data/private/regvars.rds")
@@ -10,6 +11,14 @@ soi <- readRDS("../data/soi_stand.rds") # monthly; all colnames uppercase
 pdo <- readRDS("../data/pdo.rds") # monthly, and annual mean: all colnames lowercase
 precip <- readRDS("../data/precip.rds")
 airtemp <- readRDS("../data/temperaturedata.rds")
+
+speireg <- read.csv("../data/spei-regina.csv")
+speicrook <- read.csv("../data/spei-crooked.csv")
+speidief <- read.csv("../data/spei-diefenbaker.csv")
+speikat <- read.csv("../data/spei-katepwa.csv")
+speilast <- read.csv("../data/spei-lastmountain.csv")
+speipas <- read.csv("../data/spei-pasqua.csv")
+speibuff <- read.csv("../data/spei-buffalopound.csv")
 
 ## load packages
 library('zoo')
@@ -162,8 +171,48 @@ weathers <- merge(preciptotal, airtemp)
 weathers <- weathers[order(weathers$Year, weathers$Month),]
 weathers$evtrans <- thornthwaite(weathers$Precipmm, lat=51.0) #approximate latitude
 # monthly potential evapotranspiration (mm)
-testing <- spei(weathers$Precipmm-weathers$evtrans, 1)
-  
+speilakes <- spei(weathers$Precipmm-weathers$evtrans, 1)
+## FIXME: this does not work for some reason and August is just NA (some other months
+##    also depending on what lag and kernel I use....)
+## Instead let's use spei available from website... http://sac.csic.es/spei/database.html
+##    with Regina's coordinates
+
+speireg$Month <- rep(1:12, times=nrow(speireg)/12)
+speireg$Year <- rep(1901:2014, each=12) # select lags one and two
+speireg$Lake <- rep("WW") # select lags one and two
+speicrook$Month <- rep(1:12, times=nrow(speicrook)/12)
+speicrook$Year <- rep(1901:2014, each=12) # select lags one and two
+speicrook$Lake <- rep("C") # select lags one and two
+speidief$Month <- rep(1:12, times=nrow(speidief)/12)
+speidief$Year <- rep(1901:2014, each=12) # select lags one and two
+speidief$Lake <- rep("D") # select lags one and two
+speikat$Month <- rep(1:12, times=nrow(speikat)/12)
+speikat$Year <- rep(1901:2014, each=12) # select lags one and two
+speikat$Lake <- rep("K") # select lags one and two
+speilast$Month <- rep(1:12, times=nrow(speilast)/12)
+speilast$Year <- rep(1901:2014, each=12) # select lags one and two
+speilast$Lake <- rep("L") # select lags one and two
+speipas$Month <- rep(1:12, times=nrow(speipas)/12)
+speipas$Year <- rep(1901:2014, each=12) # select lags one and two
+speipas$Lake <- rep("P") # select lags one and two
+speibuff$Month <- rep(1:12, times=nrow(speibuff)/12)
+speibuff$Year <- rep(1901:2014, each=12) # select lags one and two
+speibuff$Lake <- rep("B") # select lags one and two
+
+speiall <- rbind(speireg, speibuff, speipas, speilast, speidief, speikat, speicrook)
+speisub <- subset(speiall, Year >= 1994, select = c("SPEI01", "SPEI02", "Year", "Month", "Lake"))
+
+weathers <- merge(weathers, speisub)
+weathers <- merge(weathers, allmeans[,c("YearApplied","MonthApplied","SOImean","PDOmean")], 
+                  by.x = c("Year", "Month"), 
+                  by.y = c("YearApplied", "MonthApplied"))
+weathers <- weathers[order(weathers$Year, weathers$Month),]
+
+saveRDS(weathers, "../data/weathers.rds")
+
+alldat <- merge(alldat, weathers)
+
+
 ## ===============================================================================================
 ## view some data
 ## ===============================================================================================
@@ -188,18 +237,26 @@ condmod <- gam(Conductivity ~
                na.action = na.exclude,
                control = gam.control(nthreads = 3, trace = TRUE, 
                                      newton = list(maxHalf = 60)))
-condmodlag <- gam(Conductivity ~
-                 ti(SOImean) + ti(PDOmean) +
-                 ti(PDOmean, SOImean) +
+condmodlag <- gam(Conductivity ~ # ti model showed interaction required
+                 te(SOImean, PDOmean) +
+                 s(SPEI01, k=4) +
                  s(Lake, bs = "re"), 
                data = alldat,
                select = TRUE, method = "REML", family = scat(),
                na.action = na.exclude,
                control = gam.control(nthreads = 3, trace = TRUE, 
                                      newton = list(maxHalf = 60)))
+condmodlagpna <- gam(Conductivity ~ # ti model showed interaction required
+                    s(PNA, k=4) +
+                    s(SPEI01, k=4) +
+                    s(Lake, bs = "re"), 
+                  data = alldat,
+                  select = TRUE, method = "REML", family = scat(),
+                  na.action = na.exclude,
+                  control = gam.control(nthreads = 3, trace = TRUE, 
+                                        newton = list(maxHalf = 60)))
 condmodplus <- gam(Conductivity ~
-                     ti(SOImean) + ti(PDOmean) +
-                     ti(PDOmean, SOImean) +
+                     te(SOImean, PDOmean) +
                      s(Chl_a_ug_L) + # logging here didn't seem to improve resids
                      s(AirTempMonthly) +
                      s(Lake, bs = "re"), 
@@ -210,8 +267,17 @@ condmodplus <- gam(Conductivity ~
                                          newton = list(maxHalf = 60)))
 
 dicmod <- gam(TIC ~
-                ti(SOImean) + ti(PDOmean) +
-                ti(PDOmean, SOImean) +
+                te(SOImean, PDOmean) + # ti model showed interaction required
+                s(SPEI01, k=4) +
+                s(Lake, bs = "re"), 
+              data = alldat,
+              select = TRUE, method = "REML", family = scat(),
+              na.action = na.exclude,
+              control = gam.control(nthreads = 3, trace = TRUE, 
+                                    newton = list(maxHalf = 60)))
+phmod <- gam(pH_surface ~
+                te(SOImean, PDOmean) + # ti model showed interaction required
+                s(SPEI01, k=4) +
                 s(Lake, bs = "re"), 
               data = alldat,
               select = TRUE, method = "REML", family = scat(),
