@@ -129,7 +129,17 @@ egmodlagged <- gam(pH_surface ~
                  na.action = na.exclude,
                  control = gam.control(nthreads = 3, trace = TRUE,
                                        newton = list(maxHalf = 60)))
-
+## oxygen drops out when lag induced.... can interactive PDO and SOI predict oxygen?
+oxygam <- gam(Oxygen_ppm ~ 
+                te(PDOmean, SOImean) + 
+                s(Lake, Year, bs="re"), 
+              data = regvarf2, select = TRUE, method="REML", family=scat(), 
+              na.action=na.exclude, control=gam.control(nthreads = 3, trace=TRUE, 
+                                                        newton = list(maxHalf=60)))
+# yes.... not the best model fit but 32.6% var expl.
+egmodox <- update(egmodlagged, .~. - te(PDOmean, SOImean))
+egmodinter <- update(egmodlagged, .~. - s(Oxygen_ppm))
+AIC(egmodox, egmodinter)
 #egmodlaggedti <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) + ti(PDOmean) + ti(SOImean) 
                      #   + ti(PDOmean, SOImean))
 #egmodlaggedtimarg <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) 
@@ -137,10 +147,8 @@ egmodlagged <- gam(pH_surface ~
 #anova(egmodlaggedti, egmodlaggedtimarg, test = "LRT")
 
 egmodlaggedsimp <- update(egmodlagged, . ~ . -s(GPP_h) - s(log10(DOC_mg_L)))
-egmodlaggedsimp2 <- update(egmodlagged, . ~ . -s(GPP_h) - s(log10(DOC_mg_L)) - s(SPEI02))
 summary(egmodlaggedsimp)
 
-egmodredalt <- update(egmodred2, . ~ . -te(PDO, SOI) + te(PDOmean, SOImean))
 
 ## testing to makes sure we really want SOI and PDO as te()
 ##  however couldn't get nointer to stabilise unless family was set to gaussian so
