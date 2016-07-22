@@ -22,8 +22,10 @@ co2modnull <- readRDS("../data/private/co2modnull.rds")
 co2mod <- readRDS("../data/private/co2mod.rds")
 
 egmod.red2 <- readRDS("../data/private/egmodred2.rds")
-egmodSPEI <- readRDS("../data/private/egmodred2.rds")
+#egmodSPEI <- readRDS("../data/private/egmodred2.rds")
+
 source("../functions/geom_rug3.R")
+
 ## change to match what was used to create the models
 regvarf <- regvars
 regvarf <- transform(regvarf, Year = as.factor(Year)) # make Year into factor for re
@@ -39,8 +41,8 @@ lakesub <- fluxes[,c("Lake","Temperature", "Conductivity", "pH", "meanWindMS", "
                      "TICumol", "Pressure", "pco2atm")]
 
 ## what is mean pH? perhaps add a dotted line at this point in the plots
-meanpH <- with(regvarf2[which(regvarf2$pH_surface >7 & regvarf$pH_surface < 11.1),], 
-               mean(pH_surface, na.rm=TRUE)) # some outliers in there
+meanpH <- with(regvarf2, 
+               mean(pH_surface, na.rm=TRUE)) 
 meanco2 <- with(regvarf2, 
                mean(co2Flux, na.rm=TRUE))
 meanO2 <- with(regvarf2, 
@@ -51,6 +53,22 @@ meanTDN <- with(regvarf2,
                 mean(TDN_ug_L, na.rm=TRUE))
 meanGPP <- with(regvarf2, 
                 mean(GPP_h, na.rm=TRUE))
+
+## limit prediction data frame to observed intervals
+regsplit <- with(regvarf2, split(regvarf2, list(Lake)))
+regsplit <- regsplit[sapply(regsplit, function(x) dim(x)[1]) > 0] #remove empties for lakes R, E etc.
+minmax <- function(df, colnames) {
+  allmin <- as.data.frame(do.call(cbind, lapply(df[,colnames], min, na.rm = TRUE)))
+  names(allmin) <- sapply(names(allmin), function(x) paste("min",x, sep = ""))
+  allmax <- as.data.frame(do.call(cbind, lapply(df[,colnames], max, na.rm = TRUE)))
+  names(allmax) <- sapply(names(allmax), function(x) paste("max",x, sep = ""))
+  summ <- as.data.frame(cbind(allmin, allmax))
+  summ <- cbind(summ, data.frame(Lake = df$Lake[1]))
+  summ
+}
+minmaxes <- do.call(rbind, lapply(regsplit, minmax, colnames = c("GPP_h", "TDN_ug_L", "DOC_mg_L", 
+                                      "Oxygen_ppm", "pH_surface", "Chl_a_ug_L")))
+rownames(minmaxes) <- NULL
 
 ## create a theme to save linespace in plots
 papertheme <- theme_bw(base_size=18, base_family = 'Arial') +
@@ -90,6 +108,10 @@ co2.pdat <- with(co2.pdat, transform(co2.pdat, Fittedminus = Fitted - se.Fitted)
 shiftco2 <- attr(predict(co2mod, newdata = co2.pdat, type = "iterms"), "constant")
 co2.pdatnorm <- co2.pdat
 co2.pdatnorm <- with(co2.pdatnorm, transform(co2.pdatnorm, Fitted = Fitted + shiftco2))
+co2.pdatnorm <- merge(co2.pdatnorm, minmaxes)
+overs <- with(co2.pdatnorm, which(pH_surface < minpH_surface | pH_surface > maxpH_surface))
+co2.pdatnorm <- co2.pdatnorm[-overs,]
+
 labdatco2 <- data.frame(x = 7.5, y = meanco2 - 18, label = "mean flux")
 
 ## add quantiles
@@ -155,6 +177,9 @@ null.pdatnorm <- null.pdat
 null.pdatnorm <- with(null.pdatnorm, transform(null.pdatnorm, Fitted = Fitted + shiftnull, 
                                                Fittedplus = Fittedplus + shiftnull, 
                                                Fittedminus = Fittedminus + shiftnull))
+null.pdatnorm <- merge(null.pdatnorm, minmaxes)
+overs <- with(null.pdatnorm, which(pH_surface < minpH_surface | pH_surface > maxpH_surface))
+null.pdatnorm <- null.pdatnorm[-overs,]
 
 labdatco2 <- data.frame(x = 7.5, y = meanco2 - 18, label = "mean flux")
 
@@ -221,6 +246,10 @@ oxy.pdatnorm <- oxy.pdat
 oxy.pdatnorm <- with(oxy.pdatnorm, transform(oxy.pdatnorm, Fitted = Fitted + shiftoxy, 
                                              Fittedplus = Fittedplus + shiftoxy, 
                                              Fittedminus = Fittedminus + shiftoxy))
+oxy.pdatnorm <- merge(oxy.pdatnorm, minmaxes)
+overs <- with(oxy.pdatnorm, which(Oxygen_ppm < minOxygen_ppm | Oxygen_ppm > maxOxygen_ppm))
+oxy.pdatnorm <- oxy.pdatnorm[-overs,]
+
 labdatoxy <- data.frame(x = c(2.5, 11), y = c(meanpH + 0.03, 8.4), label = c("mean pH", 'mean oxygen'))
 
 oxyquants <- quantile(regvarf2$Oxygen_ppm, c(.05,.95), na.rm = TRUE)
@@ -270,6 +299,10 @@ GPP.pdatnorm <- GPP.pdat
 GPP.pdatnorm <- with(GPP.pdatnorm, transform(GPP.pdatnorm, Fitted = Fitted + shiftGPP, 
                                              Fittedplus = Fittedplus + shiftGPP, 
                                              Fittedminus = Fittedminus + shiftGPP))
+GPP.pdatnorm <- merge(GPP.pdatnorm, minmaxes)
+overs <- with(GPP.pdatnorm, which(GPP_h < minGPP_h | GPP_h > maxGPP_h))
+GPP.pdatnorm <- GPP.pdatnorm[-overs,]
+
 labdatGPP <- data.frame(x = 0, y = meanpH + 0.01, label = "mean pH")
 
 GPPplot <- ggplot(GPP.pdatnorm, aes(x = GPP_h, y = Fitted)) +
@@ -316,6 +349,10 @@ TDN.pdatnorm <- TDN.pdat
 TDN.pdatnorm <- with(TDN.pdatnorm, transform(TDN.pdatnorm, Fitted = Fitted + shiftTDN, 
                                              Fittedplus = Fittedplus + shiftTDN, 
                                              Fittedminus = Fittedminus + shiftTDN))
+TDN.pdatnorm <- merge(TDN.pdatnorm, minmaxes)
+overs <- with(TDN.pdatnorm, which(TDN_ug_L < minTDN_ug_L | TDN_ug_L > maxTDN_ug_L))
+TDN.pdatnorm <- TDN.pdatnorm[-overs,]
+
 labdatN <- data.frame(x = 3000, y = meanpH + 0.03, label = "mean pH")
 
 TDNquants <- quantile(regvarf2$TDN_ug_L, c(.05,.95), na.rm = TRUE)
@@ -358,6 +395,10 @@ chla.pdat <- cbind(chla.pdat, Fitted = rowSums(chla.pred[, whichCols]))
 shiftchl <- attr(predict(egmod.red2, newdata = chla.pdat, type = "iterms"), "constant")
 chl.pdatnorm <- chla.pdat
 chl.pdatnorm <- with(chl.pdatnorm, transform(chl.pdatnorm, Fitted = Fitted + shiftchl))
+chl.pdatnorm <- merge(chl.pdatnorm, minmaxes)
+overs <- with(chl.pdatnorm, which(Chl_a_ug_L < minChl_a_ug_L | Chl_a_ug_L > maxChl_a_ug_L))
+chl.pdatnorm <- chl.pdatnorm[-overs,]
+
 labdatchl <- data.frame(x = 100, y = meanpH + 0.04, label = "mean pH")
 
 chlquants <- quantile(regvarf2$Chl_a_ug_L, c(.05,.95), na.rm = TRUE)
@@ -685,3 +726,26 @@ boxgrid <- plot_grid(meltplot, Yearplot, ncol = 1, nrow=2,
                      rel_heights = c(3,1), labels = 'AUTO')
 ggsave("../docs/private/summaryfig.pdf", boxgrid, width=20, height=40, units = "cm")
 
+## ==================================================================================
+## Testing effect by time plots
+## ==================================================================================
+testing1 <- predict(egmod.red2, type = 'terms')
+testing <- as.data.frame(testing1)
+tosum <- grep("Chl", colnames(testing))
+chleffect <- rowSums(testing[,tosum], na.rm = TRUE)
+testing <- testing[,-tosum]
+testing$Chl <- chleffect
+names(testing) <- c("GPP", "TDN", "DOC", "Oxy", "PDO-SOI", 'LakeYear', 'Chl')
+testing$Date <- regvarf2$Date #is this ok? assuming order is preserved
+testing$Year <- regvarf2$Year
+testing$Lake <- regvarf2$Lake
+testing$DOY <- regvarf2$DOY
+ggplot(testing, aes(x = DOY, y = Chl, group=Lake, colour = Lake)) +
+  geom_point() +
+  theme_bw(base_size = 15) +
+  facet_wrap('Year') +  
+  #geom_text(data = labdatGPP, aes(label = label, x = x, y = y, size = 5), 
+  #         show.legend = FALSE) +
+  xlab(expression(paste('GPP ('~O[2]~h^{-1}*")"))) + ylab('pH')
+## could do relative influence of each term by time, or absolute... by month, year,
+##    Lake..... a lot of options
