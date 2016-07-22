@@ -160,6 +160,13 @@ airtemp <- subset(airtemp, Superstation == "regina", select = c(Year, Month, Tem
 airtemp <- airtemp[order(airtemp$Year, airtemp$Month),]
 rownames(airtemp) <- NULL #set new order for rows, otherwise in mixed order based on above command
 
+mycolSums <- function(df, cols) {
+  df <- as.data.frame(df)
+  subdf <- subset(df, select = cols)
+  sum <- colSums(subdf, na.rm = TRUE)
+  cbind(data.frame(Year = df['Year'][1,], df['Month'][1,], t(sum)))
+}
+
 precipsplit <- with(precip, split(precip, list(Year, Month), drop = TRUE))
 preciptotal <- do.call(rbind, lapply(precipsplit, mycolSums, 
                                      cols = "Total Precip (mm)")) # assumes 1:10 ratio water:snow
@@ -171,7 +178,7 @@ weathers <- merge(preciptotal, airtemp)
 weathers <- weathers[order(weathers$Year, weathers$Month),]
 weathers$evtrans <- thornthwaite(weathers$Precipmm, lat=51.0) #approximate latitude
 # monthly potential evapotranspiration (mm)
-speilakes <- spei(weathers$Precipmm-weathers$evtrans, 1)
+#speilakes <- spei(weathers$Precipmm-weathers$evtrans, 1)
 ## FIXME: this does not work for some reason and August is just NA (some other months
 ##    also depending on what lag and kernel I use....)
 ## Instead let's use spei available from website... http://sac.csic.es/spei/database.html

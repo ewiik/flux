@@ -130,13 +130,17 @@ egmodlagged <- gam(pH_surface ~
                  control = gam.control(nthreads = 3, trace = TRUE,
                                        newton = list(maxHalf = 60)))
 
-egmodlaggedti <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) + ti(PDOmean) + ti(SOImean) + ti(PDOmean, SOImean))
-egmodlaggedtimarg <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) + ti(PDOmean) + ti(SOImean))
-anova(egmodlaggedti, egmodlaggedtimarg, test = "LRT")
+#egmodlaggedti <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) + ti(PDOmean) + ti(SOImean) 
+                     #   + ti(PDOmean, SOImean))
+#egmodlaggedtimarg <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) 
+                     #       + ti(PDOmean) + ti(SOImean))
+#anova(egmodlaggedti, egmodlaggedtimarg, test = "LRT")
 
-egmodlaggedsimp <- update(egmodlagged, . ~ . -s(GPP_h) - s((log10(DOC_mg_L))))
-egmodlaggedsimp2 <- update(egmodlagged, . ~ . -s(GPP_h) - s((log10(DOC_mg_L))) - s(SPEI02))
+egmodlaggedsimp <- update(egmodlagged, . ~ . -s(GPP_h) - s(log10(DOC_mg_L)))
+egmodlaggedsimp2 <- update(egmodlagged, . ~ . -s(GPP_h) - s(log10(DOC_mg_L)) - s(SPEI02))
 summary(egmodlaggedsimp)
+
+egmodredalt <- update(egmodred2, . ~ . -te(PDO, SOI) + te(PDOmean, SOImean))
 
 ## testing to makes sure we really want SOI and PDO as te()
 ##  however couldn't get nointer to stabilise unless family was set to gaussian so
