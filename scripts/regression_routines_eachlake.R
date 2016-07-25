@@ -17,12 +17,13 @@ library("ggplot2")
 if (!file.exists("../data/private/regvars.rds")) {
   source("../scripts/regression_routines.R")
 }
-weathers <- readRDS('../data/weathers.rds')
+regvars <- readRDS("../data/private/regvars.rds")
 
 if (!file.exists("../data/weathers.rds")) {
   source("../scripts/climate-weather-modeling.R")
 }
-regvars <- readRDS("../data/private/regvars.rds")
+weathers <- readRDS('../data/weathers.rds')
+
 regvars <- merge(regvars, weathers)
 regvarf <- regvars
 regvarf <- transform(regvarf, Year = as.factor(Year)) # make Year into factor for re
@@ -129,6 +130,13 @@ egmodlagged <- gam(pH_surface ~
                  na.action = na.exclude,
                  control = gam.control(nthreads = 3, trace = TRUE,
                                        newton = list(maxHalf = 60)))
+#egmodlaggedti <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) + ti(PDOmean) + ti(SOImean) 
+#   + ti(PDOmean, SOImean))
+#egmodlaggedtimarg <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) 
+#       + ti(PDOmean) + ti(SOImean))
+#anova(egmodlaggedti, egmodlaggedtimarg, test = "LRT")
+saveRDS(egmodlagged,"../data/private/egmodlagged.rds")
+
 ## oxygen drops out when lag induced.... can interactive PDO and SOI predict oxygen?
 oxygam <- gam(Oxygen_ppm ~ 
                 te(PDOmean, SOImean) + 
@@ -139,15 +147,15 @@ oxygam <- gam(Oxygen_ppm ~
 # yes.... not the best model fit but 32.6% var expl.
 egmodox <- update(egmodlagged, .~. - te(PDOmean, SOImean))
 egmodinter <- update(egmodlagged, .~. - s(Oxygen_ppm))
-AIC(egmodox, egmodinter)
-#egmodlaggedti <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) + ti(PDOmean) + ti(SOImean) 
-                     #   + ti(PDOmean, SOImean))
-#egmodlaggedtimarg <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) 
-                     #       + ti(PDOmean) + ti(SOImean))
-#anova(egmodlaggedti, egmodlaggedtimarg, test = "LRT")
+AIC(egmodox, egmodinter) # looks like climate better than oxy
 
-egmodlaggedsimp <- update(egmodlagged, . ~ . -s(GPP_h) - s(log10(DOC_mg_L)))
+saveRDS(oxygam,"../data/private/oxygam.rds")
+saveRDS(egmodox,"../data/private/egmodox.rds")
+saveRDS(egmodinter,"../data/private/egmodinter.rds")
+
+egmodlaggedsimp <- update(egmodinter, . ~ . -s(GPP_h) - s(log10(DOC_mg_L)))
 summary(egmodlaggedsimp)
+saveRDS(egmodlaggedsimp,"../data/private/egmodlaggedsimp.rds")
 
 
 ## testing to makes sure we really want SOI and PDO as te()
