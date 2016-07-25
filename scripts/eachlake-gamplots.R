@@ -16,17 +16,22 @@ theme_set(theme_bw())
 ## load in data
 regvars <- readRDS("../data/private/regvars.rds")
 fluxes <- readRDS("../data/private/params-flux.rds")
+if (!file.exists("../data/weathers.rds")) {
+  source("../scripts/climate-weather-modeling.R")
+}
+weathers <- readRDS('../data/weathers.rds')
 
 ## Load in gam models
 co2modnull <- readRDS("../data/private/co2modnull.rds")
 co2mod <- readRDS("../data/private/co2mod.rds")
 
 egmod.red2 <- readRDS("../data/private/egmodred2.rds")
-#egmodSPEI <- readRDS("../data/private/egmodred2.rds")
+egmodlaggedsimp <- readRDS("../data/private/egmodlaggedsimp.rds")
 
 source("../functions/geom_rug3.R")
 
 ## change to match what was used to create the models
+regvars <- merge(regvars, weathers)
 regvarf <- regvars
 regvarf <- transform(regvarf, Year = as.factor(Year)) # make Year into factor for re
 regvarf2 <- regvarf
@@ -53,7 +58,8 @@ meanTDN <- with(regvarf2,
                 mean(TDN_ug_L, na.rm=TRUE))
 meanGPP <- with(regvarf2, 
                 mean(GPP_h, na.rm=TRUE))
-
+meanspei <- with(regvarf2, 
+                 mean(SPEI02, na.rm=TRUE))
 ## limit prediction data frame to observed intervals
 regsplit <- with(regvarf2, split(regvarf2, list(Lake)))
 regsplit <- regsplit[sapply(regsplit, function(x) dim(x)[1]) > 0] #remove empties for lakes R, E etc.
@@ -749,3 +755,4 @@ ggplot(testing, aes(x = DOY, y = Chl, group=Lake, colour = Lake)) +
   xlab(expression(paste('GPP ('~O[2]~h^{-1}*")"))) + ylab('pH')
 ## could do relative influence of each term by time, or absolute... by month, year,
 ##    Lake..... a lot of options
+
