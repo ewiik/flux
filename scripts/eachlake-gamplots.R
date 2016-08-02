@@ -639,7 +639,7 @@ testing <- gam(data=regvars[regvars$Month > 4 & regvars$Month < 9,], pH_surface 
                  s(DOY) + s(DOY, by=Lake, m=1) +
                  s(Lake, bs='re'), family='gaussian', na.action=na.exclude, select=TRUE)
 N <- 500
-varWant <- "Month"
+varWant <- "DOY"
 lakeXbar <- with(regvars, do.call(rbind, lapply(split(regvars[, varWant], droplevels(Lake)), 
                                                 mean, na.rm = TRUE)))
 lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
@@ -652,7 +652,7 @@ Year.pdat <- with(droplevels(regvars),
                              Lake = rep(levels(Lake), each = N)
                   ))
 Year.pdat <- merge(Year.pdat, lakeXbar)
-names(Year.pdat)[which(names(Year.pdat)=='X_data')] <- 'Month'
+names(Year.pdat)[which(names(Year.pdat)=='X_data')] <- 'DOY'
 
 toofar <- c(which(Year.pdat$Lake == 'WW' & Year.pdat$Year < 1996),
             which(Year.pdat$Lake == 'P' & Year.pdat$Year < 2004))
@@ -700,19 +700,19 @@ Yearplot <- ggplot(Year.pdatnorm,
   #guides(colour=guide_legend(nrow=1,byrow=TRUE))+
   scale_x_continuous(breaks=c(1995, 2000,2005, 2010, 2014), labels = c(1995, 2000,2005, 2010, 2014))
 
-## general lake diffs in variables
-melted <- melt(lakesub, id = "Lake")
+## general lake diffs in variables -- remove those deriving from same weather station
+melted <- melt(lakesub[,c('Lake', 'Temperature', 'Conductivity', 'pH', 'SalCalc', 'TICumol')], id = "Lake")
 
 # create a list with strip labels
 varnames <- list(
-  'Temperature'=expression(paste("Temperature ("~degree*"C)")) ,
+  'Temperature'=expression(paste("Water temperature ("~degree*"C)")) ,
   'Conductivity'= expression(paste("Conductivity ("*mu*"S"~"cm"^{-1}*")")),
   'pH'="pH",
-  'meanWindMS'= expression(paste("Mean Wind (m"~"s"^{-1}*")")),
+  #'meanWindMS'= expression(paste("Mean Wind (m"~"s"^{-1}*")")),
   'SalCalc' = "Salinity (ppt)",
-  'TICumol' = expression(paste("DIC ("~mu*"mol"~"L"^{-1}*")")),
-  'Pressure' = 'Pressure (kPa)',
-  'pco2atm' = expression(paste("Air"~italic(p)*"CO"[2]~"(ppm)"))
+  'TICumol' = expression(paste("DIC ("~mu*"mol"~"L"^{-1}*")"))#,
+  #'Pressure' = 'Pressure (kPa)',
+  #'pco2atm' = expression(paste("Air"~italic(p)*"CO"[2]~"(ppm)"))
 )
 
 # Create a 'labeller' function, and push it into facet_grid call:
@@ -729,7 +729,7 @@ meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
   theme(axis.title = element_blank())
 
 boxgrid <- plot_grid(meltplot, Yearplot, ncol = 1, nrow=2, 
-                     rel_heights = c(3,1), labels = 'AUTO')
+                     rel_heights = c(3,1.5), labels = 'AUTO')
 ggsave("../docs/private/summaryfig.pdf", boxgrid, width=20, height=40, units = "cm")
 
 ## ==================================================================================
