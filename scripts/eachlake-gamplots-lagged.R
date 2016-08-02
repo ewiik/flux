@@ -13,6 +13,8 @@ library('grid')
 ## Set defaults
 theme_set(theme_bw())
 
+source("../functions/geom_rug3.R")
+
 ## load in data
 regvars <- readRDS("../data/private/regvars.rds")
 fluxes <- readRDS("../data/private/params-flux.rds")
@@ -115,6 +117,8 @@ speiplot <- ggplot(spei.pdatnorm, aes(x = SPEI02, y = Fitted)) +
   geom_line() +
   geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
               alpha = 0.25) +  
+  geom_rug3(aes(x=SPEI02), data = regvarf2, stat = "identity", position = "identity", 
+            sides = "b", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
   #geom_text(data = labdatoxy, aes(label = label, x = x, y = y, size = 5), 
   #         show.legend = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
@@ -228,11 +232,13 @@ chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, c
   papertheme + 
   annotate("rect", xmin=chlquants[1], xmax=chlquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
   geom_line() + 
+  geom_rug3(aes(x=Chl_a_ug_L), data = regvarf2, stat = "identity", position = "identity", 
+            sides = "b", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
   #geom_text(data = labdatchl, aes(label = label, x = x, y = y, size = 5),
   #          show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   geom_vline(xintercept = meanchl, linetype='dotted') +
-  scale_linetype_manual(name='Lake', values = c("solid", "solid","dotdash", "solid", "solid", 
+  scale_linetype_manual(name='Lake', values = c("solid", "solid","solid", "solid", "solid", 
                                                 "longdash", "longdash")) +
   scale_colour_manual(name="Lake", values = c("#5e3c99", "#5e3c99","#5e3c99", "#b2abd2", "#5e3c99",
                                               "#b2abd2", "#e66101"))+
@@ -425,4 +431,105 @@ vararrange <- plot_grid(splineplots, climgam, ncol = 2, labels=c('', "D"))
 ggsave("../docs/private/ph-allgams-lagged.pdf", allgam, scale=0.77) #width=28, height=18, units = 'cm'
 ggsave("../docs/private/climgam-lagged.pdf", climgam, scale=0.77, width = 7.5)
 ggsave("../docs/private/paper-gams-lagged.pdf", vararrange, scale=1.2, width = 12)
+
+## time plots
+## ==================================================================================
+## Testing effect by time plots
+## ==================================================================================
+testing1 <- predict(egmodlaggedsimp, type = 'terms')
+testing <- as.data.frame(testing1)
+tosum <- grep("Chl", colnames(testing))
+chleffect <- rowSums(testing[,tosum], na.rm = TRUE)
+testing <- testing[,-tosum]
+testing$Chl <- chleffect
+names(testing) <- c("TDN", "SPEI", "PDO-SOI", 'LakeYear', 'Chl')
+testing$Date <- regvarf2$Date #is this ok? assuming order is preserved
+testing$Year <- regvarf2$Year
+testing$Lake <- regvarf2$Lake
+testing$DOY <- regvarf2$DOY
+testing$Month <- regvarf2$Month
+
+ggplot(testing, aes(x=Year, y=Chl, group=Year)) +
+  geom_boxplot() +
+  geom_smooth(method="gam", se=FALSE, na.rm = TRUE, aes(group=Lake, col=Lake)) 
+
+ggplot(testing, aes(x=Year, y=SPEI, group=Year)) +
+  geom_boxplot() +
+  geom_smooth(method="gam", se=FALSE, na.rm = TRUE, aes(group=Lake, col=Lake)) 
+
+
+ggplot(testing, aes(x=Year, y=TDN, group=Year)) +
+  geom_boxplot() +
+  geom_smooth(method="gam", se=FALSE, na.rm = TRUE, aes(group=Lake, col=Lake)) 
+
+ggplot(testing, aes(x=Year, y=`PDO-SOI`, group=Year)) +
+  geom_boxplot() +
+  geom_smooth(method="gam", se=FALSE, na.rm = TRUE, aes(group=Lake, col=Lake)) 
+
+ggplot(testing, aes(x=Year, y=LakeYear, group=Year)) +
+  geom_boxplot() 
+
+## messy... so much variability and outliers.. perhaps do a mean effect by lake and month?
+testsplit <- with(testing, split(testing, list(Lake, Year, Month)))
+testsplit <- testsplit[sapply(testsplit, function(x) dim(x)[1]) > 0] #remove empties for lakes R, E etc.
+mycolMeans <- function(df, cols) {
+  df <- as.data.frame(df)
+  subdf <- subset(df, select = cols)
+  means <- colMeans(subdf, na.rm = TRUE)
+  cbind(data.frame(Lake = df['Lake'][1,], Year = df['Year'][1,],Month = df['Month'][1,]), t(means))
+}
+
+varWant = c("TDN", "SPEI", "LakeYear", "Chl", "PDO-SOI")
+testmeans <- do.call(rbind, lapply(testsplit, mycolMeans, cols=varWant))
+rownames(testmeans) <- NULL
+
+tdns <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
+               aes(x=Month, y=TDN, group = Month, fill=Lake, alpha=0.2)) +
+  annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
+  geom_boxplot(show.legend = FALSE) +
+  facet_wrap('Lake', nrow=2) +
+  ylim(c(-0.25, 0.5))+
+  theme(axis.title.x=element_blank())
+chls <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
+               aes(x=Month, y=Chl, group = Month, fill=Lake, alpha=0.2)) +
+  annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
+  geom_boxplot(show.legend = FALSE) +
+  facet_wrap('Lake', nrow=2) +
+  ylim(c(-0.25, 0.5))+
+  theme(axis.title.x=element_blank())
+speis <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
+                aes(x=Month, y=SPEI, group = Month, alpha=0.2)) + #fill=Lake, 
+  annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
+  geom_boxplot(show.legend = FALSE) +
+  #facet_wrap('Lake', nrow=2) +
+  ylim(c(-0.25, 0.5))+
+  theme(axis.title.x=element_blank())
+climate <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
+                  aes(x=Month, y=`PDO-SOI`, group = Month, alpha=0.2)) + #fill=Lake, 
+  annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
+  geom_boxplot(show.legend = FALSE) +
+  #facet_wrap('Lake', nrow=2) +
+  ylim(c(-0.25, 0.5))+
+  theme(axis.title.x=element_blank())
+lakeyear <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
+                   aes(x=Month, y=LakeYear, group = Month, fill=Lake, alpha=0.2)) +
+  annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
+  geom_boxplot(show.legend = FALSE) +
+  facet_wrap('Lake', nrow=2)+
+  ylim(c(-0.25, 0.5)) +
+  theme(axis.title.x=element_blank())
+alltimers <- plot_grid(tdns, chls, speis, climate, ncol = 2, rel_heights= c(2, 1), labels='AUTO')
+
+ggsave("../docs/private/alltimers.pdf", alltimers, width=20, height=15, units="cm")
+## try melting
+testmelt <- melt(testmeans, id.vars = c('Lake', 'Year', 'Month'), variable.name = "Variable")
+
+ggplot(testmelt, aes(x=factor(Month), y= value, fill=Lake)) +
+  geom_boxplot(aes(y=value, x=factor(Month))) +
+  facet_wrap('Variable')
+
+ggplot(testmelt, aes(x=factor(Month), y= value)) +
+  geom_boxplot(aes(y=value, x=factor(Month))) +
+  geom_smooth(method="gam",  se=FALSE, na.rm = TRUE, aes(group=Lake, col=Lake))  +
+  facet_wrap('Variable')
 
