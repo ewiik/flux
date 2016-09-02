@@ -294,3 +294,12 @@ phmod <- gam(pH_surface ~
 
 plot(condmodlag, select = 3, scheme = 2)
 with(alldat, text(x=PDOmean, y=SOImean, labels = Year))
+
+fluxdicmod <- gam(co2Flux ~
+               s(TIC) +
+               s(TIC, by=Lake, m=1), 
+             data = alldat,
+             select = TRUE, method = "REML", family = scat(),
+             na.action = na.exclude,
+             control = gam.control(nthreads = 3, trace = TRUE, 
+                                   newton = list(maxHalf = 60)))
