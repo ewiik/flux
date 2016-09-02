@@ -445,7 +445,8 @@ testing$Chl <- chleffect
 names(testing) <- c("TDN", "SPEI", "PDO-SOI", 'LakeYear', 'Chl')
 testing$Date <- regvarf2$Date #is this ok? assuming order is preserved
 testing$Year <- regvarf2$Year
-testing$Lake <- regvarf2$Lake
+testing$Lake <- as.character(regvarf2$Lake)
+testing$Lake[which(testing$Lake == "WW")] <- "W"
 testing$DOY <- regvarf2$DOY
 testing$Month <- regvarf2$Month
 
@@ -484,39 +485,43 @@ testmeans <- do.call(rbind, lapply(testsplit, mycolMeans, cols=varWant))
 rownames(testmeans) <- NULL
 
 tdns <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
-               aes(x=Month, y=TDN, group = Month, fill=Lake, alpha=0.2)) +
+               aes(x=Month, y=TDN, group = Month)) + #fill=Lake, alpha=0.2
   annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
   geom_boxplot(show.legend = FALSE) +
   facet_wrap('Lake', nrow=2) +
-  ylim(c(-0.25, 0.5))+
+  #ylim(c(-0.25, 0.5))+
+  ylab("TDN effect") +
   theme(axis.title.x=element_blank())
 chls <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
-               aes(x=Month, y=Chl, group = Month, fill=Lake, alpha=0.2)) +
+               aes(x=Month, y=Chl, group = Month)) + #, fill=Lake, alpha=0.2
   annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
   geom_boxplot(show.legend = FALSE) +
   facet_wrap('Lake', nrow=2) +
-  ylim(c(-0.25, 0.5))+
+  #ylim(c(-0.25, 0.5))+
+  ylab(expression(paste("Chl"~italic('a')~"effect"))) +
   theme(axis.title.x=element_blank())
 speis <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
                 aes(x=Month, y=SPEI, group = Month, alpha=0.2)) + #fill=Lake, 
   annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
   geom_boxplot(show.legend = FALSE) +
   #facet_wrap('Lake', nrow=2) +
-  ylim(c(-0.25, 0.5))+
+  #ylim(c(-0.25, 0.5))+
+  ylab("SPEI effect") +
   theme(axis.title.x=element_blank())
 climate <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
                   aes(x=Month, y=`PDO-SOI`, group = Month, alpha=0.2)) + #fill=Lake, 
   annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
   geom_boxplot(show.legend = FALSE) +
   #facet_wrap('Lake', nrow=2) +
-  ylim(c(-0.25, 0.5))+
+  #ylim(c(-0.25, 0.5))+
+  ylab("PDO*SOI effect") +
   theme(axis.title.x=element_blank())
 lakeyear <- ggplot(testmeans[testmeans$Month < 10 & testmeans$Month > 3,], 
                    aes(x=Month, y=LakeYear, group = Month, fill=Lake, alpha=0.2)) +
   annotate("rect", xmin=-Inf, xmax=Inf, ymin=-0.05, ymax=0.05, alpha=0.2, fill="grey60") +
   geom_boxplot(show.legend = FALSE) +
   facet_wrap('Lake', nrow=2)+
-  ylim(c(-0.25, 0.5)) +
+  #ylim(c(-0.25, 0.5)) +
   theme(axis.title.x=element_blank())
 alltimers <- plot_grid(tdns, chls, speis, climate, ncol = 2, rel_heights= c(2, 1), labels='AUTO')
 

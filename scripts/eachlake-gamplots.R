@@ -77,7 +77,7 @@ minmaxes <- do.call(rbind, lapply(regsplit, minmax, colnames = c("GPP_h", "TDN_u
 rownames(minmaxes) <- NULL
 
 ## create a theme to save linespace in plots
-papertheme <- theme_bw(base_size=18, base_family = 'Arial') +
+papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top')
   
 
@@ -138,7 +138,7 @@ co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted,
                                                     ifelse(Lake == 'B', 'Buffalo Pound', 
                                                            ifelse(Lake=='L','Last Mountain',
                                                                   'Crooked')))))))) +
-  papertheme +
+  papertheme + 
   annotate("rect", xmin=phquants[1], xmax=phquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
   geom_line() +
   #geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
@@ -154,7 +154,7 @@ co2plot <- ggplot(co2.pdatnorm, aes(x = pH_surface, y = Fitted,
   geom_rug3(aes(x=pH_surface, y=co2Flux), data = regvarf2, stat = "identity", position = "identity", 
            sides = "bl", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
   theme(legend.position='top') +
-  guides(colour=guide_legend(ncol=3,bycol =TRUE,title.position = 'left')) +
+  guides(colour=guide_legend(ncol=3, bycol =TRUE,title.position = 'left')) +
   xlab('pH') + ylab(expression(paste('CO'[2]*' (mmol m'^{-2}*d^{-1}*')')))
 
 ## oranges: #E6550D, #FD8D3C, blues: #A6BDDB, #67A9CF, #02818A
