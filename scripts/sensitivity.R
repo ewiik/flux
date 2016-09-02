@@ -19,9 +19,14 @@ library("mc2d")
 library("pse")
 library("fitdistrplus") # loads MASS too
 library("reshape2")
+library("extrafont")
 
 ## source the function we want to decompose
 source("../functions/gasExchangeSensitivity.R")
+
+## set default for plot
+papertheme <- theme_bw(base_size=18, base_family = 'Arial') +
+  theme(legend.position='top')
 
 ## source files with parameters
 regvars <- readRDS("../data/private/regvars.rds")
@@ -358,15 +363,18 @@ ggsave('../docs/private/prccplot.png', prccplot, width=8, height=4, units = 'in'
 
 ## general lake diffs in variables
 melted <- melt(lakesub, id = "Lake")
+melted$variable <- factor(melted$variable, levels = c("Temperature", "Conductivity", "pH", 
+                                                        "SalCalc", "TICumol", "meanWindMS", 
+                                                        "Pressure", "pco2atm"))
 
 # create a list with strip labels
 varnames <- list(
   'Temperature'=expression(paste("Temperature ("~degree*"C)")) ,
   'Conductivity'= expression(paste("Conductivity ("*mu*"S"~"cm"^{-1}*")")),
   'pH'="pH",
-  'meanWindMS'= expression(paste("Mean Wind (m"~"s"^{-1}*")")),
   'SalCalc' = "Salinity (ppt)",
   'TICumol' = expression(paste("DIC ("~mu*"mol"~"L"^{-1}*")")),
+  'meanWindMS'= expression(paste("Mean Wind (m"~"s"^{-1}*")")),
   'Pressure' = 'Pressure (kPa)',
   'pco2atm' = expression(paste("Air"~italic(p)*"CO"[2]~"(ppm)"))
 )
@@ -394,10 +402,25 @@ meltplot
 #                               'Pressure (kPa)', expression(paste(italic(p)*"CO"[2]~"(ppm)")))
 # as_labeller(vardf)  
 
-# save meltplot?
+## create ggplot of the simulated data
+simdat <- cbind(latincorr$data, latincorr$res)
+names(simdat)[names(simdat) == "cube$res"] <- "flux"
+simmelt <- melt(simdat, id.vars = "flux")
+simmelt$variable <- factor(simmelt$variable, levels = c("Temperature", "Conductivity", "pH", 
+                                                        "SalCalc", "TICumol", "meanWindMS", 
+                                                        "Pressure", "pco2atm"))
+simplot <- ggplot(simmelt, aes(x=value,y=flux, group=variable)) +
+  theme_bw(base_size = 12, base_family = 'Arial') +
+  geom_point(size=0.5) +
+  facet_wrap( "variable", scales = "free", labeller = var_labeller, ncol=2) +
+  ylab(expression(paste(CO[2]~"flux (mmol"~"C "*m^{-2}*"d"^{-1}*')'))) +
+  theme(axis.title.x = element_blank())
+
+# save meltplots?
 savemelt <- TRUE
 if(savemelt) {
   ggsave("../docs/private/routines-boxplot.pdf", meltplot, width=15, units = "cm")
+  ggsave("../docs/private/sensitivity-sims.pdf", simplot, width=12, height=15, units="cm")
 }
 ## save LHS's?
 saveLHS <- TRUE
