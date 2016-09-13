@@ -1,0 +1,157 @@
+---
+title: "Diel pre-examinations"
+output: 
+  pdf_document:
+    fig_caption: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+```
+
+```{r startup, results='hide', include=FALSE}
+## source necessary packages
+library("mgcv")
+library("ggplot2")
+library("viridis")
+library("extrafont")
+library("grid")
+library("reshape2")
+
+## create a theme to save linespace in plots
+papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
+  theme(legend.position='top')
+
+## load necessary data and make transformations
+if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
+  source("diel-buffalo.R")}
+bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
+bdat <- bdat[order(bdat$datetime),]
+
+## melt for selected parameters
+bmelt <- melt(bdat, id.vars = "datetime", measure.vars = c("windsp", "winddir", "airtemp", "pressure", "dailyrain", "par1", "temp1", "ph1", "co2corr", "chl", "bga1cell", "ODOrel1"))
+
+## melt for temperature plot and clean temp data (temp3 rotten throughout)
+brast <- melt(bdat, id.vars = "datetime", measure.vars = c("temp1", "temp2", "temp4",
+                                                           "temp5", "temp6"))
+brast$depth <- rep(0)
+brast$depth[grep("1", brast$variable)] <- 106
+brast$depth[grep("2", brast$variable)] <- 294
+brast$depth[grep("4", brast$variable)] <- 54
+brast$depth[grep("5", brast$variable)] <- 123
+brast$depth[grep("6", brast$variable)] <- 218
+
+brast$value[which(brast$value < 0)] <- NA
+brast$value[which(brast$value > 23 & brast$variable == "temp6")] <- NA # no idea why this is happening in temp6!
+
+## melt for PAR plot
+bpar <- melt(bdat, id.vars = c("datetime", "isDay"), measure.vars = c("par1", "par2", "par3"))
+bpar$depth <- rep(0)
+bpar$depth[grep("1", bpar$variable)] <- "Air"
+bpar$depth[grep("2", bpar$variable)] <- '74'
+bpar$depth[grep("3", bpar$variable)] <- '106'
+
+bpar$value[which(bpar$value < 0)] <- NA
+
+```
+
+```{r models, results='hide', include=FALSE}
+## a lot of this code from diel-buffalo-models.R
+lmnight <- with(bdat[bdat$isDay == FALSE,], lm(co2corr~pco2))
+lmday <- with(bdat[bdat$isDay == TRUE,], lm(co2corr~pco2))
+lmint <- with(bdat, lm(co2corr~pco2))
+
+
+```
+## Buffalo Pound data: 2014, ca 90 days
+
+Buffalo Pound data exist from 2014 and we are waiting for any available 2016 data. We have enough supporting data to calculate pCO2 which needs doing for the diel paper in order to include Wascana as well (it's also interesting in its own right).
+
+We have the following information for every 15mins (some data more patchy than others):
+
+*   Meterorological: Wind speed & direction, air temperature, relative humidity, pressure, daily rain, PAR
+* Shallow (106cm): PAR, temperature, oxygen (% and abs), chl (rfu), phycocyanin (rfu), conductivity (uS/cm), pH; assuming that turbidity (NTU+), CDOM (ug/L) also from this depth
+* Deep (294cm): Temperature, oxygen (% and abs), chl (rfu), phycocyanin (rfu), conductivity (uS/cm), pH
+* 74cm: PAR
+* ++ Thermistor chain for temperature but need to check which exact depths with Helen
+
+### Time series plots of all variables
+
+```{r tempplots, fig.cap="Water temperature at different depths over the study period"}
+ggplot(data = brast, aes(y=value, x=datetime, group=factor(depth), col=factor(depth))) +
+  papertheme +
+  geom_line() +
+  scale_color_viridis(discrete = TRUE, begin= 0.1, end=0.8, 
+                      option = 'viridis', direction = -1, name="Depth (cm)") +
+  ylab("Temperature") + xlab("Date")
+
+```
+```{r parplots, fig.cap="PAR at different depths over the study period (0 = air)"}
+ggplot(data = bpar[bpar$isDay==TRUE,], aes(y=value, x=datetime, group=factor(depth), col=factor(depth))) +
+  papertheme +
+  geom_line() +
+  scale_color_viridis(discrete = TRUE, begin= 0.1, end=0.8, 
+                      option = 'viridis', direction = -1, name="Depth (cm)") +
+  ylab("Temperature") + xlab("Date")
+
+```
+
+```{r meltplot, fig.height=14, fig.width=9}
+
+ggplot(data = bmelt, aes(y=value, x=datetime, group=variable)) +
+  papertheme +
+  geom_point(size=0.5) +
+  facet_wrap('variable', scales='free_y', ncol=1, switch="y") +
+  theme(title=element_blank())
+```
+
+### Night vs day
+
+```{r dielplots, fig.cap="Supesaturation of both oxygen and carbon dioxide occurs at day and night, and the differences aren't huge"}
+lmplot <- ggplot(data=bdat, aes(y = co2corr, x = ODOrel1, col=TimeofDay)) +
+  geom_point() +
+  scale_color_viridis(discrete=TRUE, alpha = 0.4, option='viridis', begin= 0.3, end=0.8, direction = -1) +
+  ylab(expression(paste(italic(p)*"CO"[2]~"(ppm)"))) +
+  xlab(expression(paste("O"[2]~"(%)"))) +
+  geom_abline(slope=0,intercept = 400, linetype='dotted') +
+  geom_vline(xintercept = 100, linetype='dotted') +
+  papertheme +
+  theme(legend.title=element_blank(), legend.position='top')
+
+labeldf <- data.frame(x=1.65, y=450, label="~atmospheric pCO2")
+
+boxplot <- ggplot(bdat, aes(isDay, co2corr)) +
+  theme_bw(base_size=11, base_family = 'Arial') +
+  theme(legend.position='top') +
+  geom_boxplot() +
+  geom_hline(yintercept = 400, lty=2) +
+  #geom_text(data = labeldf, aes(x=x, y=y, label=label), inherit.aes = FALSE) +
+  ylab(expression(paste(italic('p')*'CO'[2]~'(ppm)'))) +
+  scale_x_discrete(labels=c("Night", "Day")) +
+  xlab("p < 0.001")
+
+vp <- viewport(width = 0.33, height = 0.44, x=0.75, y=0.6)
+print(lmplot)
+print(boxplot, vp=vp)
+```
+
+```{r calcmeasured, fig.cap="blah"}
+abdf <- data.frame(isDay = c(TRUE, FALSE), intercept=c(lmday$coefficients[1],lmnight$coefficients[1]), slope=c(lmday$coefficients[2], lmnight$coefficients[2]))
+
+labeldf <- data.frame(x=c(250,250), y=c(1700,1600), label=c("Night Rsq = 0.92, slope = 1.28", "Day Rsq = 0.72, slope = 1.04"))
+
+ggplot(data=bdat, aes(y = co2corr, x = pco2, col=isDay)) + 
+  papertheme +
+  geom_point() +
+  geom_abline(slope=1, intercept=0, color='black', lty=2) +
+  geom_abline(data=abdf, aes(slope=slope, intercept=intercept, col=isDay), alpha=1, show.legend = TRUE) +
+  scale_color_viridis(discrete = TRUE, alpha = 0.4,  begin= 0.3, end=0.8, 
+                      option = 'viridis', direction = 1, name="", breaks = c(TRUE, FALSE), labels = c("Day", "Night")) +
+  ylab(expression(paste('Measured'~italic('p')*'CO'[2]~'('*mu*'atm)'))) +
+  xlab(expression(paste('Calculated'~italic('p')*'CO'[2]~'('*mu*'atm)'))) +
+  geom_text(data=labeldf, aes(x=x, y=y , label=label), inherit.aes = FALSE)
+
+
+```
+
+
