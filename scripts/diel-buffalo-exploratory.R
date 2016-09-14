@@ -5,8 +5,19 @@ if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
     source("diel-buffalo.R")}
 bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
 
+regvars <- readRDS('../data/private/regvars.rds')
+params <- readRDS('../data/private/params-flux.rds')
+buffreg <- subset(regvars, select = c('Date', 'Lake', 'Month', 'DOY', 'pH_surface',
+                                      'lakepCO2','co2Flux'), Lake == 'B' & Year > 2013)
+
 ## load packages
 library("ggplot2")
+
+## cleaning dates in 2014 
+dates <- c('12/08/2014', '15/07/2014', '19/07/2014', '26/06/2014') # last may not be a cleaning
+#   date
+dates <- as.POSIXct(dates, format = "%d/%m/%Y")
+datesDOY <- format(dates, "%j")
 
 ## explore data by plotting
 ## plots
@@ -141,3 +152,12 @@ oxyplot <- ggplot(data=bdatmelt, mapping = aes(y=value, x=datetime, group=Depth,
   ylab("Oxygen saturation (%)") +
   xlab("Date")
 
+## any DIC concentration evidence for carbonate precipitation?
+ggplot(data=params[params$Lake =='B',], aes(y = TIC, x = Month, group = Year)) + # ifelse(Hour >= 8 & Hour <=20, 
+  #   'red', 'black')
+  #scale_color_identity() + # means it understands red and black in ifelse
+  #scale_color_manual(values=c('black', 'red')) +
+  geom_point() +
+  facet_wrap('Year') +
+  ylab("DIC (mg/L)") +
+  xlab("Month")
