@@ -165,7 +165,7 @@ ggplot(data = megamelt, aes(y=value, x=datetime, group=variable, col=factor(dept
   theme(axis.title=element_blank())
 ```
 
-We seem to have some interesting issues with PAR since a plot by hour seems to indicate that later in the day, the deeper sonde is registering more incident light than the shallower sonde. Note that some values had to be removed as outliers as well.... Will need to think about how and if to include it in the models. The same thing applies for CDOM and turbidity -- they seem to trip out fairly often so need to check everything is legit. If it is, however, I think there might be reason to believe that the CDOM is autochthonously produced given the increase over the season? (I would doubt that overland flow would be the source given the dearth of heavy rain events in 2014, and them being in July???)
+We seem to have some interesting issues with PAR since a plot by hour seems to indicate that later in the day, the deeper sonde is registering more incident light than the shallower sonde. Note that some values had to be removed as outliers as well.... Will need to think about how and if to include it in the models. The same thing applies for CDOM and turbidity (Fig. xx) -- they seem to trip out fairly often so need to check everything is legit. Also -- what on earth is happening in August? If all there is true, there might be reason to believe that the CDOM is autochthonously produced given the increase over the season? (I would doubt that overland flow would be the source given the dearth of heavy rain events in 2014, and them being in July???)
 
 ```{r parplots, fig.height = 13, fig.width=9, fig.cap="% of air PAR intercepted at different depths over the study period, by hour. Later in the day it seems the deeper sensor is registering higher PAR which needs some investigation"}
 ggplot(data = bpar[bpar$isDay==TRUE & bpar$isFrac == TRUE,], aes(y=value, x=datetime, group=factor(depth), col=factor(depth))) +
@@ -181,27 +181,32 @@ ggplot(data = bpar[bpar$isDay==TRUE & bpar$isFrac == TRUE,], aes(y=value, x=date
 ```{r turbplots, fig.cap="bluh", fig.width=6, fig.height=3}
 ggplot(data=bturb, aes(y=value, x=datetime)) +
   papertheme +
-  geom_point(size=0.5) +
+  geom_point(size=0.3) +
   facet_grid(variable ~ ., scales = "free_y") +
-  theme(axis.title = element_blank(), strip.text.y = element_text(size = 8))
+  theme(axis.title = element_blank(), strip.text.y = element_text(size = 6))
 ```
 
-### Relationship between key variables identified in routines analysis
-The relaionship between pH and CO~2~ is strong especially during night. There is much more scatter during the day. The relationship between deep pH and CO~2~ is poor (not shown) suggesting that ther is reasonable vertical separation in the water column over the season.
+\newpage 
 
-```{r relationplots, fig.height = 13, fig.width=9, fig.cap=""}
-co2plot <- ggplot(data = bdat, aes(y=co2corr, x=ph1, col=isDay)) +
+### Relationship between key variables identified in routines analysis
+The relationship between shallow pH and CO~2~ is strong especially during night. There is much more scatter during the day. The relationship between deep pH and CO~2~ is poor (not shown) suggesting that there is reasonable vertical separation in the water column over the season. Is it possible that the small difference in depth between the pH (106 cm) and CO~2~ (89 cm) could explain the difference during the day, if productivity is particularly high at the surface (therefore CO~2~ lower than expected based on pH which seems to occur frequently).
+
+```{r relationplots, fig.width=5, fig.height= 4, fig.cap="The relationship between CO2 and pH is strong, but tighter at night than during the day."}
+ggplot(data = bdat, aes(y=co2corr, x=ph1, col=isDay)) +
   papertheme +
   geom_point(size=0.8) +
   scale_color_viridis(discrete = TRUE, alpha = 0.4,  begin= 0.3, end=0.8, 
                       option = 'viridis', direction = 1, name="", breaks = c(TRUE, FALSE), labels = c("Day", "Night")) +
  ylab(expression(paste(italic(p)*"CO"[2]~"(ppm)"))) +
+  geom_abline(slope=0, intercept=400, lty=2, col="grey50") +
   xlab("pH") 
 
 ```
-### Night vs day
 
-```{r dielplots, fig.cap="Supesaturation of both oxygen and carbon dioxide occurs at day and night, and the differences aren't huge"}
+pCO~2~ had a stronger relationship with oxygen here than in the routines sampling (Fig. xxx), witih simultaneous supersaturation being rare. This is where we could try applying the Stets stuff if we wanted - pretty cool that both are simultaneously undersaturated at times!? 
+
+
+```{r dielplots, plot-ref, fig.cap="Supesaturation of both oxygen and carbon dioxide occurs at day and night, and the differences aren't huge \\label{fig:plot}"}
 lmplot <- ggplot(data=bdat, aes(y = co2corr, x = ODOrel1, col=TimeofDay)) +
   geom_point() +
   scale_color_viridis(discrete=TRUE, alpha = 0.4, option='viridis', begin= 0.3, end=0.8, direction = -1) +
@@ -228,7 +233,58 @@ vp <- viewport(width = 0.33, height = 0.44, x=0.75, y=0.6)
 print(lmplot)
 print(boxplot, vp=vp)
 ```
+### Diel amplitudes
 
+Overall, night-time CO~2~ was not massively (but indeed significantly) higher than during the day, when pooled over the whole season. Diel fluctuations in CO~2~ did, however, occur, shown here by modeling CO~2~ based on day of year, and time of day. The pattern shows that the large amplitude in CO~2~ during August is due to day-night differences, supporting a respiration-driven pathway. I haven't plotted it but oxygen is pretty much the same pooled over the season - night a bit lower but really not much and I doubt it would be significant. This raises one important question -- could our close-to atmospheric pCO~2~ NOT reflect the lakes per se (in that they are, say, below or close to below atmospheric) but just wind mixing being sufficient to mostly efficiently effluxing CO~2~ -- and therefore we never witness strong oversaturation. i.e. our lakes might have exactly the same reservoir of CO~2~ as boreal lakes, it's just that the wind keeps strong gradients from developing most of the time? Something to think about....Still doesn't take away from the brill fact that July is completely under equilibrium, if we decide to think of that as a brill thing in terms of marketing prairie lakes for carbon sequestration. Like, maybe the amplitudes are low due to WIND and not hardwater effect. Perhaps we could test wind here  (say, mean night CO~2~ - mean day CO~2~ modeled against mean 24h, or day \& night wind?) and if it doesn't affect amplitude we could safely say that hardwaters are generally less amplitude-y than softwaters...
+
+```{r dielgams, plot-ref, fig.cap="blah \\label{gams}"}
+## for co2
+N <- 200
+simDOY <- c(168:170, 190:192, 228:230)
+DOYgroup <- factor(rep(1:3, times=c(3,3,3)))
+DOYgroup <- factor(rep(c('Jun 17-19', 'Jul 9-11', 'Aug 16-18'), times=c(3,3,3)))  
+reptimes <- length(simDOY)
+preddf <- data.frame(`Time` = rep(seq(min(bdat$Time, na.rm=TRUE),
+                                      max(bdat$Time, na.rm=TRUE),
+                                      length = N), times=reptimes),
+                     `DOY` = rep(simDOY, each = N))
+co2modpred <- predict(co2mod, newdata = preddf, type = "link")
+
+DOYgroups <- rep(DOYgroup, each = N)
+
+predicted <- cbind(preddf, co2modpred, DOYgroups)
+names(predicted)[which(names(predicted)=='co2modpred')] <- 'pCO2'
+
+labdatco2 <- data.frame(x = 3, y = 380, label = "Mean (atm)")
+
+ggplot(predicted, aes(x = Time, y = pCO2, group= DOY, col=DOYgroups)) +
+  theme_bw(base_size = 10) +
+  scale_colour_brewer(name = "Date", type = 'qual', palette = 'Dark2', direction=1) +
+  geom_line() +
+  theme(legend.position="top") +
+  xlab('Time of Day') + ylab(expression(paste(italic(p)*"CO"[2]~"(ppm)"))) +
+  geom_abline(intercept = 398, slope = 0, linetype='dotted') +
+  geom_text(data = labdatco2, aes(label = label, x = x, y = y), 
+            show.legend = FALSE, inherit.aes = FALSE,  size = 3)
+
+```
+
+## My hypotheses and paper focus
+
+Basically, I'd like to look at which controls operate on CO~2~ at diel scales in these lakes. Specifically, I'd again like to partition physical factors from metabolic factors where available (given complications where they interact, like low wind speeds promoting thermal stabolity and cyano blooms). Therefore I'd need chl and phycocyanin to be reliable because they are the only unequivocally metabolic variables I have at this resolution. Oxygen may be wind-equilibrated and not necessarily reflect algal abundance/respiration balances. Something to think about. 
+Physical factors -- wind mixing, thermal stability, stratification.... basically could be encapsulated in one index as Gavin suggested. That would be tidy. Could include rain events but not sure since only a very few in the time series anyway?
+Amplitudes - I hypothesised that diel amplitudes would be less in hardwater lakes than softwater lakes for a given level of production due to the pH being buffered. Like I alluded to before, this may only be testable if I can control for the evening-out effects of constant wind on concentrations (extremes may never be expected if the water is constantly turbulent).
+Finally for our own purposes but also general guidance, it would be good to note how important night time is for understanding seasonal flux balance. And the comparison between measured and calculated as well, to strengthen the validity of our long term sampling results.
+
+## Correspondence between measured and calculated CO~2~
+
+Somewhat helpfully to our cause, calculated pCO~2~ has often been shown higher than actual pCO~2~ as seems to be the case for our Qu'Appelle data during the day (yes the slope is \> 1 but most scatter is below the line). Therefore it is likely that we are underestimating their sequestration capacity based on our routines sampling. This is also consistent with the scatter in the pCO~2~-pH relationship (Fig. xxx) where daytime things are a bit unpredictable and generally lower-than-expected pCO~2~ occurs at relatively low pH values.
+
+However, the night-time measurements are higher than calculations, suggesting that some process is changing the relationship between pH and pCO~2~ so that other things become more important... We are obviously using the conductivity-alkalinity relationship here to calculate pCO~2~ so it may simply be a matter of the DIC-conductivity relationship breaking down at night when more DIC (i.e. CO~2~) is released. Would this be plausible?
+
+Based on the literature I've read so far (which supports my hypothesis!!!), the amplitudes between day and night here are smaller than in most other eutrophic water bodies. In many such, night shifts the balance from net autotrophic to net heterotrophic and is crucial in estimating a correct seasonal balance. Here, it seems less important. For example through July, pCO~2~ is below atmospheric equilibrium both day and night. August may hint towards more heterotrophic autumns once respiration occurs so it would be really interesting to get pH our from Wascana sonde through September!!! Fingers crossed.
+
+as shown in \ref{fig:plot}
 ```{r calcmeasured, fig.cap="The relationship between measured and calculated CO2 has a lot of scatter but generally follows a 1:1 line during the day. At night, the slope is different. Why?"}
 abdf <- data.frame(isDay = c(TRUE, FALSE), intercept=c(lmday$coefficients[1],lmnight$coefficients[1]), slope=c(lmday$coefficients[2], lmnight$coefficients[2]))
 
@@ -244,9 +300,3 @@ ggplot(data=bdat, aes(y = co2corr, x = pco2, col=isDay)) +
   ylab(expression(paste('Measured'~italic('p')*'CO'[2]~'('*mu*'atm)'))) +
   xlab(expression(paste('Calculated'~italic('p')*'CO'[2]~'('*mu*'atm)'))) +
   geom_text(data=labeldf, aes(x=x, y=y , label=label), inherit.aes = FALSE)
-
-
-```
-## Reliability of sondes
-
-
