@@ -17,6 +17,7 @@ library("viridis")
 library("extrafont")
 library("grid")
 library("reshape2")
+library("gridExtra")
 
 ## create a theme to save linespace in plots
 papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
@@ -28,30 +29,84 @@ if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
 bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
 bdat <- bdat[order(bdat$datetime),]
 
-## melt for selected parameters
-bmelt <- melt(bdat, id.vars = "datetime", measure.vars = c("windsp", "winddir", "airtemp", "pressure", "dailyrain", "par1", "temp1", "ph1", "co2corr", "chl", "bga1cell", "ODOrel1"))
 
-## melt for temperature plot and clean temp data (temp3 rotten throughout)
-brast <- melt(bdat, id.vars = "datetime", measure.vars = c("temp1", "temp2", "temp4",
+bdat$cdom[bdat$cdom < 0]  <- NA
+bdat$turb[log10(bdat$turb) > 2.9] <- NA
+
+## melt for atmospheric parameters
+bair <- melt(bdat, id.vars = "datetime", measure.vars = c("windsp", "winddir", "airtemp", "pressure", "dailyrain", "par1"))
+bair$depth <- rep(0)
+bair$variable <- as.character(bair$variable)
+bair$variable[grep("dsp", bair$variable)] <- "a.Wind (m/s)"
+bair$variable[grep("ddir", bair$variable)] <- "b.Wind (deg.)"
+bair$variable[grep("air", bair$variable)] <- "c.Air T."
+bair$variable[grep("pres", bair$variable)] <- "d.Air P.(hPa)"
+bair$variable[grep("daily", bair$variable)] <- "e.Rain (mm)"
+bair$variable[grep("par", bair$variable)] <- "f.PAR (air)."
+
+## melt for temperature and clean temp data (temp3 rotten throughout)
+btemp <- melt(bdat, id.vars = "datetime", measure.vars = c("temp1", "temp2", "temp4",
                                                            "temp5", "temp6"))
-brast$depth <- rep(0)
-brast$depth[grep("1", brast$variable)] <- 106
-brast$depth[grep("2", brast$variable)] <- 294
-brast$depth[grep("4", brast$variable)] <- 54
-brast$depth[grep("5", brast$variable)] <- 123
-brast$depth[grep("6", brast$variable)] <- 218
+btemp$depth <- rep(0)
+btemp$depth[grep("1", btemp$variable)] <- 106
+btemp$depth[grep("2", btemp$variable)] <- 294
+btemp$depth[grep("4", btemp$variable)] <- 54
+btemp$depth[grep("5", btemp$variable)] <- 123
+btemp$depth[grep("6", btemp$variable)] <- 218
 
-brast$value[which(brast$value < 0)] <- NA
-brast$value[which(brast$value > 23 & brast$variable == "temp6")] <- NA # no idea why this is happening in temp6!
+btemp$value[which(btemp$value < 0)] <- NA
+btemp$value[which(btemp$value > 23 & btemp$variable == "temp6")] <- NA # no idea why this is happening in temp6!
+
+btemp$variable <- rep("i. Water T.")
+
+## melt for two-depth limno parameters
+blimno <- melt(bdat, id.vars = "datetime", measure.vars = c("ph1", "ph2", "ODOrel1","ODOrel2",
+                                                          "bga2cell", "bga1cell"))
+blimno$variable <- as.character(blimno$variable)
+blimno$depth <- rep(106)
+blimno$depth[grep("2", blimno$variable)] <- 294
+
+blimno$variable[grep("ph", blimno$variable)] <- "j. pH"
+blimno$variable[grep("ODO", blimno$variable)] <- "k. O2 (%)"
+blimno$variable[grep("bga", blimno$variable)] <- "l.Phyco (cell/ml)"
+
+## one-depth limno parameters
+bones <- melt(bdat, id.vars = "datetime", measure.vars = c("chl", "co2corr"))
+bones$depth <- rep(106)
+bones$variable <- as.character(bones$variable)
+bones$variable[grep("corr", bones$variable)] <- "g. CO2 (ppm)"
+bones$variable[grep("chl", bones$variable)] <- "h. Chl (ug/L)"
+
+## combine for megamelt and reorder if needed
+megamelt <- rbind(bair, bones, btemp, blimno)
+#megamelt <- within(megamelt, variable <- factor(variable, levels = sample(levels(Group))))
+
 
 ## melt for PAR plot
-bpar <- melt(bdat, id.vars = c("datetime", "isDay"), measure.vars = c("par1", "par2", "par3"))
+bdat$par2[bdat$par2 < 0] <- NA # deal with -100 000 values
+bdat$par3[bdat$par3 < 0] <- NA
+bdat$par2frac <- bdat$par2/bdat$par1 * 100
+bdat$par3frac <- bdat$par3/bdat$par1 * 100
+bdat$par2frac[is.infinite(bdat$par2frac)] <- NA
+bdat$par3frac[is.infinite(bdat$par3frac)] <- NA
+bpar <- melt(bdat, id.vars = c("datetime", "isDay", "Hour"), measure.vars = c("par1", "par2", "par3",
+                                                                              "par2frac", "par3frac"))
 bpar$depth <- rep(0)
 bpar$depth[grep("1", bpar$variable)] <- "Air"
 bpar$depth[grep("2", bpar$variable)] <- '74'
 bpar$depth[grep("3", bpar$variable)] <- '106'
 
-bpar$value[which(bpar$value < 0)] <- NA
+bpar$isFrac <- rep(FALSE)
+bpar$isFrac[grep("frac", bpar$variable)] <- TRUE
+
+## melt for turbplot
+bturb <- melt(bdat, id.vars = "datetime", measure.vars = c("co2corr", "cdom", "turb"))
+bturb$variable <- as.character(bturb$variable)
+bturb$value[bturb$variable == "turb"] <- log10(bturb$value[bturb$variable == "turb"])
+bturb$variable[grep("co2", bturb$variable)] <- "a. CO2 (ppm)"
+bturb$variable[grep("turb", bturb$variable)] <- "b. Turb (log10 NTU)"
+bturb$variable[grep("dom", bturb$variable)] <- "c. CDOM (ug/L)"
+
 
 ```
 
@@ -61,6 +116,10 @@ lmnight <- with(bdat[bdat$isDay == FALSE,], lm(co2corr~pco2))
 lmday <- with(bdat[bdat$isDay == TRUE,], lm(co2corr~pco2))
 lmint <- with(bdat, lm(co2corr~pco2))
 
+phmod <- gam(ph1 ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
+          data = bdat)
+co2mod <- gam(co2corr ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
+            data = bdat)
 
 ```
 ## Buffalo Pound data: 2014, ca 90 days
@@ -75,36 +134,71 @@ We have the following information for every 15mins (some data more patchy than o
 * 74cm: PAR
 * ++ Thermistor chain for temperature but need to check which exact depths with Helen
 
-### Time series plots of all variables
+### Time series of all variables
 
-```{r tempplots, fig.cap="Water temperature at different depths over the study period"}
-ggplot(data = brast, aes(y=value, x=datetime, group=factor(depth), col=factor(depth))) +
+Wind speed and direction are variable at fairly high resolution and do not show strong seasonality. Air temperature predictably increases through June. Air pressure dips through the season and is at times, but not consistently, associated with rain events. Highest PAR occurs in June, however cloudy days with lower PAR occur throughout. Above-atmospheric levels of CO~2~ occur in June, and the lowest values occur in July. Variability increases in August when the highest values occur. The variability does not seem related to variation in chl, however the chl values should still be verified against routines sampling data from that summer. pH and oxygen are both slighly lower in August, which could explain the variation... But why are these lower then? Water temperature is at its highest in August as well, and my guess would be that respiration is starting to kick in....? 
+
+Stratification does occur at Buffalo Pound throughout the season, most notably over three events in July. It could be that the stability of the water column promotes high pH at the surface, and increased mixing in August brings in the "respiration signal".
+
+Questions to think about - how much should I pursue physical controls? e.g. should I develop a model to explain stratification events using wind speed, -direction and temperature or should I just focus on using stratification to explain pH/CO~2~? 
+
+
+<!--```{r tempplots, fig.cap="Water temperature at different depths over the study period"}
+ggplot(data = btemp, aes(y=value, x=datetime, group=factor(depth), col=factor(depth))) +
   papertheme +
   geom_line() +
   scale_color_viridis(discrete = TRUE, begin= 0.1, end=0.8, 
                       option = 'viridis', direction = -1, name="Depth (cm)") +
   ylab("Temperature") + xlab("Date")
 
-```
-```{r parplots, fig.cap="PAR at different depths over the study period (0 = air)"}
-ggplot(data = bpar[bpar$isDay==TRUE,], aes(y=value, x=datetime, group=factor(depth), col=factor(depth))) +
+``` -->
+
+
+```{r meltplot, fig.height=14, fig.width=9, fig.cap="Most measured variables over time, showing intermittent stratification"}
+
+ggplot(data = megamelt, aes(y=value, x=datetime, group=variable, col=factor(depth))) +
   papertheme +
+  geom_line() +
+  facet_wrap('variable', scales='free_y', ncol=1, switch="y") +
+  scale_color_viridis(discrete = TRUE, begin= 0.1, end=0.9, 
+                      option = 'viridis', direction = -1, name="Depth (cm)") +
+  theme(axis.title=element_blank())
+```
+
+We seem to have some interesting issues with PAR since a plot by hour seems to indicate that later in the day, the deeper sonde is registering more incident light than the shallower sonde. Note that some values had to be removed as outliers as well.... Will need to think about how and if to include it in the models. The same thing applies for CDOM and turbidity -- they seem to trip out fairly often so need to check everything is legit. If it is, however, I think there might be reason to believe that the CDOM is autochthonously produced given the increase over the season? (I would doubt that overland flow would be the source given the dearth of heavy rain events in 2014, and them being in July???)
+
+```{r parplots, fig.height = 13, fig.width=9, fig.cap="% of air PAR intercepted at different depths over the study period, by hour. Later in the day it seems the deeper sensor is registering higher PAR which needs some investigation"}
+ggplot(data = bpar[bpar$isDay==TRUE & bpar$isFrac == TRUE,], aes(y=value, x=datetime, group=factor(depth), col=factor(depth))) +
+  papertheme +
+  facet_grid(Hour ~ .) +
   geom_line() +
   scale_color_viridis(discrete = TRUE, begin= 0.1, end=0.8, 
                       option = 'viridis', direction = -1, name="Depth (cm)") +
-  ylab("Temperature") + xlab("Date")
+  ylab("% PAR of air intercepted") + xlab("Date") + scale_y_continuous(limits = c(0, 100))
 
 ```
 
-```{r meltplot, fig.height=14, fig.width=9}
-
-ggplot(data = bmelt, aes(y=value, x=datetime, group=variable)) +
+```{r turbplots, fig.cap="bluh", fig.width=6, fig.height=3}
+ggplot(data=bturb, aes(y=value, x=datetime)) +
   papertheme +
   geom_point(size=0.5) +
-  facet_wrap('variable', scales='free_y', ncol=1, switch="y") +
-  theme(title=element_blank())
+  facet_grid(variable ~ ., scales = "free_y") +
+  theme(axis.title = element_blank(), strip.text.y = element_text(size = 8))
 ```
 
+### Relationship between key variables identified in routines analysis
+The relaionship between pH and CO~2~ is strong especially during night. There is much more scatter during the day. The relationship between deep pH and CO~2~ is poor (not shown) suggesting that ther is reasonable vertical separation in the water column over the season.
+
+```{r relationplots, fig.height = 13, fig.width=9, fig.cap=""}
+co2plot <- ggplot(data = bdat, aes(y=co2corr, x=ph1, col=isDay)) +
+  papertheme +
+  geom_point(size=0.8) +
+  scale_color_viridis(discrete = TRUE, alpha = 0.4,  begin= 0.3, end=0.8, 
+                      option = 'viridis', direction = 1, name="", breaks = c(TRUE, FALSE), labels = c("Day", "Night")) +
+ ylab(expression(paste(italic(p)*"CO"[2]~"(ppm)"))) +
+  xlab("pH") 
+
+```
 ### Night vs day
 
 ```{r dielplots, fig.cap="Supesaturation of both oxygen and carbon dioxide occurs at day and night, and the differences aren't huge"}
@@ -135,7 +229,7 @@ print(lmplot)
 print(boxplot, vp=vp)
 ```
 
-```{r calcmeasured, fig.cap="blah"}
+```{r calcmeasured, fig.cap="The relationship between measured and calculated CO2 has a lot of scatter but generally follows a 1:1 line during the day. At night, the slope is different. Why?"}
 abdf <- data.frame(isDay = c(TRUE, FALSE), intercept=c(lmday$coefficients[1],lmnight$coefficients[1]), slope=c(lmday$coefficients[2], lmnight$coefficients[2]))
 
 labeldf <- data.frame(x=c(250,250), y=c(1700,1600), label=c("Night Rsq = 0.92, slope = 1.28", "Day Rsq = 0.72, slope = 1.04"))
@@ -153,5 +247,6 @@ ggplot(data=bdat, aes(y = co2corr, x = pco2, col=isDay)) +
 
 
 ```
+## Reliability of sondes
 
 
