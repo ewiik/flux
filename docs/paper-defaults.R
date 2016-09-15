@@ -18,6 +18,7 @@ library('ggplot2')
 library('viridis')
 library('cowplot')
 library('extrafont')
+library('scales')
 
 library('scales')
 ## plot background: white
