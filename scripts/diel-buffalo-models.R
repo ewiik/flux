@@ -6,10 +6,17 @@ if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
 bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
 bdat <- bdat[order(bdat$datetime),]
 
+bdat5 <- readRDS('../data/private/bpbuoy2015-mod.rds')
+bdat5 <- bdat5[order(bdat5$datetime),]
+
 ## load packages
 library("mgcv")
 library("ggplot2")
 library("viridis")
+
+## ==================================================================================
+## 2014: all data available
+## ==================================================================================
 
 ## are there differences in relationship between night and day?
 ## ===================================================================================
@@ -34,42 +41,11 @@ start <- c(-69.0709700, 0.9070629 )
 glmmod <- glm(co2corr ~ pco2, data = ten3, family = Gamma(link = "identity"), start = start,
               control = glm.control(maxit=100))
 
-pglm <- ggplot(data=ten3, aes(y = co2corr, x = pco2)) + 
-  theme_bw() +
-  geom_point() +
-  geom_abline(slope=1, intercept=0, color='red', lty=3) +
-  #geom_ribbon() + ## FIXME: add the regression line here
-  geom_abline(intercept = glmmod$coefficients[1], slope=glmmod$coefficients[2], col = 'black') +
-  scale_color_viridis(discrete = TRUE, 
-                      option = 'plasma', direction = -1) +
-  ylab(expression(paste('Measured'~italic('p')*'CO'[2]~'('*mu*'atm)'))) +
-  xlab(expression(paste('Calculated'~italic('p')*'CO'[2]~'('*mu*'atm)')))
-
-
 # residual plot etc
 plot(resid(lmint) ~ lmint$fitted.values, ylab='Residuals (pCO2 uatm)', 
      xlab='Fitted values (pCO2 uatm)')
 
-## plot the difference between night and day in calculated vs measured.
-with(bdat, plot(co2corr ~ pco2, col=ifelse(isDay, 'red', 'black'),
-                        xlab = 'Calculated pCO2', ylab = 'Measured pCO2'))
-abline(0,1, lty=3)
-abline(lmday$coefficients[1], lmday$coefficients[2], col = 'red')
-abline(lmnight$coefficients[1], lmnight$coefficients[2], col = 'black')
-#abline(-71.6, 1.143408, lty = 3, col = 'green')
-legend('topleft', col = c('red', 'black', 'black'), pch=c(1,1, NA), lty = c(1,1,3), 
-       legend = c('daytime values and regression line', 
-                  'night-time values and regression line',
-                  '1:1 line'))
-legend('bottomright', col = c('red', 'black'), title = 'R2', 
-       legend = c('day = 0.72', 'night = 0.92'))
-
-with(bdat, plot(pco2 - co2corr ~ co2corr, xlab = 'Measured pCO2', 
-                        ylab = 'Calculated - measured pCO2'))
-abline(0,0)
-
 ## gamming the time component of the data
-
 m1 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(Week), data = bdat)
 
 m2 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(Week) + ti(Time, Week, bs = c("cc","tp")), 
@@ -78,6 +54,8 @@ anova(m1, m2, test = "LRT") # m2 better
 
 m3 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
           data = bdat)
+m4 <- gam(ph1 ~ te(Time, DOY, bs = c("cc","tp")), data=bdat)
+
 mco2 <- gam(co2corr ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
             data = bdat)
 
@@ -90,62 +68,8 @@ plot(m2, pages = 4, scheme = 2)
 par(op)
 dev.off()
 
-## predict for periods of varying interactions.
-N <- 200
-simDOY <- c(171:173, 211:213, 237:239)
-DOYgroup <- factor(rep(1:3, times=c(3,3,3)))
-DOYgroup <- factor(rep(c('171:173', '211:213', '237:239'), times=c(3,3,3)))  
-reptimes <- length(simDOY)
-preddf <- data.frame(`Time` = rep(seq(min(bdat2014full$Time, na.rm=TRUE),
-                                      max(bdat2014full$Time, na.rm=TRUE),
-                                      length = N), times=reptimes),
-                     `DOY` = rep(simDOY, each = N))
-m3pred <- predict(m3, newdata = preddf, type = "link")
+saveRDS(m4, "../data/private/bp-diel-timemod2014.rds")
 
-DOYgroups <- rep(DOYgroup, each = N)
-
-predicted <- cbind(preddf, m3pred, DOYgroups)
-names(predicted)[which(names(predicted)=='m3pred')] <- 'pH'
-ggplot(predicted, aes(x = Time, y = pH, group= DOY, col=DOYgroups)) +
-  theme_bw() +
-  geom_line() +
-  scale_colour_discrete(name="Day of Year") +
-  theme(legend.position="top") +
-  xlab('Time of Day') + ylab('pH')
-
-## for co2
-N <- 200
-simDOY <- c(168:170, 190:192, 228:230)
-DOYgroup <- factor(rep(1:3, times=c(3,3,3)))
-DOYgroup <- factor(rep(c('Jun 17-19', 'Jul 9-11', 'Aug 16-18'), times=c(3,3,3)))  
-reptimes <- length(simDOY)
-preddf <- data.frame(`Time` = rep(seq(min(bdat2014full$Time, na.rm=TRUE),
-                                      max(bdat2014full$Time, na.rm=TRUE),
-                                      length = N), times=reptimes),
-                     `DOY` = rep(simDOY, each = N))
-mco2pred <- predict(mco2, newdata = preddf, type = "link")
-
-DOYgroups <- rep(DOYgroup, each = N)
-
-predicted <- cbind(preddf, mco2pred, DOYgroups)
-names(predicted)[which(names(predicted)=='mco2pred')] <- 'pCO2'
-
-labdatco2 <- data.frame(x = 3, y = 380, label = "Mean (atm)")
-
-co2modplot <- ggplot(predicted, aes(x = Time, y = pCO2, group= DOY, col=DOYgroups)) +
-  theme_bw(base_size = 10) +
-  scale_colour_brewer(name = "Date", type = 'qual', palette = 'Dark2', direction=1) +
-  geom_line() +
-  theme(legend.position="top") +
-  xlab('Time of Day') + ylab(expression(paste(italic(p)*"CO"[2]~"(ppm)"))) +
-  geom_abline(intercept = 398, slope = 0, linetype='dotted') +
-  geom_text(data = labdatco2, aes(label = label, x = x, y = y), 
-            show.legend = FALSE, inherit.aes = FALSE,  size = 3)
-ggsave('../docs/private/bp-diel-co2gam.png', width=20, height=15, units='cm')
-
-## arrange a few plots
-asloplots <- plot_grid(co2modplot, dielplot, ncol=2,label_size = 10)
-ggsave('../docs/private/dielplots.png', asloplots, width=20, height=10, units='cm')
 
 ## gam on other params
 ## ===========================================================================================
@@ -162,7 +86,7 @@ bpmod <- gam(ph1 ~
              na.action = na.exclude,
              control = gam.control(nthreads = 3, trace = TRUE,
                                    newton = list(maxHalf = 60)))
-FIXME: add time of day
+## FIXME: add time of day
 ## FIXME: tested scat but though histogram looked better nothing else did...??
 ## tested windsp, meanwindsp, and lag1.. nothing amazing
 ## odo rather close to strat so dropped strat here
@@ -216,3 +140,23 @@ oxmod <- gam(ODOrel1 ~
              control = gam.control(nthreads = 3, trace = TRUE,
                                    newton = list(maxHalf = 60)))
 plot(oxmod, pages = 1)
+
+## ==========================================================================================
+## 2015: no CO2 or O2 shallow data but other params ok
+## ==========================================================================================
+
+## gamming the time component of the data
+m1 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(DOY),
+          data = bdat5)
+m2 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
+          data = bdat5)
+anova(m1, m2, test = "LRT") # m2 better but not convinced it's significant?
+m3 <- gam(ph1 ~ te(Time, DOY, bs=c("cc", "tp")), data=bdat5)
+
+mco2 <- gam(co2corr ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
+            data = bdat5)
+
+plot(m2, scheme=2) 
+plot(acf(resid(m3)))
+
+saveRDS(m3, "../data/private/bp-diel-timemod2015.rds")

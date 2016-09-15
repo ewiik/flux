@@ -117,7 +117,7 @@ bdat2014full$TimeofDay <- ifelse(bdat2014full$Time < bdat2014full$DownTime &
 saveRDS(bdat2014full, '../data/private/bpbuoy2014-mod.rds')
 
 ## ==========================================================================================
-## 2015
+## 2015: only using surface since deep just kept malfunctioning all year
 ## ==========================================================================================
 bdat <- read.csv("../data/private/BPBuoyData2015raw.csv", skip = 4, 
                  col.names = c("datetime", "batvolt", "winddir", "windsp", "airtemp", 
@@ -127,10 +127,16 @@ bdat <- read.csv("../data/private/BPBuoyData2015raw.csv", skip = 4,
                                "bga1rfu", "ODOrel1", "ODOabs1", "temp2", "cond2", "ph2", 
                                "ph2mV", "bga2cell", "bga2rfu", "ODOrel2", "ODOabs2", "temp3", 
                                "temp4", "temp5", "temp6", "temp7"))
-
-press <- read.csv("../data/bp-pressure2015.csv")
-names(press)[which(names(press) == 'Pressure')] <- 'AirPressure'
-press <- press[,-which(names(press) == 'Year')]
+## Note email from Helen April 25, 2016: " 2015 both CO2 sensors failed after a few days due to 
+##    a plistdip issue after spring deployment. Deep CO2 failed: 5/15/2015 10:50 (0-2000 ppm)
+##    Shallow CO2 failed: 5/16/2015 3:10 (0-5000 ppm); 2 new sensors were put on
+## They were put back out: 7/14/2015 10:50 But were probably not stabilized for a few hours
+##    Deep sonde failed on:7/20/2015 13:10 (0-2000 ppm); The shallow sonde did not fail.
+## Note: it was not cleaned all summer (0-2000ppm)"
+## Note that ODO1 has no data for the functional CO2 perid =(
+## FIXME: this sonde is still reading above 2000pm so is it still actually a 5000 sonde? ALSO!
+##    The CO2 values are vastly above what the calculations imply... I find it hard to believe
+##    them.... was something done wrong?
 
 bdat <- transform(bdat, datetime = as.POSIXct(as.character(datetime), 
                                               format = "%m/%d/%Y %I:%M:%S %p"))
@@ -138,24 +144,41 @@ bdat <- transform(bdat, Hour = as.numeric(format(datetime, format = "%H")))
 bdat <- transform(bdat, Month = as.numeric(format(datetime, format = "%m")))
 bdat <- transform(bdat, Day = as.numeric(format(datetime, format = "%d")))
 bdat <- transform(bdat, DOY = as.numeric(format(datetime, format = "%j")))
+bdat <- transform(bdat, Time = as.numeric(format(datetime, "%H")) +
+                            as.numeric(format(datetime, "%M"))/60)
 
-bdat <- transform(bdat, isDay = ifelse(Hour < 21 & Hour > 7, TRUE, FALSE))
+## let's look at when sun up and down
+sundat <- sunrise.set(lat = 50.648016, long=-105.5072930, date = '2015/05/01', 
+                      timezone = 'UTC+6', num.days=170)
+sundat <- transform(sundat, Month = as.numeric(format(sunrise, format = "%m")))
+sundat <- transform(sundat, Day = as.numeric(format(sunrise, format = "%d")))
+sundat <- transform(sundat, UpTime = as.numeric(sundat$sunrise - trunc(sundat$sunrise, "days")))
+sundat <- transform(sundat, DownTime = as.numeric(sundat$sunset - trunc(sundat$sunset, "days")))
 
+## merge sundat with BP data
+bdat <- merge(bdat, sundat)
+
+## isday to depend on sunup and down rather than rigid times
+bdat$isDay <- ifelse(bdat$Time < bdat$DownTime & 
+                               bdat$Time > bdat$UpTime, 
+                             TRUE, FALSE)
+bdat$TimeofDay <- ifelse(bdat$Time < bdat$DownTime & 
+                                   bdat$Time > bdat$UpTime, 
+                                 'Day', 'Night')
+
+press <- read.csv("../data/bp-pressure2015.csv")
+names(press)[which(names(press) == 'Pressure')] <- 'AirPressure'
+press <- press[,-which(names(press) == 'Year')]
 ## get pressure in
 bdat <- merge(bdat, press, by=c('Month', 'Day'))
+
 
 ## check the CO2 columns
 with(bdat, plot(co2.1 ~ datetime))
 
-## not sure why all june and july values are completely different for both co2 profiles..!?     
+## indeed june and july crazy; here's the density  
 with(bdat, plot(density(co2.1), main='Density of 2015 uncorrected all-outliers-in pCO2'))
 with(bdat, plot(density(co2.2)))
-
-## remove the crazy negative and positive values and bound the ppm
-##    but first make note of which rows these are
-outliers <- which(abs(bdat$co2.1) > 1200 | abs(bdat$co2.2) > 1200)
-bdat<- bdat[-outliers,]
-## still bimodal but don't wanna remove too much in case it's real
 
 ## initial pressure in hg inches or kPa (met), need to get hPa for corrections
 bdat$pressure[grep('-Invalid-', bdat$pressure)] <- NA
@@ -170,30 +193,16 @@ bdat$windsp[grep('-Invalid-', bdat$windsp)] <- NA
 bdat$windsp <- as.character(bdat$windsp)
 bdat$windsp <- as.numeric(bdat$windsp)
 
-## plot some diagnostics and look if pH and oxygen determining CO2
-##    assuming I know which odo and ph measure relates to which co2 probe...
+## make NA the dates when the shallow one was out of operation and put back in, 
+##    and the few ones before June
+outliers <- which(bdat$datetime < as.POSIXct("15/07/2015", format="%d/%m/%Y"))
+bdat$co2.1[outliers] <- NA
+
+## plot some diagnostics and look if pH/chl determining CO2
 with(bdat, plot(co2.1 ~ Hour, col = ifelse(isDay, "red", "black")))
-with(bdat, plot(co2.2 ~ Hour, col = ifelse(isDay, "red", "black")))
 
 with(bdat, plot(co2.1 ~ ph1, col = ifelse(Month < 9, "red", "black")))
-with(bdat, plot(co2.1 ~ ODOrel1, col = ifelse(isDay, "red", "black")))
-## something wrong with ODO measurements!! loads 0s. Let's remove 0s
-## Existing data mostly contiguous in time
-with(bdat[-which(bdat$ODOrel1 == 0), ], plot(co2.1 ~ ODOrel1, col = ifelse(Day, "red", "black")))
 
-
-with(bdat, plot(co2.2 ~ ph2, col = ifelse(Month < 9, "red", "black")))
-with(bdat, plot(co2.2 ~ ODOrel2, col = ifelse(Month < 9, "red", "black")))
-## here, something fishy with the month of September.. CO2 mostly 0
-
-with(bdat[-which(bdat$ODOrel1 == 0), ], 
-     plot(ODOrel1 ~ ph1, col = ifelse(Hour > 21 | Hour < 11, "black", "red")))
-with(bdat, plot(ODOrel2 ~ ph2, col = ifelse(Hour > 21 | Hour < 11, "black", "red")))
-## night and day different slopes in sonde1, doesn't happen in sonde2 even when
-##    following the ODOrel1 subset
-
-with(bdat[-which(bdat$ODOrel1 == 0), ], 
-     plot(ODOrel1 ~ chl, col = ifelse(Hour > 21 | Hour < 11, "black", "red")))
 with(bdat, plot(ph1 ~ chl, col = ifelse(Hour > 21 | Hour < 11, "black", "red")))
 
 
@@ -232,11 +241,23 @@ ggplot(data=bdat2, aes(y = co2.1corr, x = ph1, col = Month)) +
   geom_text(label='2015', x=8.9, y=1250, col='black')
 
 ## calculate CO2 for 2015
+ml2015 <- read.csv("../data/maunaloa2.csv")
+bdat$Year <- rep(2015)
+bdat <- merge(bdat, ml2015[,c('Year', 'Month', 'pCO2interp')])
+bdat <- transform(bdat, salcalc = salcalc(temp=temp1, cond=cond1, 
+                                          dbar=(AirPressure + 0.8)/10))
+
 bdat$dic <- rep(NA)
-bdatflux <- with(bdat, gasExchangeExtra(temp = temp1, cond = cond1, ph=ph1, wind=windsp, alknotdic = FALSE,
-                                       kerri = TRUE, dic = dic, kpa=AirPressure))
+bdatflux <- with(bdat, gasExchangeUser(temp = temp1, cond = cond1, ph=ph1, 
+                                       wind=windsp, alknotdic = FALSE, 
+                                       salt = salcalc, kpa=AirPressure,
+                                       pco2atm = pCO2interp, diccalc = TRUE))
 bdatall <- cbind(bdat, bdatflux)
 
+## save for later
+saveRDS(bdatall, "../data/private/bpbuoy2015-mod.rds")
+
+## plot data
 ggplot(data=bdatall, aes(y = co2.1corr, x = pco2, col = factor(Month))) + # ifelse(Hour >= 8 & Hour <=20, 
   #   'red', 'black')
   #scale_color_identity() + # means it understands red and black in ifelse
@@ -250,8 +271,7 @@ ggplot(data=bdatall, aes(y = co2.1corr, x = pco2, col = factor(Month))) + # ifel
 lm2015 <- with(bdatall, lm(co2.1corr~pco2 -1))
 with(bdatall, cor(co2.1corr, pco2,use='complete.obs', method='pearson'))
 
-## plot 2015 data
-ggplot(data=bdat, aes(y = co2.1, x = DOY, col = isDay)) + # ifelse(Hour >= 8 & Hour <=20, 
+ggplot(data=bdat, aes(y = co2.1, x = datetime, col = isDay)) + # ifelse(Hour >= 8 & Hour <=20, 
   #   'red', 'black')
   #scale_color_identity() + # means it understands red and black in ifelse
   scale_color_manual(values=c('black', 'red')) +
