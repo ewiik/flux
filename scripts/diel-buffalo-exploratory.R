@@ -1,4 +1,7 @@
 ## plot and analyse BP diel data
+## Note that "PARW1 and PARW2 are on opposite sides of the buoy and shading occurs during 
+##    the day as the sun moves around the lake – take the highest value of the 2 PARW 
+##    sensors as being the PAR for that timestamp"
 
 ## read in data
 if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {

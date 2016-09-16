@@ -1,9 +1,7 @@
 ## load in Helen's 2015 buoy data -- from file sent 28.01.2016
+##    UPDATE: now checked and commented to be consistent with file sent by Julie 15thSep2016!
 ## And 2014 data from email sent Monday - April 25, 2016 
 ## two sonde depths, n.1 is the shallower one based on PAR..
-## Not sure what cdom and mv are measures of.. and why so many temps?
-## FIXME: really need to learn what's what with the column name matching (2015)
-## FIXME: removed outliers but also 0s that are not real 0s.. need to remove (2015)
 
 ## load necessary packages
 library("ggplot2")
@@ -30,7 +28,9 @@ ml <- ml[,-which(names(ml) == 'pCO2interp')]
 ## ======================================================================================
 ## 2014
 ## ======================================================================================
-
+## Note: "pHDeep showing suspicious values around the time of a cleaning by the Regina 
+##    group. pH is < 8 (for the only time during the season) just before the cleaning 
+##    and then increases to > 9 just afterwards." (notes file received from Julie)
 ## read in data; initially got only part of the supporting info, but the co2 that Helen
 ##    already corrected. Then asked for pH etc and she sent that but it doesn't have
 ##    the corrected values
@@ -47,6 +47,8 @@ bdat2014supp <- read.csv("../data/private/BPBuoy2014.csv", skip = 4,
                                        "bga1rfu", "ODOrel1", "ODOabs1", "temp2", "cond2", "ph2", 
                                        "ph2mV", "bga2cell", "bga2rfu", "ODOrel2", "ODOabs2", "temp3", 
                                        "temp4", "temp5", "temp6"))
+testing2014 <- read.csv("../data/private/BPoundBuoy_2014_QC_Processed_Data.csv") # most up to date 
+#   version received from Julie on Sep 15th 2016
 
 ## make time understandable
 bdat2014 <- transform(bdat2014, datetime = as.POSIXct(as.character(datetime), 
@@ -68,6 +70,58 @@ bdat2014supp <- transform(bdat2014supp, Time = as.numeric(format(datetime, "%H")
   as.numeric(format(datetime, "%M"))/60)
 bdat2014supp <- transform(bdat2014supp, Week = as.numeric(format(datetime, "%U")))
 bdat2014supp <- transform(bdat2014supp, isDay = ifelse(Hour < 21 & Hour > 7, TRUE, FALSE))
+
+testing2014 <- transform(testing2014, DateTime = as.POSIXct(as.character(DateTime), 
+                                                    format = "%Y-%m-%d %H:%M"))
+testing2014 <- transform(testing2014, Hour = as.numeric(format(DateTime, format = "%H")))
+testing2014 <- transform(testing2014, Month = as.numeric(format(DateTime, format = "%m")))
+testing2014 <- transform(testing2014, Day = as.numeric(format(DateTime, format = "%d")))
+testing2014 <- transform(testing2014, DOY = as.numeric(format(DateTime, format = "%j")))
+testing2014 <- transform(testing2014, Time = as.numeric(format(DateTime, "%H")) +
+                       as.numeric(format(DateTime, "%M"))/60)
+
+missing <- which(!testing2014$DateTime %in% bdat2014supp$datetime )
+testing2014[missing,1]## these are the confusing row shift start columns where co2corr et al are
+##    mismatched between supp and corr file, and 3rd-4th Sep
+missingalt <- which(!testing2014$DateTime %in% bdat2014$datetime )
+testing2014[missingalt,1]
+## hmm many more missing here; those above but the latter starting from 22.08.
+
+missing2 <- which(!bdat2014supp$datetime %in% testing2014$DateTime)
+missing2alt <- which(!bdat2014$datetime %in% testing2014$DateTime)
+## none here. Basically the newest master file has MORE dates than the ones I was previously
+##    given.... notes say that some sondes quit on 22nd Aug but data continued to 4th Sep.
+## Can live without the 3rd and 4th of Sep, and only grabbed co2corr from corr, so will 
+##    proceed with checking the start of the series
+head(testing2014$WindDir, n= 10) # 19:30 is 214, so supp is correct and corr has been corrupted
+#[1] 269 198 242 220 223 214 200 216 202  79
+head(bdat2014$winddir, n= 10)
+#[1] 198 242 220 223 214 200 216 202  79  68
+head(bdat2014supp$winddir, n= 10)
+#[1] 214 200 216 202  79  68  74  80  81  76
+
+## I need to subtract 1h from all vars in corr!! ugh   
+bdat2014$datetime <- bdat2014$datetime - 60*60
+missing2alt2 <- which(!bdat2014$datetime %in% testing2014$DateTime)
+bdat2014 <- bdat2014[-missing2alt2,]
+## FIXME: This makes bdat2014 a 0 length df at the minute, troubleshoot!
+
+## now remove trailing septembers from testing, and the up to 19:30 at the start
+testing2014 <- testing2014[-missing,]
+## testing has some -10000 where supp has NA..
+odds <- which(testing2014$CO2shallow <= 0)
+testing2014$CO2shallow[odds] <- NA
+
+## ok now we have complete match of dates... let's check other vars!
+plot(bdat2014supp$co2.1 ~ testing2014$CO2shallow, type = "l")
+plot(bdat2014supp$ph1 ~ testing2014$pHShallow, type = "l")
+plot(bdat2014supp$windsp ~ testing2014$WindSp, type = "l")
+
+## and let's check that the corr now is in agreement
+plot(bdat2014$winddir ~ 
+       testing2014$WindDir[testing2014$DateTime <= as.POSIXct("22.08.2014 07:45", 
+                                                              format="%d.%m.%Y %H:%M")], 
+     type = "l")
 
 ## in 2014 pressure is in HPA but need KPA for CO2 calcs
 bdat2014supp$pressureKPA <- bdat2014supp$pressure/10
@@ -92,6 +146,26 @@ bdat2014suppflux <- with(bdat2014supp, gasExchangeUser(temp = temp1, cond = cond
 bdat2014suppall <- cbind(bdat2014supp, bdat2014suppflux)
 bdat2014corr <- subset(bdat2014, select=c('datetime', 'co2corr'))
 bdat2014full <- merge(bdat2014suppall, bdat2014corr, all.x = TRUE)
+
+## yep that is good;now for flags that I might cause me to take more rows out or make NA
+## 1. maintenance/calibration
+bdat2014full[bdat2014full$datetime >= as.POSIXct("26.06.2014 10:45", format="%d.%m.%Y %H:%M") &
+       bdat2014full$datetime <= as.POSIXct("26.06.2014 13:00", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("08.07.2014 09:45", format="%d.%m.%Y %H:%M") &
+       bdat2014full$datetime <= as.POSIXct("08.07.2014 17:45", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("29.07.2014 10:45", format="%d.%m.%Y %H:%M") &
+       bdat2014full$datetime <= as.POSIXct("29.07.2014 11:30", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("31.07.2014 09:45", format="%d.%m.%Y %H:%M") &
+       bdat2014full$datetime <= as.POSIXct("31.07.2014 17:15", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("12.08.2014 10:15", format="%d.%m.%Y %H:%M") &
+       bdat2014full$datetime <= as.POSIXct("12.08.2014 11:00", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("14.08.2014 11:00", format="%d.%m.%Y %H:%M") &
+       bdat2014full$datetime <= as.POSIXct("14.08.2014 21:15", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("26.08.2014 08:15", format="%d.%m.%Y %H:%M") &
+               bdat2014full$datetime <= as.POSIXct("26.08.2014 15:30", format="%d.%m.%Y %H:%M"),-1] <- NA
+## 2. General failure
+bdat2014full[bdat2014full$datetime >= as.POSIXct("22.08.2014 08:00", format="%d.%m.%Y %H:%M") &
+               bdat2014full$datetime <= as.POSIXct("22.08.2014 11:00", format="%d.%m.%Y %H:%M"),-1] <- NA
 
 ## let's look at when sun up and down
 sundat <- sunrise.set(lat = 50.648016, long=-105.5072930, date = '2014/06/01', 
@@ -119,7 +193,7 @@ saveRDS(bdat2014full, '../data/private/bpbuoy2014-mod.rds')
 ## ==========================================================================================
 ## 2015: only using surface since deep just kept malfunctioning all year
 ## ==========================================================================================
-bdat <- read.csv("../data/private/BPBuoyData2015raw.csv", skip = 4, 
+bdat <- read.csv("../data/private/BPBuoyData2015raw.csv", skip = 3, 
                  col.names = c("datetime", "batvolt", "winddir", "windsp", "airtemp", 
                                "relhum", "pressure", "dailyrain", "par1", "par2",
                                "par3", "cdom", "mvolts", "co2-1", "co2-2", "temp1",
@@ -127,6 +201,10 @@ bdat <- read.csv("../data/private/BPBuoyData2015raw.csv", skip = 4,
                                "bga1rfu", "ODOrel1", "ODOabs1", "temp2", "cond2", "ph2", 
                                "ph2mV", "bga2cell", "bga2rfu", "ODOrel2", "ODOabs2", "temp3", 
                                "temp4", "temp5", "temp6", "temp7"))
+testing <- read.csv("~/BPoundBuoy_2015_QC_Processed_Data.csv")
+## Note that 'testing' follows the files sent by Julie on 15th Sep 2016, notes and data.
+##    Note also that I used sheet C6 - this is the most up to date version at the minute
+
 ## Note email from Helen April 25, 2016: " 2015 both CO2 sensors failed after a few days due to 
 ##    a plistdip issue after spring deployment. Deep CO2 failed: 5/15/2015 10:50 (0-2000 ppm)
 ##    Shallow CO2 failed: 5/16/2015 3:10 (0-5000 ppm); 2 new sensors were put on
@@ -146,6 +224,49 @@ bdat <- transform(bdat, Day = as.numeric(format(datetime, format = "%d")))
 bdat <- transform(bdat, DOY = as.numeric(format(datetime, format = "%j")))
 bdat <- transform(bdat, Time = as.numeric(format(datetime, "%H")) +
                             as.numeric(format(datetime, "%M"))/60)
+
+testing <- transform(testing, DateTime = as.POSIXct(as.character(DateTime), 
+                                                    format = "%Y-%m-%d %H:%M"))
+testing <- transform(testing, Hour = as.numeric(format(DateTime, format = "%H")))
+testing <- transform(testing, Month = as.numeric(format(DateTime, format = "%m")))
+testing <- transform(testing, Day = as.numeric(format(DateTime, format = "%d")))
+testing <- transform(testing, DOY = as.numeric(format(DateTime, format = "%j")))
+testing <- transform(testing, Time = as.numeric(format(DateTime, "%H")) +
+                       as.numeric(format(DateTime, "%M"))/60)
+
+missing <- which(!testing$DateTime %in% bdat$datetime )
+testing[missing,]# these are Missing in the master spreadsheet, must have been deleted in bdat original
+
+missing2 <- which(!bdat$datetime %in% testing$DateTime)
+bdat[missing2,] #these are the last dates of October that are not in the master, probs deleted due to 
+#   probe being taken out?
+testing <- testing[-missing,]
+bdat <- bdat[-missing2,]
+
+## ok now we have complete match of dates... let's check other vars!
+plot(bdat$co2.1 ~ testing$CO2shallow, type = "l")
+plot(bdat$ph1 ~ testing$pHShallow, type = "l")
+plot(bdat$cdom ~ testing$CDOM, type = "l")
+
+## yep that is good;now for flags that I might cause me to take more rows out or make NA
+## 1. rest of October probe being taken out times
+bdat[bdat$datetime >= as.POSIXct("06.10.2015 10:20", format="%d.%m.%Y %H:%M"),-1] <- NA
+## 2. June times of initial deployment
+bdat[bdat$datetime <= as.POSIXct("14.05.2015 16:30", format="%d.%m.%Y %H:%M"),-1] <- NA
+## 3. Calibration periods
+bdat[bdat$datetime >= as.POSIXct("11.06.2015 09:30", format="%d.%m.%Y %H:%M") &
+       bdat$datetime <= as.POSIXct("11.06.2015 15:20", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("25.06.2015 10:40", format="%d.%m.%Y %H:%M") &
+       bdat$datetime <= as.POSIXct("25.06.2015 14:10", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("09.07.2015 09:30", format="%d.%m.%Y %H:%M") &
+       bdat$datetime <= as.POSIXct("09.07.2015 15:00", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("26.07.2015 13:10", format="%d.%m.%Y %H:%M") &
+       bdat$datetime <= as.POSIXct("26.07.2015 14:20", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("05.08.2015 10:30", format="%d.%m.%Y %H:%M") &
+       bdat$datetime <= as.POSIXct("05.08.2015 13:50", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("03.09.2015 10:00", format="%d.%m.%Y %H:%M") &
+       bdat$datetime <= as.POSIXct("03.09.2015 13:50", format="%d.%m.%Y %H:%M"),-1] <- NA
+
 
 ## let's look at when sun up and down
 sundat <- sunrise.set(lat = 50.648016, long=-105.5072930, date = '2015/05/01', 
