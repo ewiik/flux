@@ -29,17 +29,14 @@ with(bdat, cor(x=co2corr, y=pco2, use='complete.obs', method='pearson'))
 ten3 <- subset(bdat, Hour >= 10 & Hour <=15)
 
 ## could do this to make converge but also did manually, required four iterations
-#reps <- 8 #takes a while for it to converge
-#for (i in 1:reps) {
-#   start <- if (i == 1 ) {coef(glm(co2corr ~ pco2, data = ten3, family = gaussian))}
-#     else { coef(glmmod) }
-#   glmmod <- glm(co2corr ~ pco2, data = ten3, family = Gamma(link = "identity"), start = start,
-#                 control = glm.control(maxit=100))
-# }
-
-start <- c(-69.0709700, 0.9070629 )
-glmmod <- glm(co2corr ~ pco2, data = ten3, family = Gamma(link = "identity"), start = start,
-              control = glm.control(maxit=100))
+reps <- 8 #takes a while for it to converge
+for (i in 1:reps) {
+   start <- if (i == 1 ) {coef(glm(co2corr ~ pco2, data = ten3, family = gaussian))}
+     else { coef(glmmod) }
+   glmmod <- glm(co2corr ~ pco2, data = ten3, family = Gamma(link = "identity"), start = start,
+                 control = glm.control(maxit=100))
+ }
+## FIXME: this is not an adequate model based on QQ plot so need to rethink at some point
 
 # residual plot etc
 plot(resid(lmint) ~ lmint$fitted.values, ylab='Residuals (pCO2 uatm)', 

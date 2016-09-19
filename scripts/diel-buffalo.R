@@ -1,7 +1,8 @@
 ## load in Helen's 2015 buoy data -- from file sent 28.01.2016
 ##    UPDATE: now checked and commented to be consistent with file sent by Julie 15thSep2016!
 ## And 2014 data from email sent Monday - April 25, 2016 
-## two sonde depths, n.1 is the shallower one based on PAR..
+##    UPDATE: now checked and commented to be consistent with file sent by Julie 15thSep2016!
+##    However note that co2.1 goes to Sep and co2corr not so this would be nice to amend.
 
 ## load necessary packages
 library("ggplot2")
@@ -91,7 +92,7 @@ missing2 <- which(!bdat2014supp$datetime %in% testing2014$DateTime)
 missing2alt <- which(!bdat2014$datetime %in% testing2014$DateTime)
 ## none here. Basically the newest master file has MORE dates than the ones I was previously
 ##    given.... notes say that some sondes quit on 22nd Aug but data continued to 4th Sep.
-## Can live without the 3rd and 4th of Sep, and only grabbed co2corr from corr, so will 
+## Can live without the 3rd and 4th of Sep, and grabbed co2corr no others from corr, so will 
 ##    proceed with checking the start of the series
 head(testing2014$WindDir, n= 10) # 19:30 is 214, so supp is correct and corr has been corrupted
 #[1] 269 198 242 220 223 214 200 216 202  79
@@ -102,15 +103,17 @@ head(bdat2014supp$winddir, n= 10)
 
 ## I need to subtract 1h from all vars in corr!! ugh   
 bdat2014$datetime <- bdat2014$datetime - 60*60
-missing2alt2 <- which(!bdat2014$datetime %in% testing2014$DateTime)
-bdat2014 <- bdat2014[-missing2alt2,]
-## FIXME: This makes bdat2014 a 0 length df at the minute, troubleshoot!
 
 ## now remove trailing septembers from testing, and the up to 19:30 at the start
 testing2014 <- testing2014[-missing,]
+
 ## testing has some -10000 where supp has NA..
 odds <- which(testing2014$CO2shallow <= 0)
 testing2014$CO2shallow[odds] <- NA
+
+## need to remove the start ones from bdat2014 after the hourshift
+missing2alt2 <- which(!bdat2014$datetime %in% testing2014$DateTime)
+bdat2014 <- bdat2014[-missing2alt2,]
 
 ## ok now we have complete match of dates... let's check other vars!
 plot(bdat2014supp$co2.1 ~ testing2014$CO2shallow, type = "l")
@@ -185,8 +188,6 @@ bdat2014full$isDay <- ifelse(bdat2014full$Time < bdat2014full$DownTime &
 bdat2014full$TimeofDay <- ifelse(bdat2014full$Time < bdat2014full$DownTime & 
                                bdat2014full$Time > bdat2014full$UpTime, 
                              'Day', 'Night')
-
-
 ## save object for other purposes
 saveRDS(bdat2014full, '../data/private/bpbuoy2014-mod.rds')
 
