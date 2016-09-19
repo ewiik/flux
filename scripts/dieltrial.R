@@ -63,7 +63,7 @@ sundat <- transform(sundat, DownTime = as.numeric(sundat$sunset - trunc(sundat$s
 diel <- merge(diel, sundat)
 
 ## plot
-with(diel, plot(Temp ~ Date.Time, col = ifelse(Day, "red", "black")))
+with(diel, plot(Temp ~ Date.Time, col = ifelse(isDay, "red", "black")))
 
 dielstack <- stack(diel[,2:8])
 dielstack$Date.Time <- rep(diel$Date.Time)
