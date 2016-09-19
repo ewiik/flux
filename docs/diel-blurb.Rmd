@@ -18,6 +18,7 @@ library("extrafont")
 library("grid")
 library("reshape2")
 library("gridExtra")
+library("cowplot")
 
 ## create a theme to save linespace in plots
 papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
@@ -36,26 +37,28 @@ bdat5 <- bdat[order(bdat5$datetime),]
 bdat$cdom[bdat$cdom < 0]  <- NA
 bdat$turb[log10(bdat$turb) > 2.9] <- NA
 
+wasc <- readRDS('../data/private/WS-9-9-mod.rds')
+
 ## melt for atmospheric parameters
-bair <- melt(bdat, id.vars = "datetime", measure.vars = c("windsp", "winddir", "airtemp", "pressure", "dailyrain", "par1"))
-bair$depth <- rep(0)
+bair <- melt(bdat, id.vars = "datetime", measure.vars = c("windsp", "airtemp", "pressure", "dailyrain", "par1"))
+bair$depth <- rep(127)
+bair$depth[grep("par", bair$variable)] <- 108
 bair$variable <- as.character(bair$variable)
 bair$variable[grep("dsp", bair$variable)] <- "a.Wind (m/s)"
-bair$variable[grep("ddir", bair$variable)] <- "b.Wind (deg.)"
-bair$variable[grep("air", bair$variable)] <- "c.Air T."
-bair$variable[grep("pres", bair$variable)] <- "d.Air P.(hPa)"
-bair$variable[grep("daily", bair$variable)] <- "e.Rain (mm)"
-bair$variable[grep("par", bair$variable)] <- "f.PAR (air)."
+bair$variable[grep("air", bair$variable)] <- "b.Air T."
+bair$variable[grep("pres", bair$variable)] <- "c.Air P.(hPa)"
+bair$variable[grep("daily", bair$variable)] <- "d.Rain (mm)"
+bair$variable[grep("par", bair$variable)] <- "e.PAR (air)."
 
 ## melt for temperature and clean temp data (temp3 rotten throughout)
 btemp <- melt(bdat, id.vars = "datetime", measure.vars = c("temp1", "temp2", "temp4",
                                                            "temp5", "temp6"))
-btemp$depth <- rep(0)
-btemp$depth[grep("1", btemp$variable)] <- 106
-btemp$depth[grep("2", btemp$variable)] <- 294
-btemp$depth[grep("4", btemp$variable)] <- 54
-btemp$depth[grep("5", btemp$variable)] <- 123
-btemp$depth[grep("6", btemp$variable)] <- 218
+btemp$depth <- rep(0) #45, 77, 123, 218 + reg 82 depth
+btemp$depth[grep("1", btemp$variable)] <- -82
+btemp$depth[grep("2", btemp$variable)] <- -218
+btemp$depth[grep("4", btemp$variable)] <- -45
+btemp$depth[grep("5", btemp$variable)] <- -77
+btemp$depth[grep("6", btemp$variable)] <- -123
 
 btemp$value[which(btemp$value < 0)] <- NA
 btemp$value[which(btemp$value > 23 & btemp$variable == "temp6")] <- NA # no idea why this is happening in temp6!
@@ -66,41 +69,41 @@ btemp$variable <- rep("i. Water T.")
 blimno <- melt(bdat, id.vars = "datetime", measure.vars = c("ph1", "ph2", "ODOrel1","ODOrel2",
                                                           "bga2cell", "bga1cell"))
 blimno$variable <- as.character(blimno$variable)
-blimno$depth <- rep(106)
-blimno$depth[grep("2", blimno$variable)] <- 294
+blimno$depth <- rep(-82)
+blimno$depth[grep("2", blimno$variable)] <- -294
 
 blimno$variable[grep("ph", blimno$variable)] <- "j. pH"
 blimno$variable[grep("ODO", blimno$variable)] <- "k. O2 (%)"
 blimno$variable[grep("bga", blimno$variable)] <- "l.Phyco (cell/ml)"
 
 ## one-depth limno parameters
-bones <- melt(bdat, id.vars = "datetime", measure.vars = c("chl", "co2corr"))
-bones$depth <- rep(106)
+## choose the higher par and clean
+bdat$par2[bdat$par2 < 0] <- NA # deal with -100 000 values
+bdat$par3[bdat$par3 < 0] <- NA
+
+take3 <- which(bdat$par2 < bdat$par3) 
+bdat$parfinal <- bdat$par2
+bdat$parfinal[take3] <- bdat$par3[take3]
+
+bdat$parfrac <- bdat$parfinal/bdat$par1 * 100
+bdat$parfrac[bdat$parfrac > 100] <- NA # since dawn, dusk, night times are unreliable
+bdat$parfrac[bdat$parfrac < 0] <- NA
+bdat$parfrac[bdat$Hour != 12] <- NA
+
+bones <- melt(bdat, id.vars = "datetime", measure.vars = c("chl", "co2corr", "parfrac"))
+bones$depth <- rep(-82)
 bones$variable <- as.character(bones$variable)
+bones$depth[grep("frac", bones$variable)] <- -68
+bones$depth[grep("2", bones$variable)] <- -89
+
 bones$variable[grep("corr", bones$variable)] <- "g. CO2 (ppm)"
 bones$variable[grep("chl", bones$variable)] <- "h. Chl (ug/L)"
+bones$variable[grep("frac", bones$variable)] <- "f.%PAR (noon)"
+
 
 ## combine for megamelt and reorder if needed
 megamelt <- rbind(bair, bones, btemp, blimno)
 #megamelt <- within(megamelt, variable <- factor(variable, levels = sample(levels(Group))))
-
-
-## melt for PAR plot
-bdat$par2[bdat$par2 < 0] <- NA # deal with -100 000 values
-bdat$par3[bdat$par3 < 0] <- NA
-bdat$par2frac <- bdat$par2/bdat$par1 * 100
-bdat$par3frac <- bdat$par3/bdat$par1 * 100
-bdat$par2frac[is.infinite(bdat$par2frac)] <- NA
-bdat$par3frac[is.infinite(bdat$par3frac)] <- NA
-bpar <- melt(bdat, id.vars = c("datetime", "isDay", "Hour"), measure.vars = c("par1", "par2", "par3",
-                                                                              "par2frac", "par3frac"))
-bpar$depth <- rep(0)
-bpar$depth[grep("1", bpar$variable)] <- "Air"
-bpar$depth[grep("2", bpar$variable)] <- '74'
-bpar$depth[grep("3", bpar$variable)] <- '106'
-
-bpar$isFrac <- rep(FALSE)
-bpar$isFrac[grep("frac", bpar$variable)] <- TRUE
 
 ## melt for turbplot
 bturb <- melt(bdat, id.vars = "datetime", measure.vars = c("co2corr", "cdom", "turb"))
@@ -128,28 +131,33 @@ if(!file.exists("../data/private/bp-diel-timemod2015.rds")) {
 time4 <- readRDS("../data/private/bp-diel-timemod2014.rds")  
 time5 <- readRDS("../data/private/bp-diel-timemod2015.rds")
 
+if(!file.exists("../data/private/diel-wasc-timemod.rds")) {
+  source("../scripts/wasc-diel-models.R")}
+wascmod <- readRDS("../data/private/diel-wasc-timemod.rds")
+
+
 ```
 ## Buffalo Pound data
 
-Buffalo Pound data exist from 2014, 2015 and we are waiting for any available 2016 data. We have enough supporting data to calculate pCO2 which needs doing for the diel paper in order to include Wascana as well (it's also interesting in its own right). Regrettably, none of the CO~2~ data from 2015 seem reliable, and the shallow water oxygen meter wasn't performing. So all we can get from here is pH-based. I've therefore shown no other 2015 data than a comparison between pH over the day and the sampling season.
+Buffalo Pound data exist from 2014, 2015, and we are waiting for any available 2016 data. We have enough supporting data to calculate pCO2 which needs doing for the diel paper in order to include Wascana as well (it's also interesting in its own right). Regrettably, none of the CO~2~ data from 2015 seem reliable, and the shallow water oxygen meter wasn't performing. So all we can get from here is pH-based. I've therefore shown no other 2015 data than a comparison between pH over the day and the sampling season, for the time being.
 
-For 2014, for ca 90 days, we have the following information for every 15mins (some data more patchy than others):
+For 2014, we have ca 80 days of data every 15mins; For 2015, ca 145 days of data every 10mins. Sensor depths are mostly the same between the years:
 
-*   Meterorological: Wind speed & direction, air temperature, relative humidity, pressure, daily rain, PAR
-* Shallow (106cm): PAR, temperature, oxygen (% and abs), chl (rfu), phycocyanin (rfu), conductivity (uS/cm), pH; assuming that turbidity (NTU+), CDOM (ug/L) also from this depth
-* Deep (294cm): Temperature, oxygen (% and abs), chl (rfu), phycocyanin (rfu), conductivity (uS/cm), pH
-* 74cm: PAR
-* ++ Thermistor chain for temperature but need to check which exact depths with Helen
+*   Meteorological: Wind speed & direction, air temperature, relative humidity, pressure, daily rain (all 1.27m above surface), PAR (1.08m above surface); wind direction is unreliable since buouy changed direction itself...
+* Shallow (82cm): Temperature, oxygen (% and abs), chl (rfu), phycocyanin (rfu), conductivity (uS/cm), pH, turbidity (NTU+); CDOM (ug/L) (62cm); CO2 (89cm)
+* Deep (294cm): Temperature, oxygen (% and abs), chl (rfu), phycocyanin (rfu), conductivity (uS/cm), pH; CO2 (ppm) (185cm)
+* 68cm: PAR (use highest PAR value between the two -- shading as day goes by)
+* Thermistor chain: 45, 77, 123, 218; 318 for 2015 only
 
 This is a brief document mostly with results, but also with some analysis. I've left my hypotheses and ideal scope of paper at the bottom of the document in order to avoid priming anyone reading this.
 
-### Time series of all variables
+### Time series of all variables (2014)
 
-The time series covered June 11^{th} to August 29^{th} and was received from Saskatoon in a 'cleaned' state (corrected CO~2~). However, in other variables there were outliers in the form of spikes or sonde malfunction and I have taken these away. The data are mostly complete, however. See Figs  \ref{mega}-\ref{turb} for variable vs time plots.
+The time series covered June 11^th^ to August 29^th^ and follows the most up to date data cleaning by Saskatoon. Note that corrected CO~2~ values are still not available for the last days of the time series which is being chased at the minute. In many variables, there were outliers in the form of spikes or sonde malfunction and I have taken these away. I have also removed all data during cleaning and maintenance periods. 
 
-Meteorological variables showed both predictable diel and seasonal variation, and somewhat unpredictable patterns. For example, air temperature predictably increased through June and began to decrease again towards the end of August, with minima at night.  Highest PAR (measured in air not water) occurred in June consistent with long days and a direct position of the sun, however cloudy days with lower PAR occurred throughout. On the other hand, wind speed and direction were variable at up to daily resolution and did not show strong seasonal trends. Air pressure dipped through the season and was at times, but not consistently, associated with rain events, reflecting the patchy nature of convective summer precipitation. 
+Meteorological variables showed both predictable diel and seasonal variation, and somewhat unpredictable patterns (Fig. \ref{mega}). For example, air temperature predictably increased through June and began to decrease again towards the end of August, with minima at night.  Highest PAR (measured in air not water) occurred in June consistent with long days and a direct position of the sun, however cloudy days with lower PAR occurred throughout. On the other hand, wind speed was variable at up to daily resolution and did not show strong seasonal trends. Air pressure dipped through the season and was at times, but not consistently, associated with rain events, reflecting the patchy nature of convective summer precipitation. 
 
-Limnological variables were most stable in June, and most variable in August. Stratification occurred intermittently throughout the season as seen in vertical separation of temperature, oxygen and pH, most notably over three events in July. pH was maximal over July, while water temperature was highest in August. CO~2~ mirrored pH, and was above-atmospheric in June, at its lowest in July, and varied the most in August. The variability in pH and CO~2~ was not clearly related to variation in chl, which had a relatively low amplitude of variation throughout the summer until late August when regrettably, the CO~2~ sensor malfunctioned. Generally, chl was highest in late July and the beginning of August. Note that the chl values should still be verified against routines sampling data from that summer.
+Limnological variables were most stable in June, and most variable in August (Fig. \ref{mega}). Stratification occurred intermittently throughout the season as seen in vertical separation of temperature, oxygen and pH, most notably over three events in July. pH was maximal over July, while water temperature was highest in August. CO~2~ mirrored pH, and was above-atmospheric in June, at its lowest in July, and varied the most in August. The variability in pH and CO~2~ was not clearly related to variation in chl, which had a relatively low amplitude of variation throughout the summer until late August for which we are still waiting for corrected CO~2~ data. Generally, chl was highest in late July and the beginning of August. Note that the chl values should still be verified against routines sampling data from that summer.
 
 <!--```{r tempplots, fig.cap="Water temperature at different depths over the study period"}
 ggplot(data = btemp, aes(y=value, x=datetime, group=factor(depth), col=factor(depth))) +
@@ -164,39 +172,36 @@ ggplot(data = btemp, aes(y=value, x=datetime, group=factor(depth), col=factor(de
 
 ```{r meltplot, plot-ref, fig.height=14, fig.width=9, fig.cap="Most measured variables over time, showing intermittent stratification \\label{mega}"}
 
-ggplot(data = megamelt, aes(y=value, x=datetime, group=variable, col=factor(depth))) +
+ggplot(data = megamelt, aes(y=value, x=datetime, group=variable, col=depth)) +
   papertheme +
   geom_line() +
   facet_wrap('variable', scales='free_y', ncol=1, switch="y") +
-  scale_color_viridis(discrete = TRUE, begin= 0.1, end=0.9, 
-                      option = 'viridis', direction = -1, name="Depth (cm)") +
-  theme(axis.title=element_blank())
-```
-
-```{r parplots, plot-ref, fig.height = 13, fig.width=9, fig.cap="% of air PAR intercepted at different depths over the study period, by hour. Later in the day it seems the deeper sensor is registering higher PAR which needs some investigation \\label{par}"}
-ggplot(data = bpar[bpar$isDay==TRUE & bpar$isFrac == TRUE,], aes(y=value, x=datetime, group=factor(depth), col=factor(depth))) +
-  papertheme +
-  facet_grid(Hour ~ .) +
-  geom_line() +
-  scale_color_viridis(discrete = TRUE, begin= 0.1, end=0.8, 
-                      option = 'viridis', direction = -1, name="Depth (cm)") +
-  ylab("% PAR of air intercepted") + xlab("Date") + scale_y_continuous(limits = c(0, 100))
-
+  scale_color_viridis(discrete = FALSE, begin= 0.1, end=0.9, 
+                      option = 'viridis', direction = 1, name="Depth (cm)") +
+  theme(axis.title=element_blank(), legend.key.width=unit(2,"cm"), 
+        strip.text.y = element_text(size = 8)) 
+  
 ```
 
 #### Potential data issues
 
-We seem to have some interesting issues with PAR since a plot by hour seems to indicate that later in the day, the deeper sonde is registering more incident light than the shallower sonde (Fig. \ref{par}). It might just be that they have been calibrated slightly differently, but this needs to be checked. Note that some values had to be removed as outliers as well.
+We seem to have some interesting issues with PAR since the \% incidence of air PAR at depth undergoes a huge amount of variation depending on time of day -- it seems that the sensors are less reliable when light is low (based on a plot of \% PAR by hour; not shown) which is when water supposedly measures more PAR than air. It is likely to be a combination of errors at low light, and the relative position of the PAR sensors (if the water one is in light and the air one in shade, this could explain it). This is why, for simplicity, I chose \% PAR at noon for the plots. These data should be reliable.
 
-The reliability of CDOM and turbidity also needs checking (Fig. \ref{turb}) -- they have tripped out fairly often in 2016 so need to check everything is legit with these data in 2014. If the data are true, there might be reason to believe that the CDOM is autochthonously produced given the gradual increase over the season (I would doubt that overland flow would be the source given the dearth of heavy rain events in 2014, and them being in July???). Also -- what on earth is happening in August with both measures? Why are turbidity and CDOM sometimes inversely correlated? Is it just a matter of grain size differences and the way that NTU is measured?
+The reliability of CDOM and turbidity needs checking (Fig. \ref{turb}) -- they have tripped out fairly often in 2016 so need to check everything is legit with these data in 2014. If the data are true, there might be reason to believe that the CDOM is autochthonously produced given the gradual increase over the season (I would doubt that overland flow would be the source given the dearth of heavy rain events in 2014, and them being in July???). Also -- what on earth is happening in August with both measures? Why are turbidity and CDOM sometimes inversely correlated? Is it just a matter of grain size differences and the way that NTU is measured?
+
+Interestingly, noon \% PAR is inversely correlated with both CDOM and chl! (and cdom and chl are related!)
 
 
-```{r turbplots, plot-ref, fig.cap="CDOM increases consistently over the summer season, which is not reflected in turbidity which peaks in July and late August. Is there a relationship with CO~2~? \\label{turb}", fig.width=6, fig.height=3}
-ggplot(data=bturb, aes(y=value, x=datetime)) +
+```{r turbplots, plot-ref, fig.cap="CDOM increases consistently over the summer season, which is not reflected in turbidity which peaks in July and late August. Is there a relationship with CO~2~? \\label{turb}", fig.width=7, fig.height=3}
+turbplot <- ggplot(data=bturb, aes(y=value, x=datetime)) +
   papertheme +
   geom_point(size=0.3) +
   facet_grid(variable ~ ., scales = "free_y") +
   theme(axis.title = element_blank(), strip.text.y = element_text(size = 6))
+relationplot <- ggplot(data=bdat[bdat$Hour == 12,], aes(y=parfrac, x=cdom)) +
+  geom_point(size=0.5) +
+  xlab("CDOM") + ylab("Noon %PAR in water")
+plot_grid(turbplot, relationplot, ncol=2, rel_widths = c(1.7,1))
 ```
 
 #### Questions
@@ -212,7 +217,7 @@ ggplot(data=bturb, aes(y=value, x=datetime)) +
 ### Relationship between key variables identified in routines analysis
 Routines analysis indicated that the tightest coupling is with pH and CO~2~, while oxygen was surprisingly unrelated to CO~2~. Was this the case also with high-resolution data? Did night change things?
 
-The relationship between shallow pH and CO~2~ was strong, especially during night (Fig. \ref{phco2}). There was much more scatter during the day where CO~2~ was frequently lower than expected based on pH (e.g. routines data inicated pH ca 8.8 as being the cut-off between influx and efflux). The relationship between deep pH and CO~2~ was poor (not shown) suggesting that there is reasonable vertical separation in the water column over the season. Is it possible that the small difference in depth between the pH (106 cm) and CO~2~ (89 cm) could explain the difference during the day, if productivity is particularly high at the surface (explaining the low CO~2~ points in Fig. \ref{phco2}).
+The relationship between shallow pH and CO~2~ was strong, especially during night (Fig. \ref{phco2}). There was much more scatter during the day where CO~2~ was frequently lower than expected based on pH (e.g. routines data inicated pH ca 8.8 as being the cut-off between influx and efflux). The relationship between deep pH and CO~2~ was poor (not shown) suggesting that there is reasonable vertical separation in the water column over the season.
 
 pCO~2~ had a stronger relationship with oxygen here than in the routines sampling (Fig. \ref{o2co2}), with simultaneous supersaturation being rare. Overall, the two were negatively correlated though simultaneous undersaturation was frequent. 
 
@@ -363,7 +368,7 @@ ggplot(predph, aes(x = Time, y = pH, group= DOY, col=DOYgroups)) +
 
 ## Correspondence between measured and calculated CO~2~
 
-Somewhat helpfully to our cause, calculated pCO~2~ has often been shown higher than actual pCO~2~ as seems to be the case for our Qu'Appelle data during the day (yes the slope is \> 1 but most scatter is below the line) (Fig. \ref{calc}). Therefore it is likely that we are underestimating their sequestration capacity based on our routines sampling. This is also consistent with the scatter in the pCO~2~-pH relationship (Fig. \ref{phco2}) where daytime things are a bit unpredictable and generally lower-than-expected pCO~2~ occurs at relatively low pH values.
+Somewhat helpfully to our cause, calculated pCO~2~ has often been shown higher than actual pCO~2~ as seems to be the case for our Qu'Appelle data during the day (yes the slope is \> 1 but most scatter is below the line) (Fig. \ref{calc}). Therefore it is likely that we are underestimating their sequestration capacity based on our routines sampling. This is also consistent with the scatter in the pCO~2~-pH relationship (Fig. \ref{phco2}) where daytime things are a bit unpredictable and generally lower-than-expected pCO~2~ occurs at relatively low pH values. (could sensor fouling be an issue here?)
 
 However, the night-time measurements are higher than calculations, suggesting that some process is changing the relationship between pH and pCO~2~ so that other things become more important... We are obviously using the conductivity-alkalinity relationship here to calculate pCO~2~ so it may simply be a matter of the DIC-conductivity relationship breaking down at night when more DIC (i.e. CO~2~) is released. Would this be plausible?
 
@@ -386,14 +391,64 @@ ggplot(data=bdat, aes(y = co2corr, x = pco2, col=isDay)) +
 
 ## My hypotheses and paper focus
 
-Basically, I'd like to look at which controls operate on CO~2~ at diel scales in these lakes. Specifically, I'd again like to partition physical factors from metabolic factors where available (given complications where they interact, like low wind speeds promoting thermal stabolity and cyano blooms). Therefore I'd need chl and phycocyanin to be reliable because they are the only unequivocally metabolic variables I have at this resolution. Oxygen may be wind-equilibrated and not necessarily reflect algal abundance/respiration balances. Something to think about. 
+Basically, I'd like to look at which controls operate on CO~2~ at diel scales in these lakes. Specifically, I'd again like to partition physical factors from metabolic factors where available (given complications where they interact, like low wind speeds promoting thermal stability and cyano blooms). Therefore I'd need chl and phycocyanin to be reliable because they are the only unequivocally metabolic variables I have at this resolution. Oxygen may be wind-equilibrated and not necessarily reflect algal abundance/respiration balances. Something to think about. 
 
 Physical factors -- wind mixing, thermal stability, stratification.... basically could be encapsulated in one index as Gavin suggested. That would be tidy. Could include rain events but not sure since only a very few in the time series anyway?
 
-Amplitudes - I hypothesised that diel amplitudes would be less in hardwater lakes than softwater lakes for a given level of production due to the pH being buffered. Like I alluded to before, this may only be testable if I can control for the evening-out effects of constant wind on concentrations (extremes may never be expected if the water is constantly turbulent). Based on the literature I've read so far (which supports my hypothesis!!!), the amplitudes between day and night here are smaller than in most other eutrophic water bodies. In many such, night shifts the balance from net autotrophic to net heterotrophic and is crucial in estimating a correct seasonal balance. Here, it seems less important. For example through July, pCO~2~ is below atmospheric equilibrium both day and night. August may hint towards more heterotrophic autumns once respiration occurs so it would be really interesting to get pH our from Wascana sonde through September!!! Fingers crossed.
+Amplitudes - I hypothesised that diel amplitudes would be less in hardwater lakes than softwater lakes for a given level of production due to the pH being buffered. Like I alluded to before, this may only be testable if I can control for the evening-out effects of constant wind on concentrations (extremes may never be expected if the water is constantly turbulent). Based on the literature I've read so far (which supports my hypothesis!!!), the amplitudes between day and night here are smaller than in most other eutrophic water bodies. In many such, night shifts the balance from net autotrophic to net heterotrophic and is crucial in estimating a correct seasonal balance. Here, it seems less important. For example through July, pCO~2~ is below atmospheric equilibrium both day and night. August may hint towards more heterotrophic autumns once respiration occurs so it would be really interesting to get pH our from Wascana sonde through September!!! Fingers crossed. Last year's pH and calculated pCO~2~ indicate that later autumn may indeed start outgassing more -- but generally diel amplitudes here too are very low (Figs \ref{wasc}, \ref{wascbox}).
 
-Finally for our own purposes but also general guidance, it would be good to note how important night time is for understanding seasonal flux balance. And the comparison between measured and calculated as well, to strengthen the validity of our long term sampling results.
 Questions:
 
   * How much should I include 2015? Just as a point of reference and more like supplementary material? Not at all?
   * How much should I include Wascana?
+  
+``` {r wasc plot-ref, fig.cap="Wascana also has very small diel fluctuations - seasonal differences are larger than diel fluxes \\label{wasc}"} 
+ggplot(data=wasc, aes(y = pH, x = Date.Time, col=isDay)) +
+  geom_point() +
+  scale_color_viridis(discrete=TRUE, alpha = 0.4, option='viridis', begin= 0.3, end=0.8, 
+                      direction = 1, name="", breaks = c(TRUE, FALSE), labels = c("Day", "Night")) +
+  ylab("pH") +
+  xlab("Date") +
+  papertheme +
+  theme(legend.title=element_blank(), legend.position='top')
+```
+
+``` {r amplitudes, plot-ref, fig.height = 2,fig.cap="Models of how date and time of day influence pH variations in Wascana. Overall differences between day and night are minute. \\label{wascbox}"}
+labeldf <- data.frame(x=1.65, y=450, label="~atmospheric pCO2")
+wascboxplot <- ggplot(wasc, aes(isDay, pCO2)) +
+  theme_bw(base_size=10, base_family = 'Arial') +
+  theme(legend.position='top') +
+  geom_boxplot() +
+  geom_hline(yintercept = 400, lty=2) +
+  #geom_text(data = labeldf, aes(x=x, y=y, label=label), inherit.aes = FALSE) +
+  ylab(expression(paste(italic('p')*'CO'[2]~'(ppm)'))) +
+  scale_x_discrete(labels=c("Night", "Day")) +
+  xlab("p < 0.05")
+
+N <- 200
+simDOY <- c(11:13, 19:21, 25:27)
+DOYgroup <- factor(rep(c('Sep 11:13', 'Sep 19-21', 'Sep 25-27'), times=c(3,3,3)))  
+reptimes <- length(simDOY)
+preddf <- data.frame(`Time` = rep(seq(min(wasc$Time, na.rm=TRUE),
+                                      max(wasc$Time, na.rm=TRUE),
+                                      length = N), times=reptimes),
+                     `Day` = rep(simDOY, each = N))
+mpred <- predict(wascmod, newdata = preddf, type = "link")
+
+DOYgroups <- rep(DOYgroup, each = N)
+
+predicted <- cbind(preddf, mpred, DOYgroups)
+predicted$DOYgroups <- factor(predicted$DOYgroups, levels = unique(predicted$DOYgroups)[c(1,2,3)])
+names(predicted)[which(names(predicted)=='mpred')] <- 'pH'
+
+timeplot <- ggplot(predicted, aes(x = Time, y = pH, group= Day, col=DOYgroups)) +
+  theme_bw(base_size=10, base_family = 'Arial') +
+  theme(legend.position='top') +
+  geom_line() +
+  #scale_colour_brewer(name = "Date", type = 'seq', palette = 'PuBuGn', direction=1) +
+  scale_color_viridis(name = "Date", option="inferno", discrete = TRUE, begin=0.4, end=0.8) +
+  geom_line() +
+  xlab('Time of Day') + ylab('pH')
+
+plot_grid(arrangeGrob(timeplot, wascboxplot, nrow = 1, widths = c(1.5,1)))
+```
