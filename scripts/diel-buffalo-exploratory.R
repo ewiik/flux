@@ -12,9 +12,16 @@ regvars <- readRDS('../data/private/regvars.rds')
 params <- readRDS('../data/private/params-flux.rds')
 buffreg <- subset(regvars, select = c('Date', 'Lake', 'Month', 'DOY', 'pH_surface',
                                       'lakepCO2','co2Flux'), Lake == 'B' & Year > 2013)
+buffchl <- subset(regvars, select = c('Date', 'Lake', 'Month', 'DOY', 'Chl_a_ug_L',
+                                      'Chl_a_ug_L_sur'), Lake == 'B' & Year > 2013)
 
 ## load packages
 library("ggplot2")
+library("gridExtra")
+
+## create a theme to save linespace in plots
+papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
+  theme(legend.position='top')
 
 ## cleaning dates in 2014 
 dates <- c('12/08/2014', '15/07/2014', '19/07/2014', '26/06/2014') # last may not be a cleaning
@@ -103,7 +110,7 @@ recalc$TICalt <- 26.57 + 0.018 * recalc$Conductivity  # (mg/L)
 recalc$TICalt <- recalc$TICalt / 0.012 # --> uM
 recalcflux <- with(recalc, gasExchangeUser(temp = Temperature, cond = Conductivity, ph=pHalt, 
                                            wind=meanWindMS, alknotdic = FALSE,
-                                           , dic = TICalt, kpa=Pressure,
+                                           dic = TICalt, kpa=Pressure,
                                            pco2atm=397, salt=SalCalc))
 recalc <- cbind(recalc, recalcflux)
 
@@ -164,3 +171,24 @@ ggplot(data=params[params$Lake =='B',], aes(y = TIC, x = Month, group = Year)) +
   facet_wrap('Year') +
   ylab("DIC (mg/L)") +
   xlab("Month")
+
+## does the chl extrapolated from rfu correspond to chl with our lab chl?
+chltest <- merge(buffchl, bdat, by='DOY') # we have five days
+chltest2 <- subset(chltest, Hour >= 10 & Hour <=14)
+
+chlsub <- data.frame(DOY=unique(chltest$DOY), Chl_a_ug_L = unique(chltest$Chl_a_ug_L), 
+                     Chl_a_ug_L_sur = unique(chltest$Chl_a_ug_L_sur), x=11)
+sur <- ggplot(chltest2, aes(y=Chl_a_ug_L_sur , x= chl)) +
+  papertheme +
+  geom_point() +
+  ylab("Routines Surface Chl a") +
+  theme(axis.title.x= element_blank())+
+  geom_text(inherit.aes=FALSE, data=chlsub, aes(y=Chl_a_ug_L_sur, x=x, label=DOY),
+            position=position_jitter(height=0.8, width=5))
+int <- ggplot(chltest2, aes(y=Chl_a_ug_L, x= chl)) +
+  papertheme +
+  geom_point() +
+  ylab("Routines Integrated Chl a") +
+  xlab("Diel Chl from 10:00-14:00") +
+  geom_text(inherit.aes=FALSE, data=chlsub, aes(y=Chl_a_ug_L, x=x, label=DOY))
+grid.arrange(sur, int)

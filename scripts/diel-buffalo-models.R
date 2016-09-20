@@ -59,7 +59,7 @@ mco2 <- gam(co2corr ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc",
 plot(m3, scheme=2) 
 plot(acf(resid(m3)))
 
-pdf("diel-bpgam.pdf")
+pdf("../docs/private/diel-bpgam.pdf")
 op <- par(mar = c(4,4,1,1) + 0.1)
 plot(m2, pages = 4, scheme = 2)
 par(op)
