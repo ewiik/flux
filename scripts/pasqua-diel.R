@@ -5,6 +5,7 @@
 ## load packages
 library("ggplot2")
 library("reshape2")
+library("gridExtra")
 
 ## read in data and transform to correct format
 pas <- read.csv("../data/private/PasquaAug25_2016Buoy.csv", skip=4, header = FALSE)
