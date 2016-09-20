@@ -1,14 +1,17 @@
 ## looking at sonde data from Sept 2015
-## diel patterns?
 ## units in source file: Y/M/D HH:MM:SS	C	uS	uS		%	mg/L	ppt
-## can get some kind of sunrise sunset info here but not in tabular format for autodownload:
-##    http://www.timeanddate.com/sun/canada/regina?month=9&year=2015
 
 ## load necessary packages
 library("ggplot2")
 library("scales")
 library('StreamMetabolism')
 library('mgcv')
+library('viridis')
+library('extrafont')
+
+## create a theme to save linespace in plots
+papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
+  theme(legend.position='top')
 
 ## read in data
 diel <- read.csv("../data/private/WS-9-9.csv")
@@ -36,6 +39,7 @@ diel <- transform(diel, Month = as.numeric(format(Date.Time, format = "%m")))
 diel <- transform(diel, Time = as.numeric(format(Date.Time, "%H")) +
                             as.numeric(format(Date.Time, "%M"))/60)
 diel <- transform(diel, DOY = as.numeric(format(Date.Time, "%j")))
+diel <- transform(diel, Hour = as.numeric(format(Date.Time, format = "%H")))
 
 takeout <- which(diel$Cond < 100) 
 tocheck <- diel[takeout,] # we have some abnormalities 14th of Sept!! between 13:25 & 13:55
@@ -46,10 +50,6 @@ tocheck <- transform(tocheck, Month = as.numeric(format(Date.Time, format = "%m"
 cleaningtime <- which(tocheck$Day == 14 & tocheck$Month == 9)
 sondeclean <- data.frame(Cleantimes = c(tocheck[cleaningtime[1],1], 
                                         tocheck[cleaningtime[length(cleaningtime)],1]), Cleaned = "")
-
-## create day or night index
-diel <- transform(diel, Hour = as.numeric(format(Date.Time, format = "%H")))
-diel <- transform(diel, isDay = ifelse(Hour < 21 & Hour > 9, TRUE, FALSE))
 
 ## let's look at when sun really up and down
 sundat <- sunrise.set(lat = 50.429771, long=-104.608115, date = '2015/09/01', 
@@ -62,9 +62,34 @@ sundat <- transform(sundat, DownTime = as.numeric(sundat$sunset - trunc(sundat$s
 ## merge
 diel <- merge(diel, sundat)
 
-## plot
-with(diel, plot(Temp ~ Date.Time, col = ifelse(isDay, "red", "black")))
+## create day or night index
+diel <- transform(diel, isDay = ifelse(Time < DownTime & Time > UpTime, TRUE, FALSE))
 
+## reorder to time
+diel <- diel[order(diel$Date.Time),]
+
+## grab Sep 2015 mauna loa value
+pco2atm <- ml[ml$Month == 9 & ml$Year == 2015, 'pCO2interp']
+
+## need to create DIC from conductivity since we don't have instantaneous DIC or alk measures
+## using the equation used by kerri for missing DIC values.
+diel$dic <- 26.57 + 0.018 * diel$Cond  # (mg/L)
+diel$dicumol <- diel$dic / 0.012 # --> uM
+
+## run gasExchangeFlex, using mean wind (from kerri's means) and Wascana's altitude
+CO2Fluxz <- with(diel, gasExchangeFlex(Temp, Cond, pH, wind = 2.8, kerri = FALSE, altnotkpa = TRUE,
+                                       salt = Sal, dic = dicumol, alt = 570.5, pco2atm = pco2atm))
+diel <- transform(diel, CO2Flux = CO2Fluxz$fluxenh)
+diel <- transform(diel, pCO2 = CO2Fluxz$pco2)
+
+## take away times where sonde was pulled out of the water
+diel <- diel[-which(diel$Date.Time >= 
+                      as.POSIXct("2015-09-29 14:05", format = "%Y-%m-%d %H:%M")),]
+
+## save object for other purposes
+saveRDS(diel, '../data/private/WS-9-9-mod.rds')
+
+## plot
 dielstack <- stack(diel[,2:8])
 dielstack$Date.Time <- rep(diel$Date.Time)
 dielstack$Day <- rep(diel$Day)
@@ -89,107 +114,37 @@ oxymg$panel <- rep("OXYmg")
 
 super <- rbind(pH, cond, temp, oxy, oxymg)
 
-p <- ggplot(data = super, mapping = aes(x = Date, y = y, color = isDay), size = 0.2) +
-  scale_size_manual(values = c(0.2, 0.2)) +
-  scale_color_manual(values = c("black", "darkgrey")) +
-  theme_bw() + 
-  theme(panel.grid.major = element_line(colour = "grey", size = 0.5)) 
+p <- ggplot(data = super, mapping = aes(x = Date, y = y, color = isDay), size=0.1) +
+  scale_color_viridis(discrete = TRUE, alpha=0.4, begin=0.3, end=0.8, name="", breaks=
+                        c(TRUE, FALSE), labels=c("Day", "Night")) +
+  papertheme + 
+  theme(axis.title.y=element_blank())  
 p <- p + facet_grid(panel~., scale="free")
 p <- p + layer(data = pH, geom = c("point"), stat = "identity", position="identity")
 p <- p + layer(data = cond, geom = c("point"), stat = "identity", position="identity")
 p <- p + layer(data = oxy, geom = c("point"), stat = "identity", position="identity")
 p <- p + layer(data = temp, geom = c("point"), stat = "identity", position="identity") 
-p <- p + layer(data = oxymg, geom = c("point"), stat = "identity", position="identity") + 
-  theme(legend.position = "top")
+p <- p + layer(data = oxymg, geom = c("point"), stat = "identity", position="identity") 
 p <- p + geom_vline(data = sondeclean, aes(xintercept = as.numeric(Cleantimes), 
-                                           shape = Cleaned),
-                    show.legend = TRUE)
+                                           shape = Cleaned),show.legend = FALSE)
 p
 
-pdf("../data/private/dieltrial.pdf", width = 15)
+pdf("../docs/private/dieltrial.pdf", width = 15)
 p
 dev.off()
 
-## grab Sep 2015 mauna loa value
-pco2atm <- ml[ml$Month == 9 & ml$Year == 2015, 'pCO2interp']
-
-## need to create DIC from conductivity since we don't have instantaneous DIC or alk measures
-## using the equation used by kerri for missing DIC values.
-diel$dic <- 26.57 + 0.018 * diel$Cond  # (mg/L)
-diel$dicumol <- diel$dic / 0.012 # --> uM
-
-## run gasExchangeFlex, using mean wind (from kerri's means) and Wascana's altitude
-CO2Fluxz <- with(diel, gasExchangeFlex(Temp, Cond, pH, wind = 2.8, kerri = FALSE, altnotkpa = TRUE,
-                                       salt = Sal, dic = dicumol, alt = 570.5, pco2atm = pco2atm))
-diel <- transform(diel, CO2Flux = CO2Fluxz$fluxenh)
-diel <- transform(diel, pCO2 = CO2Fluxz$pco2)
-
-## update isDay to the sun up thing
-diel <- transform(diel, isDay = ifelse(Time < DownTime & Time > UpTime, TRUE, FALSE))
-
-
-## save object for other purposes
-saveRDS(diel, '../data/private/WS-9-9-mod.rds')
-
-with(diel, plot(CO2Flux ~ Date.Time, col = ifelse(isDay, 'red', 'black')))
-
-ggplot(data=diel, aes(y = pCO2, x = Time, col = isDay)) + # ifelse(Hour >= 8 & Hour <=20, 
-  #   'red', 'black')
-  scale_color_identity() + # means it understands red and black in ifelse
-  scale_color_manual(values=c('black', 'red')) +
+ggplot(data=diel, aes(y = pCO2, x = Date.Time, col = isDay)) + 
+  scale_color_viridis(discrete = TRUE, alpha=0.4, begin=0.3, end=0.8, name="", breaks=
+                        c(TRUE, FALSE), labels=c("Day", "Night")) +
+  papertheme + 
   geom_point() +
-  #geom_vline(xintercept = as.numeric(datesDOY)) +
   ylab("CO2 (ppm)") +
   xlab("Hour")
 
-ggplot(data=diel, aes(y = Temp, x = Date.Time, col = isDay)) + # ifelse(Hour >= 8 & Hour <=20, 
-  #   'red', 'black')
-  #scale_color_identity() + # means it understands red and black in ifelse
-  #scale_color_manual(values=c('black', 'red')) +
-  geom_point() +
-  #geom_vline(xintercept = as.numeric(datesDOY)) +
-  ylab("Temperature") +
-  xlab("Hour")
-
-ggplot(bdat2014fullf, aes(isDay, co2corr, group=Hour)) +
-  geom_boxplot()
-
-## gamming the cyclic stuff in the data
-m1 <- gam(pH ~ ti(Time, bs = "cc") + ti(DOY), data = diel)
-
-m2 <- gam(pH ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
-                                                  data = diel)
-anova(m1, m2, test = "LRT")
-
-plot(m2, scheme=2, ylab='mean-0 pH', main='mean-0 pH') # latter works for 3D plot
-#   former for the 2D plot
-plot(acf(resid(m2)))
-
-pdf("../data/private/diel-wwgam.pdf")
-op <- par(mar = c(4,4,1,1) + 0.1)
-plot(m2, pages = 4, scheme = 2)
-par(op)
-dev.off()
-
-## predict for periods of varying interactions.
-N <- 200
-simDOY <- c(254:256, 262:264, 270:272)
-DOYgroup <- factor(rep(1:3, each=3))
-DOYgroup <- factor(rep(c('254:256','262:264','270:272'), each=3))  
-reptimes <- length(simDOY)
-preddf <- data.frame(`Time` = rep(seq(min(diel$Time, na.rm=TRUE),max(diel$Time, na.rm=TRUE),
-                                  length = N), times=reptimes),
-           `DOY` = rep(simDOY, each = N))
-m2pred <- predict(m2, newdata = preddf, type = "link")
-
-DOYgroups <- rep(DOYgroup, each = N)
-
-predicted <- cbind(preddf, m2pred, DOYgroups)
-names(predicted)[which(names(predicted)=='m2pred')] <- 'pH'
-ggplot(predicted, aes(x = Time, y = pH, group= DOY, col=DOYgroups)) +
-  theme_bw() +
-  geom_line() +
-  scale_colour_discrete(name="Day of Year") +
-  theme(legend.position="top") +
-  xlab('Time of Day') + ylab('pH')
+ggplot(data =diel, aes(y=Temp, x=Date.Time, col = isDay)) +
+  papertheme +
+  geom_point(size=0.4) +
+  scale_color_viridis(alpha=0.4, begin=0.3, end=0.8, discrete = TRUE, name="", breaks =
+                        c(TRUE, FALSE), labels=c("Day", "Night")) +
+  ylab("Temperature") + xlab("Date")
 
