@@ -188,6 +188,17 @@ bdat2014full$isDay <- ifelse(bdat2014full$Time < bdat2014full$DownTime &
 bdat2014full$TimeofDay <- ifelse(bdat2014full$Time < bdat2014full$DownTime & 
                                bdat2014full$Time > bdat2014full$UpTime, 
                              'Day', 'Night')
+
+## remove outliers
+bdat2014full$cdom[bdat2014full$cdom < 0]  <- NA
+bdat2014full$cdom[bdat2014full$cdom < 40 & bdat2014full$Month >= 8] <-NA
+bdat2014full$cdom[bdat2014full$cdom < 43.5 & bdat2014full$Month >= 8 & bdat2014full$Day > 3] <-NA
+
+bdat2014full$turb[log10(bdat2014full$turb) > 2.9] <- NA
+
+bdat2014full$par2[bdat2014full$par2 < 0] <- NA # deal with -100 000 values
+bdat2014full$par3[bdat2014full$par3 < 0] <- NA
+
 ## save object for other purposes
 saveRDS(bdat2014full, '../data/private/bpbuoy2014-mod.rds')
 

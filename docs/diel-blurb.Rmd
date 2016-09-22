@@ -50,18 +50,15 @@ bair$variable[grep("pres", bair$variable)] <- "c.Air P.(hPa)"
 bair$variable[grep("daily", bair$variable)] <- "d.Rain (mm)"
 bair$variable[grep("par", bair$variable)] <- "e.PAR (air)."
 
-## melt for temperature and clean temp data (temp3 rotten throughout)
+## melt for temperature and clean temp data (temp3 at 0.45 rotten throughout)
 btemp <- melt(bdat, id.vars = "datetime", measure.vars = c("temp1", "temp2", "temp4",
                                                            "temp5", "temp6"))
 btemp$depth <- rep(0) #45, 77, 123, 218 + reg 82 depth
 btemp$depth[grep("1", btemp$variable)] <- -82
-btemp$depth[grep("2", btemp$variable)] <- -218
-btemp$depth[grep("4", btemp$variable)] <- -45
-btemp$depth[grep("5", btemp$variable)] <- -77
-btemp$depth[grep("6", btemp$variable)] <- -123
-
-btemp$value[which(btemp$value < 0)] <- NA
-btemp$value[which(btemp$value > 23 & btemp$variable == "temp6")] <- NA # no idea why this is happening in temp6!
+btemp$depth[grep("2", btemp$variable)] <- -294
+btemp$depth[grep("4", btemp$variable)] <- -77
+btemp$depth[grep("5", btemp$variable)] <- -123
+btemp$depth[grep("6", btemp$variable)] <- -218
 
 btemp$variable <- rep("i. Water T.")
 
@@ -78,9 +75,6 @@ blimno$variable[grep("bga", blimno$variable)] <- "l.Phyco (cell/ml)"
 
 ## one-depth limno parameters
 ## choose the higher par and clean
-bdat$par2[bdat$par2 < 0] <- NA # deal with -100 000 values
-bdat$par3[bdat$par3 < 0] <- NA
-
 take3 <- which(bdat$par2 < bdat$par3) 
 bdat$parfinal <- bdat$par2
 bdat$parfinal[take3] <- bdat$par3[take3]
@@ -192,7 +186,7 @@ The reliability of CDOM and turbidity needs checking (Fig. \ref{turb}) -- they h
 Interestingly, noon \% PAR is inversely correlated with both CDOM and chl! (and cdom and chl are related!)
 
 
-```{r turbplots, plot-ref, fig.cap="CDOM increases consistently over the summer season, which is not reflected in turbidity which peaks in July and late August. Is there a relationship with CO~2~? \\label{turb}", fig.width=7, fig.height=3}
+```{r turbplots, plot-ref, fig.cap="CDOM increases consistently over the summer season, which is not reflected in turbidity which peaks in July and late August. Note, obvious CDOM outliers removed. Is there a relationship with CO~2~? \\label{turb}", fig.width=7, fig.height=3}
 turbplot <- ggplot(data=bturb, aes(y=value, x=datetime)) +
   papertheme +
   geom_point(size=0.3) +
