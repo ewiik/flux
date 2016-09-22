@@ -34,9 +34,6 @@ btemp$depth[grep("4", btemp$variable)] <- 0.77
 btemp$depth[grep("5", btemp$variable)] <- 1.23
 btemp$depth[grep("6", btemp$variable)] <- 2.18
 
-btemp$value[which(btemp$value < 0)] <- NA
-btemp$value[which(btemp$value > 23 & btemp$variable == "temp6")] <- NA 
-# no idea why this is happening in temp6!
 
 ## schmidt function does not calculate anything if any one value is NA. Let's remove 
 ##    these from btemp
@@ -81,6 +78,9 @@ stablist <- as.data.frame(do.call(rbind, stablist))
 rownames(stablist) <- NULL
 names(stablist) <- "stability"
 stablist$datetime <- bdat$datetime
+
+## save for modeling
+saveRDS(stablist, "../data/private/bp-stability.rds")
 
 ## merge with bdat for plotting
 tester <- merge(stablist, bdat)
