@@ -1,21 +1,24 @@
-## use gasexchange_precipdata.R to source regina info for routines analysis and
-##    make info suitable to combine with other variables
+## archaically used gasexchange_precipdata.R to source regina info for routines analysis,
+##    now updated to 24,5,2016 script fromthebottomoftheheap since met office updated web things
+## Make info suitable to combine with other variables
 
 ## source necessary functions:
-source("../functions/gasexchange_precipdata.R")
+source("../functions/getData.R")
+source("../functions/genURLS.R")
 
 ## my station data frame: for regina gilmour as per heather's searches
 stations <- data.frame(StationID = c(3007), start = c(1994), end = c(2014))
 
 ## create precipitation data frame
-precip <- getData(stations, folder = "../data/precipdata/routines")
-colvector <- c("StationID", "Date/Time", "Year", "Month", 'Day', "Total Rain (mm)", "Total Snow (cm)",
-               "Total Precip (mm)", "Snow on Grnd (cm)")
-precips <- lapply(precip, "[", colvector) # need to circumvent fact that rbind won't roll on odd column
-#   contents that result in conflicting column class assignments for different dfs in the list
-
-precips <- do.call("rbind", precips)
+precip <- getData(stations, folder = "../data/precipdata/routines", timeframe='daily')
+precips <- do.call("rbind", precip)
 rownames(precips) <- NULL
+
+names(precips)[grep("Date", names(precips))] <- "Date"
+
+## make Date into R date object
+precips <- transform(precips, Date= as.Date(as.character(Date), format = "%Y-%m-%d", 
+                                            tz="Canada/Saskatchewan"))
 
 saveRDS(precips, "../data/precip.rds") # save for future
 

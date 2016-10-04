@@ -71,17 +71,8 @@ kpa <- mean(params$Pressure)
 dbar <- kpa/10 + 1
 params <- transform(params, SalCalc = salcalc(Temperature, Conductivity, dbar))
 
-### deal with outliers based on database checks:
-### NB: when rerunning this script params date suddenly indicated time of day also, which
-###   means the matching isn't working! need to correct for this event
-if(length(grep(":", as.character(params$Date)[1])) ==1) { # check for hour minute sep
-  params <- transform(params, Date = trunc(Date, unit = 'days'))
-  params <- transform(params, Date = as.POSIXct(Date, format = "%Y-%m-%d"))
-} else {
-  print("noooo")
-}
-
-checkdates <- transform(checkdates, Date = as.POSIXct(Date, format = "%m/%d/%Y"))
+checkdates <- transform(checkdates, Date = as.Date(Date, format = "%m/%d/%Y", 
+                                                   tz="Canada/Saskatchewan"))
 wrongs <- params[params$Date %in% c(checkdates$Date),c("Lake", "Date", "Year", "pH", 
                                                        "Conductivity","Salinity", "SalCalc")]
 wrongrows <- which(params$Date %in% c(checkdates$Date))
@@ -111,7 +102,7 @@ makena <- which(params$TICumol > 7500)
 params[makena, c('TIC', 'TICumol')] <- NA
 
 ## insert DIC for 2013 and 2014; convert new DICs into umol
-dicdocnew <- transform(dicdocnew, Date = as.POSIXct(Date, format = "%d-%b-%y"))
+dicdocnew <- transform(dicdocnew, Date = as.Date(Date, format = "%d-%b-%y", tz="Canada/Saskatchewan"))
 take <- dicdocnew[,c('LAKE', 'Date', 'TIC_mg_L')]
 take <- merge(params[params$Year >= 2013,], take, by.y = c("LAKE", "Date"), by.x = c("Lake", "Date"), all.x = TRUE) 
 take$TIC <- take$TIC_mg_L

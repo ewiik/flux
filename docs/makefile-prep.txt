@@ -6,7 +6,7 @@ prep for makefile. * = does not depend on parent script (but may depend on a fun
 2. weathermanipulations: grabs dmet and calculates mean wind, pressure, temperature and humidity; spits out all data frames as separate rds's ([*]data.rds)
 3. pressuremanipulations: grabs all rds's created by (2) and combines them with database query tables; changes wind and DIC into correct units. saves this table as params.rds
 	+++ saves archaic one using gasExchange.R as gasFlux.rds
-4*. precipmanipulations-routines: sources functions/gasexchange_precipdata.R and grabs DAILY precipitation data from online, saves it as precip.rds
+4*. precipmanipulations-routines: archaically sourced functions/gasexchange_precipdata.R but now runs with updated bottomoftheheap scripts for DAILY precipitation data from online, saves it as precip.rds
 
 5: calculate CO2 flux
 ============================================

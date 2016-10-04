@@ -59,9 +59,9 @@ if (remNA) {
   surfset <- droplevels(na.omit(surfset))
 }
 
-## create date objects for later?
-tcsset <- transform(tcsset, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
-surfset <- transform(surfset, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
+## create date objects for later
+tcsset <- transform(tcsset, Date = as.Date(as.character(Date), format = "%d-%m-%Y", tz="Canada/Saskatchewan"))
+surfset <- transform(surfset, Date = as.Date(as.character(Date), format = "%d-%m-%Y", tz="Canada/Saskatchewan"))
 
 ## merge the tcsset and surfset data sets on
 joined <- merge(tcsset, surfset)
@@ -102,14 +102,12 @@ joined <- merge(joined, pressuredata, sort = FALSE, all.x = TRUE)
 names(windsdata)[6] <- "metWind"
 
 toDate <- function(year, month, day) {
-  ISOdatetime(year, month, day, hour = 12, min = 0, sec = 0, tz = "CST")
+  as.Date(paste(year, month, day, sep = "-"), tz="Canada/Saskatchewan") 
 }
 
 windsdata <- transform(windsdata, Date = toDate(Year, Month, Day))
 
 ## create appropriate averages for each instance (i.e. sampling date minus 14 days)
-## FIXME: <= interval clause still not picking the actual day of sampling!!
-## hugely complicated scenario where appropriate values are grabbed from Lake-specific data
 if(regina) {
   windsub <- subset(windsdata, Superstation == "regina")
   windgrab <- function(interval, WIND) {
@@ -136,14 +134,13 @@ if(regina) {
                                       by = "-13 days", length.out = 2))
           } # this gives a list the length of nrow(sampledates[[i]]) with lake id and date range
       windraw <- lapply(interval, windgrab, WIND = windsub) # gives list length of nrow(sampledates[[i]])
-      #   with all 13 wind data (with setting -14 days)
+      #   with all 14 wind data (with by = -13 days)
       windmeans <- sapply(windraw, mean, na.rm = TRUE) # sapply unlists if possible!
       winddf <- rbind(winddf, data.frame(Lake = sampledates['Date'], sampleDate = sampledates['Lake'],
                                          meanWind = windmeans))
   }
 } else {
-  writeLines("not-regina to be developed") ## FIXME not-regina option null
-  stop()
+  stop("not-regina to be developed") ## FIXME not-regina option null
 }
 
 joined <- merge(joined, winddf, by = c("Date", "Lake"), sort = FALSE, all.x = TRUE)

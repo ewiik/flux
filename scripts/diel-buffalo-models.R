@@ -14,6 +14,16 @@ library("mgcv")
 library("ggplot2")
 library("viridis")
 
+## create ARn term function
+myAR <- function(term, lag) {
+  lagterm <- vector(length=length(term))
+  for(i in 1:length(term)) {
+    if(i <= lag) { lagterm[i] <- NA} else {
+      lagterm[i] <- term[i-lag]
+    }}
+  lagterm
+}
+
 ## ==================================================================================
 ## 2014: all data available
 ## ==================================================================================
@@ -42,22 +52,45 @@ for (i in 1:reps) {
 plot(resid(lmint) ~ lmint$fitted.values, ylab='Residuals (pCO2 uatm)', 
      xlab='Fitted values (pCO2 uatm)')
 
-## gamming the time component of the data
-m1 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(Week), data = bdat)
+## gamming the time component of the data for pH
+## =================================================================================================
+## create lag terms
+bdat <- transform(bdat, timelag1 = myAR(bdat$Time, 1))
 
-m2 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(Week) + ti(Time, Week, bs = c("cc","tp")), 
+## create models; testing AR inclusion and comparing k with edf to set k (gam.check)
+mnull <- gam(ph1 ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30), data=bdat) 
+m1 <- gam(ph1 ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30) + ti(Time, DOY, bs = c("cc","tp")), 
           data = bdat)
-anova(m1, m2, test = "LRT") # m2 better
+m2 <- gam(ph1 ~ te(Time, DOY, bs = c("cc","tp")), data=bdat)
 
-m3 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
-          data = bdat)
-m4 <- gam(ph1 ~ te(Time, DOY, bs = c("cc","tp")), data=bdat)
+plot(acf(resid(m1)))
 
-mco2 <- gam(co2corr ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc","tp")), 
-            data = bdat)
+anova(mnull, m1, test = "LRT") # m1 better
 
-plot(m3, scheme=2) 
-plot(acf(resid(m3)))
+## apply same to co2
+mco2null <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30), data=bdat, 
+                select = TRUE, 
+                method = "REML", family = scat, na.action = na.exclude)
+# + s(timelag1, bs='cc'), 
+mco2ti <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30) + s(timelag1, bs='cc') + 
+              ti(Time, DOY, bs = c("cc","tp"), k=15), 
+            data = bdat, select = TRUE, method = "REML", family = scat,
+            na.action = na.exclude) ## crashes with higher k for interaction!
+anova(mco2null, mco2ti, test = "LRT") # mco2 better
+
+mco2te <- gam(co2corr ~ s(timelag1, bc='cc') + 
+              te(Time, DOY, bs = c("cc","tp")), # worried of setting k higher
+            data = bdat, select = TRUE, method = "REML", family = scat,
+            na.action = na.exclude) 
+
+plot(acf(resid(mco2null))) ## FIXME: is < 0.2 ok?
+plot(mco2, scheme=2) ## note that splines are almost flat for DOY and Time for all models
+##    with AR1 term
+
+mco2full <- gam(co2corr ~ s(Time, bs = "cc", k=20) + s(DOY, k=30) + s(Week) + 
+                  s(co2lag1), data=bdat, 
+                select = TRUE, 
+                method = "REML", family = scat, na.action = na.exclude)
 
 pdf("../docs/private/diel-bpgam.pdf")
 op <- par(mar = c(4,4,1,1) + 0.1)
@@ -67,16 +100,28 @@ dev.off()
 
 saveRDS(m4, "../data/private/bp-diel-timemod2014.rds")
 
+testing <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30) + s(timelag1, bs='cc', k=20), 
+               data=bdat, 
+                select = TRUE, 
+                method = "REML", family = scat, na.action = na.exclude)
+
+ctrl <- list(niterEM = 0, msVerbose = TRUE, optimMethod="L-BFGS-B")
+testing2 <- gamm(co2corr ~ s(Time, bs = "cc", k = 20) + s(DOY, k = 30),
+                    data = bdat, correlation = corCAR1(form = ~ datetime), #Time|DOY
+                      control = ctrl)
+## gamm crashes if I specify 0.8 as the correlation!
+res <- resid(testing2$lme, type = "normalized")
+acf(res, lag.max = 36, main = "ACF - AR(2) errors")
 
 ## gam on other params
 ## ===========================================================================================
-bdat <- transform(bdat, daylength = sunset-sunrise)
-bdat$daylength <- as.numeric(bdat$daylength)
-bpmod <- gam(ph1 ~
+bpmod <- gam(co2corr ~
                s(chl, k=3) + #was overfitting
+               s(bga1cell) +
                s(airtemp, k=3) +
-               s(daylength, k=4) +  #was overfitting
-               #s(ODOrel1, k=4),
+               s(schmidt) +  
+               s(ODOrel1, k=4) +
+               s(ph1)  +
                s(ODOabs1), 
              data = bdat,
              select = TRUE, method = "REML", family = gaussian(),
@@ -85,8 +130,6 @@ bpmod <- gam(ph1 ~
                                    newton = list(maxHalf = 60)))
 ## FIXME: add time of day
 ## FIXME: tested scat but though histogram looked better nothing else did...??
-## tested windsp, meanwindsp, and lag1.. nothing amazing
-## odo rather close to strat so dropped strat here
 plot(bpmod, pages=1)
 saveRDS(bpmod, '../data/private/bpmod.rds')
 

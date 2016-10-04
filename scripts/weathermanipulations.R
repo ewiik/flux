@@ -1,17 +1,18 @@
 ## we have 1080 dfs in total; in met, they do not have the first 9 lines
 ## grab met from gasexchange_pressuredata.R
 
-## library("reshape")
-
-if (file.exists("../data/dmet.rds")) {
-  dmet <- readRDS("../data/dmet.rds")
-} else {
+if (!file.exists("../data/dmet.rds")) {
+  if (!file.exists("../data/met.rds")) {
+    source("../scripts/gasexchange_pressuredata.R")}
+  met <- readRDS("../data/met.rds")
   dmet <- do.call("rbind", met)
   saveRDS(dmet, "../data/dmet.rds")
-}
-
+} else {dmet <- readRDS("../data/dmet.rds")}
 
 ## get station details
+if (!file.exists("../data/weatherstations.csv")) {
+  stop("create station list for Qu'Appelle as ../data/weatherstations.csv before running this script")
+}
 stations <- read.csv("../data/weatherstations.csv")
 
 ## Combine stations
@@ -22,7 +23,7 @@ dmet$superstation[dmet$StationID == 3318] <- "outlook"
 dmet$superstation[dmet$StationID == 2926 | dmet$StationID == 2925] <- "indhead"
 unique(dmet$superstation) # yes all appear, no NAs
 
-names(dmet)[2] <- "datetime"
+names(dmet)[grep("Date", names(dmet))] <- "datetime"
 
 take <- c("StationID","datetime","Year","Month","Day","Time","superstation","Stn Press (kPa)",
           "Wind Spd (km/h)", "Temp (degC)", "Rel Hum (%)")
@@ -32,9 +33,10 @@ names(dmet)[names(dmet) == "Wind Spd (km/h)"] <- "Wind"
 names(dmet)[names(dmet) == "Temp (degC)"] <- "Temperature"
 names(dmet)[names(dmet) == "Rel Hum (%)"] <- "RelHum"
 
-## Coerce datetime to the correct internal type
+## Make datetime into Date object
 dmet <- transform(dmet,
-                  datetime = as.POSIXct(as.character(datetime), format = "%Y-%m-%d %H:%M"),
+                  datetime = as.POSIXct(as.character(datetime), format = "%Y-%m-%d %H:%M",
+                                        tz="Canada/Saskatchewan"),
                   superstation = as.factor(superstation))
 
 ## Delete a priori-known missing data - find station dates at

@@ -3,9 +3,17 @@
 ##    the day as the sun moves around the lake – take the highest value of the 2 PARW 
 ##    sensors as being the PAR for that timestamp"
 
+## load packages
+library("ggplot2")
+library("gridExtra")
+
+## create a theme to save linespace in plots
+papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
+  theme(legend.position='top')
+
 ## read in data
 if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
-    source("diel-buffalo.R")}
+  source("diel-buffalo.R")}
 bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
 
 regvars <- readRDS('../data/private/regvars.rds')
@@ -15,17 +23,9 @@ buffreg <- subset(regvars, select = c('Date', 'Lake', 'Month', 'DOY', 'pH_surfac
 buffchl <- subset(regvars, select = c('Date', 'Lake', 'Month', 'DOY', 'Chl_a_ug_L',
                                       'Chl_a_ug_L_sur'), Lake == 'B' & Year > 2013)
 
-## load packages
-library("ggplot2")
-library("gridExtra")
-
-## create a theme to save linespace in plots
-papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
-  theme(legend.position='top')
-
 ## cleaning dates in 2014 
-dates <- c('12/08/2014', '15/07/2014', '19/07/2014', '26/06/2014') # last may not be a cleaning
-#   date
+dates <- c('12/08/2014', '15/07/2014', '19/07/2014', '26/06/2014', tz="Canada/Saskatchewan") 
+# last may not be a cleaning date
 dates <- as.POSIXct(dates, format = "%d/%m/%Y")
 datesDOY <- format(dates, "%j")
 

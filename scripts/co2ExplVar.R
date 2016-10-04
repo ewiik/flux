@@ -120,27 +120,32 @@ saveRDS(emi, "../data/emi.rds")
 ## read in supporting monitoring data tables grabbed from database
 ## I created a Date2 column in OpenOffice to convert the current display of month as character to month
 ##    as numeric (former is how it came from database into excel)
-
 routines <- read.csv("../data/private/qpco2supportdata.csv")
-routines <- transform(routines, Date = as.POSIXct(as.character(Date2), format = "%Y-%m-%d"))
+routines <- transform(routines, Date = as.Date(as.character(Date2), format = "%Y-%m-%d",
+                                               tz="Canada/Saskatchewan"))
 routines <- routines[with(routines, order(LAKE, Date)),]
 
 produc <- read.csv("../data/private/Production.csv")
-produc <- transform(produc, Date = as.POSIXct(as.character(Date2), format = "%Y-%m-%d"))
+produc <- transform(produc, Date = as.Date(as.character(Date2), format = "%Y-%m-%d",
+                                           tz="Canada/Saskatchewan"))
 
 chl <- read.csv("../data/private/Chl.csv")
-chl <- transform(chl, Date = as.POSIXct(as.character(Date2), format = "%Y-%m-%d"))
+chl <- transform(chl, Date = as.Date(as.character(Date2), format = "%Y-%m-%d",
+                                     tz="Canada/Saskatchewan"))
 
 incub <- read.csv("../data/private/qprodsupportdata.csv")
-incub <- transform(incub, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
+incub <- transform(incub, Date = as.Date(as.character(Date), format = "%d-%m-%Y",
+                                         tz="Canada/Saskatchewan"))
 
 oxtemp <- read.csv("../data/private/qprofilesoxtemp.csv")
 oxtemp <- rbind(oxtemp, read.csv("../data/private/qprofilesextrarecordsoxtemp.csv"))
-oxtemp <- transform(oxtemp, Date = as.POSIXct(as.character(Date), format = "%d-%m-%Y"))
+oxtemp <- transform(oxtemp, Date = as.Date(as.character(Date), format = "%d-%m-%Y",
+                                           tz="Canada/Saskatchewan"))
 
 
 secchi <- read.csv("../data/private/qsecchietal.csv")
-secchi <- transform(secchi, Date = as.POSIXct(as.character(Date), format = "%Y-%m-%d"))
+secchi <- transform(secchi, Date = as.Date(as.character(Date), format = "%Y-%m-%d",
+                                              tz="Canada/Saskatchewan"))
 
 lakes <- read.csv("../data/private/Lakes.csv")
 colnames(lakes)[which(colnames(lakes) == "Abbreviation")] <- "LAKE"
@@ -150,7 +155,8 @@ if (file.exists("../data/private/qDICDOCupdate.csv")) {
 } else {
   stop("get 2013,2014 DIC data from Emma")
 }
-dicdocnew <- transform(dicdocnew, Date = as.POSIXct(Date, format = "%d-%b-%y"))
+dicdocnew <- transform(dicdocnew, Date = as.Date(Date, format = "%d-%b-%y",
+                                                              tz="Canada/Saskatchewan"))
 
 ## remove extra date column (originally retained in case wanna check that the date format
 ##    conversion worked in OpenOffice)
