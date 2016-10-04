@@ -53,16 +53,16 @@ testing2014 <- read.csv("../data/private/BPoundBuoy_2014_QC_Processed_Data.csv")
 
 ## make time understandable
 bdat2014 <- transform(bdat2014, datetime = as.POSIXct(as.character(datetime), 
-                                              format = "%m/%d/%Y %H:%M"))
+                                              format = "%m/%d/%Y %H:%M",  tz="Canada/Saskatchewan"))
 bdat2014 <- transform(bdat2014, Hour = as.numeric(format(datetime, format = "%H")))
 bdat2014 <- transform(bdat2014, Month = as.numeric(format(datetime, format = "%m")))
 bdat2014 <- transform(bdat2014, Day = as.numeric(format(datetime, format = "%d")))
 bdat2014 <- transform(bdat2014, DOY = as.numeric(format(datetime, format = "%j")))
-bdat2014 <- transform(bdat2014, Time = strftime(datetime, format = "%H:%M", tz="GMT-1"))
-bdat2014 <- transform(bdat2014, isDay = ifelse(Hour < 21 & Hour > 7, TRUE, FALSE))
-
+bdat2014 <- transform(bdat2014, Time = as.numeric(format(datetime, "%H")) +
+                        as.numeric(format(datetime, "%M"))/60)
 bdat2014supp <- transform(bdat2014supp, datetime = as.POSIXct(as.character(datetime), 
-                                                      format = "%m/%d/%Y %H:%M"))
+                                                      format = "%m/%d/%Y %H:%M",  
+                                                      tz="Canada/Saskatchewan"))
 bdat2014supp <- transform(bdat2014supp, Hour = as.numeric(format(datetime, format = "%H")))
 bdat2014supp <- transform(bdat2014supp, Month = as.numeric(format(datetime, format = "%m")))
 bdat2014supp <- transform(bdat2014supp, Day = as.numeric(format(datetime, format = "%d")))
@@ -70,10 +70,10 @@ bdat2014supp <- transform(bdat2014supp, DOY = as.numeric(format(datetime, format
 bdat2014supp <- transform(bdat2014supp, Time = as.numeric(format(datetime, "%H")) +
   as.numeric(format(datetime, "%M"))/60)
 bdat2014supp <- transform(bdat2014supp, Week = as.numeric(format(datetime, "%U")))
-bdat2014supp <- transform(bdat2014supp, isDay = ifelse(Hour < 21 & Hour > 7, TRUE, FALSE))
 
 testing2014 <- transform(testing2014, DateTime = as.POSIXct(as.character(DateTime), 
-                                                    format = "%Y-%m-%d %H:%M"))
+                                                    format = "%Y-%m-%d %H:%M",  
+                                                    tz="Canada/Saskatchewan"))
 testing2014 <- transform(testing2014, Hour = as.numeric(format(DateTime, format = "%H")))
 testing2014 <- transform(testing2014, Month = as.numeric(format(DateTime, format = "%m")))
 testing2014 <- transform(testing2014, Day = as.numeric(format(DateTime, format = "%d")))
@@ -108,7 +108,7 @@ bdat2014$datetime <- bdat2014$datetime - 60*60
 testing2014 <- testing2014[-missing,]
 
 ## testing has some -10000 where supp has NA..
-odds <- which(testing2014$CO2shallow <= 0)
+odds <- which(testing2014$CO2shallow < 0)
 testing2014$CO2shallow[odds] <- NA
 
 ## need to remove the start ones from bdat2014 after the hourshift
@@ -123,7 +123,8 @@ plot(bdat2014supp$windsp ~ testing2014$WindSp, type = "l")
 ## and let's check that the corr now is in agreement
 plot(bdat2014$winddir ~ 
        testing2014$WindDir[testing2014$DateTime <= as.POSIXct("22.08.2014 07:45", 
-                                                              format="%d.%m.%Y %H:%M")], 
+                                                              format="%d.%m.%Y %H:%M", 
+                                                              tz="Canada/Saskatchewan")], 
      type = "l")
 
 ## in 2014 pressure is in HPA but need KPA for CO2 calcs
@@ -132,7 +133,7 @@ bdat2014supp$pressureKPA <- bdat2014supp$pressure/10
 ## cleaning dates in 2014 (sensor not cleaned in 2015)
 dates <- c('12/08/2014', '15/07/2014', '19/07/2014', '26/06/2014') # last may not be a cleaning
 #   date
-dates <- as.POSIXct(dates, format = "%d/%m/%Y")
+dates <- as.POSIXct(dates, format = "%d/%m/%Y",  tz="Canada/Saskatchewan")
 datesDOY <- format(dates, "%j")
 
 ## homogenise data
@@ -152,27 +153,43 @@ bdat2014full <- merge(bdat2014suppall, bdat2014corr, all.x = TRUE)
 
 ## yep that is good;now for flags that I might cause me to take more rows out or make NA
 ## 1. maintenance/calibration
-bdat2014full[bdat2014full$datetime >= as.POSIXct("26.06.2014 10:45", format="%d.%m.%Y %H:%M") &
-       bdat2014full$datetime <= as.POSIXct("26.06.2014 13:00", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat2014full[bdat2014full$datetime >= as.POSIXct("08.07.2014 09:45", format="%d.%m.%Y %H:%M") &
-       bdat2014full$datetime <= as.POSIXct("08.07.2014 17:45", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat2014full[bdat2014full$datetime >= as.POSIXct("29.07.2014 10:45", format="%d.%m.%Y %H:%M") &
-       bdat2014full$datetime <= as.POSIXct("29.07.2014 11:30", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat2014full[bdat2014full$datetime >= as.POSIXct("31.07.2014 09:45", format="%d.%m.%Y %H:%M") &
-       bdat2014full$datetime <= as.POSIXct("31.07.2014 17:15", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat2014full[bdat2014full$datetime >= as.POSIXct("12.08.2014 10:15", format="%d.%m.%Y %H:%M") &
-       bdat2014full$datetime <= as.POSIXct("12.08.2014 11:00", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat2014full[bdat2014full$datetime >= as.POSIXct("14.08.2014 11:00", format="%d.%m.%Y %H:%M") &
-       bdat2014full$datetime <= as.POSIXct("14.08.2014 21:15", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat2014full[bdat2014full$datetime >= as.POSIXct("26.08.2014 08:15", format="%d.%m.%Y %H:%M") &
-               bdat2014full$datetime <= as.POSIXct("26.08.2014 15:30", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("26.06.2014 10:45", format="%d.%m.%Y %H:%M",  
+                                                 tz="Canada/Saskatchewan") &
+               bdat2014full$datetime <= as.POSIXct("26.06.2014 13:00", format="%d.%m.%Y %H:%M",
+                                                   tz="Canada/Saskatchewan"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("08.07.2014 09:45", format="%d.%m.%Y %H:%M",
+                                                 tz="Canada/Saskatchewan") &
+       bdat2014full$datetime <= as.POSIXct("08.07.2014 17:45", format="%d.%m.%Y %H:%M",
+                                           tz="Canada/Saskatchewan"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("29.07.2014 10:45", format="%d.%m.%Y %H:%M",
+                                                 tz="Canada/Saskatchewan") &
+       bdat2014full$datetime <= as.POSIXct("29.07.2014 11:30", format="%d.%m.%Y %H:%M",
+                                           tz="Canada/Saskatchewan"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("31.07.2014 09:45", format="%d.%m.%Y %H:%M",
+                                                 tz="Canada/Saskatchewan") &
+       bdat2014full$datetime <= as.POSIXct("31.07.2014 17:15", format="%d.%m.%Y %H:%M",
+                                           tz="Canada/Saskatchewan"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("12.08.2014 10:15", format="%d.%m.%Y %H:%M",
+                                                 tz="Canada/Saskatchewan") &
+       bdat2014full$datetime <= as.POSIXct("12.08.2014 11:00", format="%d.%m.%Y %H:%M",
+                                           tz="Canada/Saskatchewan"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("14.08.2014 11:00", format="%d.%m.%Y %H:%M",
+                                                 tz="Canada/Saskatchewan") &
+       bdat2014full$datetime <= as.POSIXct("14.08.2014 21:15", format="%d.%m.%Y %H:%M",
+                                           tz="Canada/Saskatchewan"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("26.08.2014 08:15", format="%d.%m.%Y %H:%M",
+                                                 tz="Canada/Saskatchewan") &
+               bdat2014full$datetime <= as.POSIXct("26.08.2014 15:30", format="%d.%m.%Y %H:%M",
+                                                   tz="Canada/Saskatchewan"),-1] <- NA
 ## 2. General failure
-bdat2014full[bdat2014full$datetime >= as.POSIXct("22.08.2014 08:00", format="%d.%m.%Y %H:%M") &
-               bdat2014full$datetime <= as.POSIXct("22.08.2014 11:00", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat2014full[bdat2014full$datetime >= as.POSIXct("22.08.2014 08:00", format="%d.%m.%Y %H:%M",
+                                                 tz="Canada/Saskatchewan") &
+               bdat2014full$datetime <= as.POSIXct("22.08.2014 11:00", format="%d.%m.%Y %H:%M",
+                                                   tz="Canada/Saskatchewan"),-1] <- NA
 
 ## let's look at when sun up and down
 sundat <- sunrise.set(lat = 50.648016, long=-105.5072930, date = '2014/06/01', 
-                      timezone = 'UTC+6', num.days=90)
+                      timezone = "Canada/Saskatchewan", num.days=90)
 sundat <- transform(sundat, Month = as.numeric(format(sunrise, format = "%m")))
 sundat <- transform(sundat, Day = as.numeric(format(sunrise, format = "%d")))
 sundat <- transform(sundat, UpTime = as.numeric(sundat$sunrise - trunc(sundat$sunrise, "days")))
@@ -181,7 +198,7 @@ sundat <- transform(sundat, DownTime = as.numeric(sundat$sunset - trunc(sundat$s
 ## merge sundat with BP data
 bdat2014full <- merge(bdat2014full, sundat)
 
-## change isday to depend on sunup and down rather than rigid times
+## make isday index based on sunup and down 
 bdat2014full$isDay <- ifelse(bdat2014full$Time < bdat2014full$DownTime & 
                                bdat2014full$Time > bdat2014full$UpTime, 
                              TRUE, FALSE)
@@ -224,12 +241,12 @@ testing <- read.csv("~/BPoundBuoy_2015_QC_Processed_Data.csv")
 ##    Deep sonde failed on:7/20/2015 13:10 (0-2000 ppm); The shallow sonde did not fail.
 ## Note: it was not cleaned all summer (0-2000ppm)"
 ## Note that ODO1 has no data for the functional CO2 perid =(
-## FIXME: this sonde is still reading above 2000pm so is it still actually a 5000 sonde? ALSO!
-##    The CO2 values are vastly above what the calculations imply... I find it hard to believe
-##    them.... was something done wrong?
+## Note: this sonde is still reading above 2000pm which is way above expected and not remotely 
+##    close to calculations - will not use
 
 bdat <- transform(bdat, datetime = as.POSIXct(as.character(datetime), 
-                                              format = "%m/%d/%Y %I:%M:%S %p"))
+                                              format = "%m/%d/%Y %I:%M:%S %p",
+                                              tz="Canada/Saskatchewan"))
 bdat <- transform(bdat, Hour = as.numeric(format(datetime, format = "%H")))
 bdat <- transform(bdat, Month = as.numeric(format(datetime, format = "%m")))
 bdat <- transform(bdat, Day = as.numeric(format(datetime, format = "%d")))
@@ -238,7 +255,8 @@ bdat <- transform(bdat, Time = as.numeric(format(datetime, "%H")) +
                             as.numeric(format(datetime, "%M"))/60)
 
 testing <- transform(testing, DateTime = as.POSIXct(as.character(DateTime), 
-                                                    format = "%Y-%m-%d %H:%M"))
+                                                    format = "%Y-%m-%d %H:%M",
+                                                    tz="Canada/Saskatchewan"))
 testing <- transform(testing, Hour = as.numeric(format(DateTime, format = "%H")))
 testing <- transform(testing, Month = as.numeric(format(DateTime, format = "%m")))
 testing <- transform(testing, Day = as.numeric(format(DateTime, format = "%d")))
@@ -262,27 +280,41 @@ plot(bdat$cdom ~ testing$CDOM, type = "l")
 
 ## yep that is good;now for flags that I might cause me to take more rows out or make NA
 ## 1. rest of October probe being taken out times
-bdat[bdat$datetime >= as.POSIXct("06.10.2015 10:20", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("06.10.2015 10:20", format="%d.%m.%Y %H:%M",
+                                 tz="Canada/Saskatchewan"),-1] <- NA
 ## 2. June times of initial deployment
-bdat[bdat$datetime <= as.POSIXct("14.05.2015 16:30", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat[bdat$datetime <= as.POSIXct("14.05.2015 16:30", format="%d.%m.%Y %H:%M",
+                                 tz="Canada/Saskatchewan"),-1] <- NA
 ## 3. Calibration periods
-bdat[bdat$datetime >= as.POSIXct("11.06.2015 09:30", format="%d.%m.%Y %H:%M") &
-       bdat$datetime <= as.POSIXct("11.06.2015 15:20", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat[bdat$datetime >= as.POSIXct("25.06.2015 10:40", format="%d.%m.%Y %H:%M") &
-       bdat$datetime <= as.POSIXct("25.06.2015 14:10", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat[bdat$datetime >= as.POSIXct("09.07.2015 09:30", format="%d.%m.%Y %H:%M") &
-       bdat$datetime <= as.POSIXct("09.07.2015 15:00", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat[bdat$datetime >= as.POSIXct("26.07.2015 13:10", format="%d.%m.%Y %H:%M") &
-       bdat$datetime <= as.POSIXct("26.07.2015 14:20", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat[bdat$datetime >= as.POSIXct("05.08.2015 10:30", format="%d.%m.%Y %H:%M") &
-       bdat$datetime <= as.POSIXct("05.08.2015 13:50", format="%d.%m.%Y %H:%M"),-1] <- NA
-bdat[bdat$datetime >= as.POSIXct("03.09.2015 10:00", format="%d.%m.%Y %H:%M") &
-       bdat$datetime <= as.POSIXct("03.09.2015 13:50", format="%d.%m.%Y %H:%M"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("11.06.2015 09:30", format="%d.%m.%Y %H:%M",
+                                 tz="Canada/Saskatchewan") &
+       bdat$datetime <= as.POSIXct("11.06.2015 15:20", format="%d.%m.%Y %H:%M",
+                                   tz="Canada/Saskatchewan"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("25.06.2015 10:40", format="%d.%m.%Y %H:%M",
+                                 tz="Canada/Saskatchewan") &
+       bdat$datetime <= as.POSIXct("25.06.2015 14:10", format="%d.%m.%Y %H:%M",
+                                   tz="Canada/Saskatchewan"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("09.07.2015 09:30", format="%d.%m.%Y %H:%M",
+                                 tz="Canada/Saskatchewan") &
+       bdat$datetime <= as.POSIXct("09.07.2015 15:00", format="%d.%m.%Y %H:%M",
+                                   tz="Canada/Saskatchewan"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("26.07.2015 13:10", format="%d.%m.%Y %H:%M",
+                                 tz="Canada/Saskatchewan") &
+       bdat$datetime <= as.POSIXct("26.07.2015 14:20", format="%d.%m.%Y %H:%M",
+                                   tz="Canada/Saskatchewan"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("05.08.2015 10:30", format="%d.%m.%Y %H:%M",
+                                 tz="Canada/Saskatchewan") &
+       bdat$datetime <= as.POSIXct("05.08.2015 13:50", format="%d.%m.%Y %H:%M",
+                                   tz="Canada/Saskatchewan"),-1] <- NA
+bdat[bdat$datetime >= as.POSIXct("03.09.2015 10:00", format="%d.%m.%Y %H:%M",
+                                 tz="Canada/Saskatchewan") &
+       bdat$datetime <= as.POSIXct("03.09.2015 13:50", format="%d.%m.%Y %H:%M",
+                                   tz="Canada/Saskatchewan"),-1] <- NA
 
 
 ## let's look at when sun up and down
 sundat <- sunrise.set(lat = 50.648016, long=-105.5072930, date = '2015/05/01', 
-                      timezone = 'UTC+6', num.days=170)
+                      timezone = "Canada/Saskatchewan", num.days=170)
 sundat <- transform(sundat, Month = as.numeric(format(sunrise, format = "%m")))
 sundat <- transform(sundat, Day = as.numeric(format(sunrise, format = "%d")))
 sundat <- transform(sundat, UpTime = as.numeric(sundat$sunrise - trunc(sundat$sunrise, "days")))
