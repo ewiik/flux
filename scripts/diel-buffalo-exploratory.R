@@ -1,11 +1,12 @@
-## plot and analyse BP diel data
-## Note that "PARW1 and PARW2 are on opposite sides of the buoy and shading occurs during 
-##    the day as the sun moves around the lake – take the highest value of the 2 PARW 
-##    sensors as being the PAR for that timestamp"
+## script just to plot and check BP diel data...
+##    1. Looking at temporal trends
+##    2. Comparing calculated vs measured CO2
+##    3. Compaing rfu with measured routines chl (see also email from Sep 20 2016; Kimberly Gilmour)
 
 ## load packages
 library("ggplot2")
 library("gridExtra")
+library("viridis")
 
 ## create a theme to save linespace in plots
 papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
@@ -18,57 +19,40 @@ bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
 
 regvars <- readRDS('../data/private/regvars.rds')
 params <- readRDS('../data/private/params-flux.rds')
-buffreg <- subset(regvars, select = c('Date', 'Lake', 'Month', 'DOY', 'pH_surface',
-                                      'lakepCO2','co2Flux'), Lake == 'B' & Year > 2013)
+buffreg <- subset(regvars, Lake == 'B' & Year > 2013)
 buffchl <- subset(regvars, select = c('Date', 'Lake', 'Month', 'DOY', 'Chl_a_ug_L',
                                       'Chl_a_ug_L_sur'), Lake == 'B' & Year > 2013)
-
-## cleaning dates in 2014 
-dates <- c('12/08/2014', '15/07/2014', '19/07/2014', '26/06/2014', tz="Canada/Saskatchewan") 
-# last may not be a cleaning date
-dates <- as.POSIXct(dates, format = "%d/%m/%Y")
-datesDOY <- format(dates, "%j")
-
-## explore data by plotting
-## plots
 bdatf <- bdat
 bdatf$Month <- as.factor(bdatf$Month)
 
-ggplot(data=bdat, aes(y = co2corr, x = ODOrel1, col = ifelse(Hour >= 8 & Hour <=20, 
-                                                                     'red', 'black'))) +
-  scale_color_identity() +
-  geom_point() #+
-#geom_vline(xintercept = c(datesDOY))
+## =========================================================================================
+## 1. Looking at temporal trends, quality, cleaning, in the data
+## =========================================================================================
+## cleaning dates in 2014 
+dates <- c('12/08/2014', '15/07/2014', '19/07/2014', '26/06/2014') 
+# last may not be a cleaning date
+dates <- as.POSIXct(dates, format = "%d/%m/%Y", tz="Canada/Saskatchewan")
+datesDOY <- format(dates, "%j")
 
-ggplot(data=bdat, aes(y = co2corr, x = pco2, col = factor(Month))) 
-# ifelse(Hour >= 8 & Hour <=20, 
-#   'red', 'black')
-#scale_color_identity() + # means it understands red and black in ifelse
-#scale_color_manual(values=c('black', 'red')) +
-geom_point() +
-  geom_abline(intercept=0,slope=1) +
-  ylab("pCO2 (measured)") +
-  xlab("pCO2 (calculated)") +
-  geom_text(label='2014', x=600, y=1600, col='black')
-
-ggplot(data=bdat, aes(y = co2corr, x = DOY, col = isDay)) + # ifelse(Hour >= 8 & Hour <=20, 
-  #   'red', 'black')
-  #scale_color_identity() + # means it understands red and black in ifelse
+## a few temporal plots
+ggplot(data=bdat, aes(y = co2corr, x = DOY, col = isDay)) + 
   scale_color_manual(values=c('black', 'red')) +
   geom_point() +
   geom_vline(xintercept = as.numeric(datesDOY)) +
   ylab("CO2 (ppm)") +
   xlab("Day of year 2014 (vertical lines cleaning dates)")
 
-ggplot(data=bdatf, aes(y = ph1, x = Time, col = isDay)) + # ifelse(Hour >= 8 & Hour <=20, 
-  #   'red', 'black')
-  #scale_color_identity() + # means it understands red and black in ifelse
-  #scale_color_manual(values=c('black', 'red')) +
+ggplot(data=bdatf, aes(y = ph1, x = Time, col = isDay)) + 
   geom_point() +
-  #geom_vline(xintercept = as.numeric(datesDOY)) +
   ylab("pH") +
   xlab("Hour")
 
+## relationships between variables
+ggplot(data=bdat, aes(y = co2corr, x = ODOrel1, col = ifelse(isDay, 'red', 'black'))) +
+  scale_color_identity() +
+  geom_point() #+
+
+## differences between night and day
 dielplot <- ggplot(data=bdat, aes(y = co2corr, x = ODOrel1, col=TimeofDay)) +
   geom_point() +
   scale_color_viridis(discrete=TRUE, alpha = 0.4, option='viridis', begin= 0.3, end=0.8, direction = -1) +
@@ -81,26 +65,32 @@ dielplot <- ggplot(data=bdat, aes(y = co2corr, x = ODOrel1, col=TimeofDay)) +
   theme(legend.title=element_blank(), legend.position='top')
 ggsave(plot=dielplot, filename='../docs/private/bp-o2-co2.png')
 
-## compare 2014 data with calculated data
-real2014 <- subset(bdat, select = c('DOY', 'ODOrel1','co2corr', 'Hour', 'ph1'), 
-                   Hour >= 10 & Hour <= 15)
-bp2014 <- subset(buffreg, select=c('DOY', 'lakepCO2','pH_surface'))
-all2014 <- merge(bp2014, real2014)
+## =============================================================================================
+## 2. compare measured data with calculated data
+## =============================================================================================
+## all months and times of day
+ggplot(data=bdatf, aes(y = co2corr, x = pco2, col = Month)) +
+  geom_point(alpha=0.2) +
+  geom_abline(intercept=0,slope=1) +
+  ylab("pCO2 (measured)") +
+  xlab("pCO2 (calculated)")
 
+## subset diel data to match most likely times when lake sampled for routines,and 
+##    calculate mean ph for this time interval
+real2014 <- subset(bdat, select = c('DOY', 'ODOrel1','co2corr', 'Hour', 'ph1'), 
+                   Hour >= 10 & Hour <= 13)
+realsplit<- with(real2014[,c('DOY','ph1')], split(real2014[,c('DOY','ph1')], list(DOY)))
+realmeans <- do.call(rbind, lapply(realsplit, colMeans, na.rm=TRUE))
+
+## merge with routines 2014 data for same time interval
+bp2014 <- subset(buffreg, select=c('DOY', 'lakepCO2','pH_surface'))
+all2014 <- merge(bp2014, realmeans)
+
+## subset routines data to same DOY
 take <- which(bp2014$DOY %in% real2014$DOY)
 bp2014sub <- bp2014[take,]
 
-with(all2014, plot(co2corr ~ DOY, ylab = 'pCO2 (ppm|uatm)', xlab = 'Day of year'))
-points(all2014$lakepCO2 ~ all2014$DOY, pch=4)
-abline(v = c(datesDOY))
-legend('topright', legend = 'o=measured \n x=calculated', border = FALSE)
-
-with(all2014, plot(ph1 ~ DOY, ylab = 'pH probe/routines', xlab = 'Day of Year', ylim = c(7.5,10)))
-points(all2014$pH_surface ~ all2014$DOY, pch=4)
-abline(v = c(datesDOY))
-legend('topright', legend = 'o=measured \n x=calculated', border = FALSE)
-
-## is the difference just due to pH differences?
+## is the difference just due to pH differences? replace routines pH with corresponding diel pH
 paramssub <- params[params$Lake == 'B' & params$Year == 2014,]
 take <- which(paramssub$DOY %in% all2014$DOY)
 recalc <- paramssub[take,]
@@ -140,55 +130,49 @@ prec <- ggplot(data=recalcs, aes(y = value, x = DOY, colour = whichCO2)) +
   theme_bw() +
   geom_jitter(width = 5) +
   scale_color_viridis(expression(paste(italic('p')*'CO'[2])), discrete = TRUE, 
-                      option = 'plasma', direction = -1) +
+                      option = 'viridis', direction = -1) +
   ylab(expression(paste(mu*'atm'))) +
   xlab("Day of Year")
+prec
 
-## difference between max value and recalc value?
-spldf <- with(all2014, split(all2014, list(DOY)))
-spldf <- lapply(spldf, '[[', 'co2corr')
-lapply(spldf, max)
-recalcflux$pco2
 
-## melt for various purposes
-bdatmelt <- melt(bdat[,c("datetime", "ODOrel1", "ODOrel2")], id.vars = "datetime")
-bdatmelt$variable <- as.character(bdatmelt$variable)
-bdatmelt$variable[grep("1", bdatmelt$variable)] <- "1m"
-bdatmelt$variable[grep("2", bdatmelt$variable)] <- "Deeper"
-names(bdatmelt)[grep("var", names(bdatmelt))] <- "Depth"
-
-oxyplot <- ggplot(data=bdatmelt, mapping = aes(y=value, x=datetime, group=Depth, lty=Depth)) +
-  geom_line() +
-  ylab("Oxygen saturation (%)") +
-  xlab("Date")
-
-## any DIC concentration evidence for carbonate precipitation?
-ggplot(data=params[params$Lake =='B',], aes(y = TIC, x = Month, group = Year)) + # ifelse(Hour >= 8 & Hour <=20, 
-  #   'red', 'black')
-  #scale_color_identity() + # means it understands red and black in ifelse
-  #scale_color_manual(values=c('black', 'red')) +
-  geom_point() +
-  facet_wrap('Year') +
-  ylab("DIC (mg/L)") +
-  xlab("Month")
-
-## does the chl extrapolated from rfu correspond to chl with our lab chl?
+## ===========================================================================================
+## 3. does the chl extrapolated from rfu correspond to chl with our lab chl? + DOC/turb
+## ===========================================================================================
 chltest <- merge(buffchl, bdat, by='DOY') # we have five days
 chltest2 <- subset(chltest, Hour >= 10 & Hour <=14)
 
 chlsub <- data.frame(DOY=unique(chltest$DOY), Chl_a_ug_L = unique(chltest$Chl_a_ug_L), 
                      Chl_a_ug_L_sur = unique(chltest$Chl_a_ug_L_sur), x=11)
-sur <- ggplot(chltest2, aes(y=Chl_a_ug_L_sur , x= chl)) +
+sur <- ggplot(chltest2, aes(y=Chl_a_ug_L_sur , x= chl, col=DOY)) +
   papertheme +
   geom_point() +
+  scale_color_viridis() +
   ylab("Routines Surface Chl a") +
-  theme(axis.title.x= element_blank())+
-  geom_text(inherit.aes=FALSE, data=chlsub, aes(y=Chl_a_ug_L_sur, x=x, label=DOY),
-            position=position_jitter(height=0.8, width=5))
-int <- ggplot(chltest2, aes(y=Chl_a_ug_L, x= chl)) +
+  theme(axis.title.x= element_blank(), legend.key.width=unit(2,"cm"))
+  
+int <- ggplot(chltest2, aes(y=Chl_a_ug_L, x= chl, col=DOY)) +
   papertheme +
+  scale_color_viridis(guide=FALSE) +
   geom_point() +
   ylab("Routines Integrated Chl a") +
-  xlab("Diel Chl from 10:00-14:00") +
-  geom_text(inherit.aes=FALSE, data=chlsub, aes(y=Chl_a_ug_L, x=x, label=DOY))
+  xlab("Diel Chl from 10:00-14:00") 
 grid.arrange(sur, int)
+
+doctest <- merge(buffreg[,c('DOC_mg_L','DOY')], bdat, by='DOY') # we have five days
+doctest2 <- subset(doctest, Hour >= 10 & Hour <=14)
+ggplot(doctest2, aes(y=DOC_mg_L, x= cdom, col=DOY)) +
+  papertheme +
+  scale_color_viridis() +
+  geom_point() +
+  theme(legend.key.width=unit(2,"cm")) +
+  ylab("Routines DOC (mg/L)") +
+  xlab("Diel CDOM (ug/L) from 10:00-14:00") 
+  
+ggplot(doctest2, aes(y=DOC_mg_L, x= log10(turb), col=DOY)) +
+  papertheme +
+  scale_color_viridis() +
+  geom_point() +
+  theme(legend.key.width=unit(2,"cm")) +
+  ylab("Routines DOC (mg/L)") +
+  xlab("Diel turbidity (log10 NTU) from 10:00-14:00") 

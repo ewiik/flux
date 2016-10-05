@@ -30,34 +30,91 @@ myAR <- function(term, lag) {
 
 ## are there differences in relationship between night and day?
 ## ===================================================================================
+## simple correlations -- ok for correlation coefficients but not for predictions without
+##    taking care of heteroscedasticity
 lmnight <- with(bdat[bdat$isDay == FALSE,], lm(co2corr~pco2))
 lmday <- with(bdat[bdat$isDay == TRUE,], lm(co2corr~pco2))
 lmint <- with(bdat, lm(co2corr~pco2))
 with(bdat, cor(x=co2corr, y=pco2, use='complete.obs', method='pearson'))
 
-# just with the 10am-3pm data
-ten3 <- subset(bdat, Hour >= 10 & Hour <=15)
+## just with daytime data
+days <- subset(bdat, isDay == TRUE)
+keep <- which(complete.cases(days[,c('pco2','co2corr')]))
 
-## could do this to make converge but also did manually, required four iterations
-reps <- 8 #takes a while for it to converge
-for (i in 1:reps) {
-   start <- if (i == 1 ) {coef(glm(co2corr ~ pco2, data = ten3, family = gaussian))}
-     else { coef(glmmod) }
-   glmmod <- glm(co2corr ~ pco2, data = ten3, family = Gamma(link = "identity"), start = start,
-                 control = glm.control(maxit=100))
- }
-## FIXME: this is not an adequate model based on QQ plot so need to rethink at some point
-
-# residual plot etc
-plot(resid(lmint) ~ lmint$fitted.values, ylab='Residuals (pCO2 uatm)', 
+## try a glm and look at residuals etc.
+daynull <- glm(co2corr ~ pco2, data = days[keep,], family = gaussian, x=TRUE)
+plot(resid(daynull) ~ daynull$fitted.values, ylab='Residuals (pCO2 uatm)', 
      xlab='Fitted values (pCO2 uatm)')
+plot(resid(daynull) ~ daynull$y, ylab='Residuals (pCO2 uatm)', 
+     xlab='Response values (pCO2 uatm)')
+plot(resid(daynull) ~ daynull$x[,'pco2'], ylab='Residuals (pCO2 uatm)', 
+     xlab='Predictor values (pCO2 uatm)')
+## will boxcoxing help?
+boxed <- boxcox(daynull)
+daybox <- glm(co2corr^0.47 ~ pco2, data = days[keep,], family = gaussian, x=TRUE) #no
 
-## gamming the time component of the data for pH
+## will gls help?
+## FIXME: Gavin, all the lit on gls and variance functions were really densely and unhelpfully
+##    written --- haven't gotten further than this - no idea really how to test the best varFunc
+vf1 <- varPower(form=~pco2)
+vf1 <- Initialize(vf1, bdat)
+coef(vf1) <- 0.3
+varWeights(vf1)[1:10]
+
+dayvar <- gls(co2corr ~ pco2, data = days[keep,], weights = vf1)
+plot(dayvar)
+
+## gamming the time component of the data for CO2
+## FIXME: pH models still undeveloped
 ## =================================================================================================
 ## create lag terms
 bdat <- transform(bdat, timelag1 = myAR(bdat$Time, 1))
 
 ## create models; testing AR inclusion and comparing k with edf to set k (gam.check)
+## note that "in recent mgcv versions the output in summary() is more reliable than 
+##    the generalised likelihood ratio test we might do to compare a selected model 
+##    with a null one" (GS Oct 16)
+## FIXME: DOY is eating up as many k's as possible; 80 too many, using most of 70
+mco2ti <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=70) + s(timelag1, bs='cc') + 
+              ti(Time, DOY, bs = c("cc","tp")), # worried of setting ti k higher, kept crashing
+            data = bdat, select = TRUE, method = "REML", family = scat,
+            na.action = na.exclude) 
+# interaction term significant -->
+mco2te <- gam(co2corr ~ te(Time, DOY, bs = c("cc","tp")) + s(timelag1, bs='cc'), 
+              data = bdat, select = TRUE, method = "REML", family = scat,
+            na.action = na.exclude) 
+## FIXME: changing k makes it crash??? Does te() handle k differently?
+
+plot(acf(resid(mco2te), na.action = na.exclude)) # still highly autocorrelated
+plot(mco2te, scheme=2)
+
+## what if we add Week as a variable too? How to resolve interactions in this case?
+mco2full <- gam(co2corr ~ te(Time, DOY, bs = c("cc", "tp")) + s(Week) + 
+                  s(timelag1), data=bdat, 
+                select = TRUE, 
+                method = "REML", family = scat, na.action = na.exclude)
+
+
+pdf("../docs/private/diel-bpgam.pdf")
+op <- par(mar = c(4,4,1,1) + 0.1)
+plot(mco2te, pages = 1, scheme = 2)
+par(op)
+dev.off()
+
+## try gamm approach following fromthebottomoftheheap?
+ctrl <- list(niterEM = 0, msVerbose = TRUE, optimMethod="L-BFGS-B")
+testing2 <- gamm(co2corr ~ s(Time, bs = "cc", k = 20) + s(DOY, k = 30),
+                 data = bdat, correlation = corCAR1(form = ~ datetime), 
+                 control = ctrl)
+## gamm crashes if I specify 0.8 as the correlation! in fact gamm crashes almost with anything
+##    I try!
+res <- resid(testing2$lme, type = "normalized")
+acf(res, lag.max = 36, main = "ACF - AR(2) errors")
+
+## ============================================================================================
+## GAVIN MAY STOP READING HERE!
+## ============================================================================================
+## for pH... To be developed!
 mnull <- gam(ph1 ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30), data=bdat) 
 m1 <- gam(ph1 ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30) + ti(Time, DOY, bs = c("cc","tp")), 
           data = bdat)
@@ -67,51 +124,8 @@ plot(acf(resid(m1)))
 
 anova(mnull, m1, test = "LRT") # m1 better
 
-## apply same to co2
-mco2null <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30), data=bdat, 
-                select = TRUE, 
-                method = "REML", family = scat, na.action = na.exclude)
-# + s(timelag1, bs='cc'), 
-mco2ti <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30) + s(timelag1, bs='cc') + 
-              ti(Time, DOY, bs = c("cc","tp"), k=15), 
-            data = bdat, select = TRUE, method = "REML", family = scat,
-            na.action = na.exclude) ## crashes with higher k for interaction!
-anova(mco2null, mco2ti, test = "LRT") # mco2 better
-
-mco2te <- gam(co2corr ~ s(timelag1, bc='cc') + 
-              te(Time, DOY, bs = c("cc","tp")), # worried of setting k higher
-            data = bdat, select = TRUE, method = "REML", family = scat,
-            na.action = na.exclude) 
-
-plot(acf(resid(mco2null))) ## FIXME: is < 0.2 ok?
-plot(mco2, scheme=2) ## note that splines are almost flat for DOY and Time for all models
-##    with AR1 term
-
-mco2full <- gam(co2corr ~ s(Time, bs = "cc", k=20) + s(DOY, k=30) + s(Week) + 
-                  s(co2lag1), data=bdat, 
-                select = TRUE, 
-                method = "REML", family = scat, na.action = na.exclude)
-
-pdf("../docs/private/diel-bpgam.pdf")
-op <- par(mar = c(4,4,1,1) + 0.1)
-plot(m2, pages = 4, scheme = 2)
-par(op)
-dev.off()
-
 saveRDS(m4, "../data/private/bp-diel-timemod2014.rds")
 
-testing <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30) + s(timelag1, bs='cc', k=20), 
-               data=bdat, 
-                select = TRUE, 
-                method = "REML", family = scat, na.action = na.exclude)
-
-ctrl <- list(niterEM = 0, msVerbose = TRUE, optimMethod="L-BFGS-B")
-testing2 <- gamm(co2corr ~ s(Time, bs = "cc", k = 20) + s(DOY, k = 30),
-                    data = bdat, correlation = corCAR1(form = ~ datetime), #Time|DOY
-                      control = ctrl)
-## gamm crashes if I specify 0.8 as the correlation!
-res <- resid(testing2$lme, type = "normalized")
-acf(res, lag.max = 36, main = "ACF - AR(2) errors")
 
 ## gam on other params
 ## ===========================================================================================
