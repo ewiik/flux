@@ -63,3 +63,6 @@ theme_bw(base_size = 12, base_family = 'Arial') # set baseline font size
 ## play with colour selections...
 show_col(brewer_pal("seq", palette='Oranges')(5))
 
+## play with legend
+theme(legend.key.width=unit(2,"cm")) # control width of legend
+color...(guide=FALSE) # suppress legend
