@@ -1,8 +1,9 @@
 ## statistics on bp data
+stop("This script not ready to be blindly sourced yet! Execute chunkwise!")
 
 ## read in data
 if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
-  source("diel-buffalo.R")}
+  source("diel-buffalo.R")} #creates both 2014 and 2015 data
 bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
 bdat <- bdat[order(bdat$datetime),]
 
@@ -93,7 +94,6 @@ mco2full <- gam(co2corr ~ te(Time, DOY, bs = c("cc", "tp")) + s(Week) +
                   s(timelag1), data=bdat, 
                 select = TRUE, 
                 method = "REML", family = scat, na.action = na.exclude)
-
 
 pdf("../docs/private/diel-bpgam.pdf")
 op <- par(mar = c(4,4,1,1) + 0.1)

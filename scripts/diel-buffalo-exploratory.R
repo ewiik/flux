@@ -1,7 +1,8 @@
 ## script just to plot and check BP diel data...
 ##    1. Looking at temporal trends
 ##    2. Comparing calculated vs measured CO2
-##    3. Compaing rfu with measured routines chl (see also email from Sep 20 2016; Kimberly Gilmour)
+##    3. Compaing rfu, cdom with measured routines chl and doc 
+##      (see also email from Sep 20 2016; Kimberly Gilmour)
 
 ## load packages
 library("ggplot2")
@@ -17,8 +18,14 @@ if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
   source("diel-buffalo.R")}
 bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
 
+if (!file.exists('../data/private/regvars.rds')) {
+  source('../scripts/regression_routines.R')}
 regvars <- readRDS('../data/private/regvars.rds')
+if (!file.exists('../data/private/params-flux.rds')) {
+  source("../scripts/co2_scenarios.R")
+}
 params <- readRDS('../data/private/params-flux.rds')
+
 buffreg <- subset(regvars, Lake == 'B' & Year > 2013)
 buffchl <- subset(regvars, select = c('Date', 'Lake', 'Month', 'DOY', 'Chl_a_ug_L',
                                       'Chl_a_ug_L_sur'), Lake == 'B' & Year > 2013)
@@ -63,7 +70,10 @@ dielplot <- ggplot(data=bdat, aes(y = co2corr, x = ODOrel1, col=TimeofDay)) +
   geom_vline(xintercept = 100, linetype='dotted') +
   theme_bw(base_size = 10) +
   theme(legend.title=element_blank(), legend.position='top')
-ggsave(plot=dielplot, filename='../docs/private/bp-o2-co2.png')
+if(inherits(try(ggsave(plot=dielplot, filename='../docs/private/bp-o2-co2.png')), "try-error"))
+{
+  print("create directory docs/private to save plot")
+} else {ggsave(plot=dielplot, filename='../docs/private/bp-o2-co2.png')}
 
 ## =============================================================================================
 ## 2. compare measured data with calculated data
@@ -79,7 +89,8 @@ ggplot(data=bdatf, aes(y = co2corr, x = pco2, col = Month)) +
 ##    calculate mean ph for this time interval
 real2014 <- subset(bdat, select = c('DOY', 'ODOrel1','co2corr', 'Hour', 'ph1'), 
                    Hour >= 10 & Hour <= 13)
-realsplit<- with(real2014[,c('DOY','ph1')], split(real2014[,c('DOY','ph1')], list(DOY)))
+realsplit<- with(real2014[,c('DOY','ph1', 'co2corr')], split(real2014[,c('DOY','ph1','co2corr')], 
+                                                             list(DOY)))
 realmeans <- do.call(rbind, lapply(realsplit, colMeans, na.rm=TRUE))
 
 ## merge with routines 2014 data for same time interval
@@ -106,10 +117,9 @@ recalc <- cbind(recalc, recalcflux)
 
 ## let's put all the pco2 for 2014 together for a ggplot
 names(recalc)[which(names(recalc) == 'pco2')] <- 'Recalculated'
-names(all2014)[which(names(all2014) %in% c('lakepCO2', 'co2corr'))] <-
-  c('Calculated', 'Measured')
-names(bp2014sub)[which(names(bp2014sub)== 'lakepCO2')] <-
-  'Calculated'
+names(all2014)[which(names(all2014) %in% c('lakepCO2', 'co2corr'))] <- 
+  c('Calculated','Measured')
+names(bp2014sub)[which(names(bp2014sub)== 'lakepCO2')] <-   'Calculated'
 
 bp2014m <- melt(bp2014sub, id.vars = 'DOY', measure.vars = 'Calculated',
                 variable.name = 'whichCO2',

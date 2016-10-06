@@ -13,11 +13,20 @@ library('reshape2')
 
 ## load necessary functions
 source('../functions/gasExchangeUser.R')
+
+if (!file.exists('../data/private/salcalc.R')) {
+  stop("Get salinity calculation function from Emma")}
 source('../data/private/salcalc.R')
 
 ## load in supplementary data
+if (!file.exists('../data/private/regvars.rds')) {
+  source('../scripts/regression_routines.R')}
 regvars <- readRDS('../data/private/regvars.rds')
+if (!file.exists('../data/private/params-flux.rds')) {
+  source("../scripts/co2_scenarios.R")
+}
 params <- readRDS('../data/private/params-flux.rds')
+
 buffreg <- subset(regvars, select = c('Date', 'Lake', 'Month', 'DOY', 'pH_surface',
                                       'lakepCO2','co2Flux'), Lake == 'B' & Year > 2013)
 ## mauna loa for 2014 months, such few data points I copy pasted manually from
@@ -35,6 +44,9 @@ ml <- ml[,-which(names(ml) == 'pCO2interp')]
 ## read in data; initially got only part of the supporting info, but the co2 that Helen
 ##    already corrected. Then asked for pH etc and she sent that but it doesn't have
 ##    the corrected values
+if (!file.exists("../data/private/BuffPd_DataBlobs_Helen.csv")) {
+  stop("make sure you have all 2014 buoy data from Emma")
+}
 bdat2014 <- read.csv('../data/private/BuffPd_DataBlobs_Helen.csv', skip = 4, 
                      col.names = c('datetime', "winddir", "windsp", "airtemp", 
                                    "relhum", "pressure", "dailyrain", "par1", "par2",
@@ -222,6 +234,9 @@ saveRDS(bdat2014full, '../data/private/bpbuoy2014-mod.rds')
 ## ==========================================================================================
 ## 2015: only using surface since deep just kept malfunctioning all year
 ## ==========================================================================================
+if (!file.exists("../data/private/BPBuoyData2015raw.csv")) {
+  stop("make sure you have all 2015 buoy data from Emma")
+}
 bdat <- read.csv("../data/private/BPBuoyData2015raw.csv", skip = 3, 
                  col.names = c("datetime", "batvolt", "winddir", "windsp", "airtemp", 
                                "relhum", "pressure", "dailyrain", "par1", "par2",
@@ -230,7 +245,7 @@ bdat <- read.csv("../data/private/BPBuoyData2015raw.csv", skip = 3,
                                "bga1rfu", "ODOrel1", "ODOabs1", "temp2", "cond2", "ph2", 
                                "ph2mV", "bga2cell", "bga2rfu", "ODOrel2", "ODOabs2", "temp3", 
                                "temp4", "temp5", "temp6", "temp7"))
-testing <- read.csv("~/BPoundBuoy_2015_QC_Processed_Data.csv")
+testing <- read.csv("../data/private/BPoundBuoy_2015_QC_Processed_Data.csv")
 ## Note that 'testing' follows the files sent by Julie on 15th Sep 2016, notes and data.
 ##    Note also that I used sheet C6 - this is the most up to date version at the minute
 
