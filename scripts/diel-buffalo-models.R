@@ -70,28 +70,29 @@ plot(dayvar)
 ## =================================================================================================
 ## create lag terms
 bdat <- transform(bdat, timelag1 = myAR(bdat$Time, 1))
+bdat <- transform(bdat, co2lag1 = myAR(bdat$co2corr, 1))
 
 ## create models; testing AR inclusion and comparing k with edf to set k (gam.check)
 ## note that "in recent mgcv versions the output in summary() is more reliable than 
 ##    the generalised likelihood ratio test we might do to compare a selected model 
 ##    with a null one" (GS Oct 16)
 ## FIXME: DOY is eating up as many k's as possible; 80 too many, using most of 70
-mco2ti <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=70) + s(timelag1, bs='cc') + 
+mco2ti <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=70) + s(co2lag1) + 
               ti(Time, DOY, bs = c("cc","tp")), # worried of setting ti k higher, kept crashing
             data = bdat, select = TRUE, method = "REML", family = scat,
             na.action = na.exclude) 
 # interaction term significant -->
-mco2te <- gam(co2corr ~ te(Time, DOY, bs = c("cc","tp")) + s(timelag1, bs='cc'), 
+mco2te <- gam(co2corr ~ te(Time, DOY, bs = c("cc","tp")) + s(co2lag1), 
               data = bdat, select = TRUE, method = "REML", family = scat,
             na.action = na.exclude) 
 ## FIXME: changing k makes it crash??? Does te() handle k differently?
+## co2 dependence on previous value dwarfs all other terms... not sure I'm including everything
+##    correctly? was i meant to do the autoregression separately?
 
-plot(acf(resid(mco2te), na.action = na.exclude)) # still highly autocorrelated
-plot(mco2te, scheme=2)
+plot(acf(resid(mco2te), na.action = na.exclude)) # still autocorrelated.. could add AR2?
 
 ## what if we add Week as a variable too? How to resolve interactions in this case?
-mco2full <- gam(co2corr ~ te(Time, DOY, bs = c("cc", "tp")) + s(Week) + 
-                  s(timelag1), data=bdat, 
+mco2full <- gam(co2corr ~ te(Time, DOY, bs = c("cc", "tp")) + s(Week), data=bdat, 
                 select = TRUE, 
                 method = "REML", family = scat, na.action = na.exclude)
 
