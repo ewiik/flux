@@ -9,6 +9,9 @@ library('viridis')
 blong <- readRDS('../data/private/bp-longterm-mod.rds')
 bdiel <-  readRDS('../data/private/bpbuoy2014-mod.rds')
 
+## read in model
+source("../functions/gasExchangeUser.R")
+
 ## subset data
 bdiel <- subset(bdiel, Hour >= 10 & Hour <=15)
 bdiel$Date <- as.Date(bdiel$datetime)
@@ -68,18 +71,19 @@ bdiel$kerridicumol <- bdiel$kerridic / 0.012
 plot(newdat$dic ~ bdiel$kerridic)
 abline(0,1)
 bdiel$gamdicumol <- newdat$dic / 0.012
-bdiel <- transform(bdiel, pco2kerri = gasExchangeUser(temp=temp1, cond = cond1, dic=kerridicumol, salt=NULL,ph=ph1, 
+pco2kerri <- with(bdiel, gasExchangeUser(temp=temp1, cond = cond1, dic=kerridicumol, salt=NULL,ph=ph1, 
                                          wind=windsp, alknotdic = FALSE, 
                                          kpa=pressureKPA, pco2atm = maunaloa))
-bdiel <- transform(bdiel, pco2gam = gasExchangeUser(temp=temp1, cond = cond1, dic=gamdicumol, salt=NULL,ph=ph1, 
+pco2gam <- with(bdiel, gasExchangeUser(temp=temp1, cond = cond1, dic=gamdicumol, salt=NULL,ph=ph1, 
                                          wind=windsp, alknotdic = FALSE, 
                                          kpa=pressureKPA, pco2atm = maunaloa))
-bdiel$pco2gam <- gasfluxes2$pco2
-bdiel$pco2kerri <- gasfluxes1$pco2
-plot(gasfluxes1$pco2 ~ gasfluxes2$pco2)
+bdiel$pco2gam <- pco2gam$pco2
+bdiel$pco2kerri <- pco2kerri$pco2
+
+with(bdiel, plot(pco2gam ~ pco2kerri))
 abline(0,1)
 
 ggplot(bdiel, aes(x=pco2kerri, y=pco2gam)) + geom_point() + geom_abline(slope=1, intercept=0)
-ggplot(bdiel, aes(x=pco2kerri, y=ph1)) + geom_point() + geom_abline(slope=1, intercept=0)
-ggplot(bdiel, aes(x=pco2gam, y=ph1)) + geom_point() + geom_abline(slope=1, intercept=0)
+ggplot(bdiel, aes(x=pco2kerri, y=ph1)) + geom_point() 
+ggplot(bdiel, aes(x=pco2gam, y=ph1)) + geom_point() 
 
