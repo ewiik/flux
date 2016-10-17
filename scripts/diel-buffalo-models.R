@@ -1,6 +1,9 @@
 ## statistics on bp data
 stop("This script not ready to be blindly sourced yet! Execute chunkwise!")
 
+## Notes on measures and instrumentation: CDOM is based on fluorometry: 
+##    http://www.turnerdesigns.com/t2/doc/appnotes/S-0022.pdf
+##    Turbidity is this: YSI 6136 Turbidity Sensor; see this http://or.water.usgs.gov/grapher/fnu.html
 ## read in data
 if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
   source("diel-buffalo.R")} #creates both 2014 and 2015 data
@@ -9,6 +12,15 @@ bdat <- bdat[order(bdat$datetime),]
 
 bdat5 <- readRDS('../data/private/bpbuoy2015-mod.rds')
 bdat5 <- bdat5[order(bdat5$datetime),]
+
+if (!file.exists("../data/private/bp-stability.rds")) {
+  source("../scripts/bp-stratification.R")
+}
+schmidt <- readRDS("../data/private/bp-stability.rds") # note this for 2014
+bdat <- merge(bdat, schmidt)
+
+## create index of potential convective mixing, based on diff in T btw air and water
+bdat$conv <- bdat$airtemp - bdat$temp4 # this is the topmost, 77cm one
 
 ## load packages
 library("mgcv")
@@ -96,13 +108,8 @@ mco2full <- gam(co2corr ~ te(Time, DOY, bs = c("cc", "tp")) + s(Week), data=bdat
                 select = TRUE, 
                 method = "REML", family = scat, na.action = na.exclude)
 
-pdf("../docs/private/diel-bpgam.pdf")
-op <- par(mar = c(4,4,1,1) + 0.1)
-plot(mco2te, pages = 1, scheme = 2)
-par(op)
-dev.off()
-
 ## try gamm approach following fromthebottomoftheheap?
+## FIXME: should we pursue this?
 ctrl <- list(niterEM = 0, msVerbose = TRUE, optimMethod="L-BFGS-B")
 testing2 <- gamm(co2corr ~ s(Time, bs = "cc", k = 20) + s(DOY, k = 30),
                  data = bdat, correlation = corCAR1(form = ~ datetime), 
@@ -112,10 +119,8 @@ testing2 <- gamm(co2corr ~ s(Time, bs = "cc", k = 20) + s(DOY, k = 30),
 res <- resid(testing2$lme, type = "normalized")
 acf(res, lag.max = 36, main = "ACF - AR(2) errors")
 
-## ============================================================================================
-## GAVIN MAY STOP READING HERE!
-## ============================================================================================
-## for pH... To be developed!
+## for pH... To be developed! (ignore section)
+##==========================================================================================
 mnull <- gam(ph1 ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30), data=bdat) 
 m1 <- gam(ph1 ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30) + ti(Time, DOY, bs = c("cc","tp")), 
           data = bdat)
@@ -125,76 +130,66 @@ plot(acf(resid(m1)))
 
 anova(mnull, m1, test = "LRT") # m1 better
 
-saveRDS(m4, "../data/private/bp-diel-timemod2014.rds")
-
-
-## gam on other params
+## gam on other params: based on discussions with Helen, we should use rfu not mg/L
 ## ===========================================================================================
 bpmod <- gam(co2corr ~
-               s(chl, k=3) + #was overfitting
-               s(bga1cell) +
-               s(airtemp, k=3) +
-               s(schmidt) +  
-               s(ODOrel1, k=4) +
+               s(chlrfu) + 
+               s(bga1rfu) +
+               s(airtemp) +
+               s(stability) +  
+               s(ODOrel1) +
                s(ph1)  +
-               s(ODOabs1), 
+               s(dailyrain) +
+               s(conv) +
+               s(turb) +
+               s(windsp), 
              data = bdat,
              select = TRUE, method = "REML", family = gaussian(),
              na.action = na.exclude,
              control = gam.control(nthreads = 3, trace = TRUE,
                                    newton = list(maxHalf = 60)))
-## FIXME: add time of day
 ## FIXME: tested scat but though histogram looked better nothing else did...??
-plot(bpmod, pages=1)
+## FIXME: O2 nuked by pH. What to do about this? (tested interaction visually as you suggested
+##    and no O2-pH-CO2 pattern seemed apparent)
+
+## pH again can explain most everything
+bpco2phmod <- gam(co2corr ~ s(ph1), method = "REML", family = gaussian,
+                  na.action = na.exclude, data=bdat,
+                  control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+
+## what about modeling pH since in fact these other vars might actually explain both?
+phmod <- gam(ph1 ~
+               s(chlrfu) + 
+               s(bga1rfu) +
+               s(airtemp) +
+               s(stability) +  
+               s(ODOrel1) +
+               s(dailyrain) +
+               s(conv) +
+               s(turb) +
+               s(windsp), 
+             data = bdat,
+             select = TRUE, method = "REML", family = gaussian(),
+             na.action = na.exclude,
+             control = gam.control(nthreads = 3, trace = TRUE,
+                                   newton = list(maxHalf = 60)))
+
+## save models/output
+## =========================================================================================
+pdf("../docs/private/diel-bpgam.pdf")
+opar <- par()
+par(mar = c(4,4,1,1) + 0.1)
+plot(mco2te, pages = 1, scheme = 2)
+par(opar)
+dev.off()
+
 saveRDS(bpmod, '../data/private/bpmod.rds')
 
-bpco2phmod <- gam(co2corr ~ s(ph1), method = "REML", family = gaussian,
-                  na.action = na.exclude, data=bdat2014fullf,
-                  control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
 saveRDS(bpco2phmod, '../data/private/bpco2phmod.rds')
 
-## can temporary stratificatino be predicted with wind and what is the best lag?
-bdat <- transform(bdat, strat=temp2-temp1)
-stratmod <- gam(strat ~ s(windsp) + s(winddir), data = bdat,
-                select = TRUE, method = "REML", family = gaussian(),
-                na.action = na.exclude)
-windsplit <- with(bdat, split(bdat, list(Month, Day)))
-mycolMeans <- function(df, cols) {
-  df <- as.data.frame(df)
-  subdf <- subset(df, select = cols)
-  means <- colMeans(subdf, na.rm = TRUE)
-  cbind(data.frame(Month = df['Month'][1,], Day = df['Day'][1,]), t(means))
-}
-windmeans <- do.call(rbind, lapply(windsplit, mycolMeans, cols=c("windsp", "winddir")))
-windmeans <- windmeans[order(windmeans$Month, windmeans$Day),]
-windmeans <- na.omit(windmeans)
-names(windmeans)[grep("wind", names(windmeans))] <- c("meanwindsp", "meanwinddir")
-for(i in 1:nrow(windmeans)) {
-  if(i == 1) { windmeans$lag1[i] <- NA} else {
-  windmeans$lag1[i] <- windmeans$meanwindsp[i-1]
-  }}
-for(i in 1:nrow(windmeans)) {
-  if(i <= 2) { windmeans$lag2[i] <- NA} else {
-    windmeans$lag2[i] <- windmeans$meanwindsp[i-2]
-  }}
-
-bdat <- merge(bdat, windmeans)
-stratmod <- gam(strat ~ s(meanwindsp, k=3) + s(lag1, k=3) + s(temp1, k=3) + s(meanwinddir), data = bdat,
-                select = TRUE, method = "REML", family = gaussian(),
-                na.action = na.exclude)
-
-## a model for oxygen?
-oxmod <- gam(ODOrel1 ~
-               s(chl, k=3) + #was overfitting
-               s(airtemp) +
-               s(daylength, k=4) +  #was overfitting
-               s(strat, k=3),
-             data = bdat,
-             select = TRUE, method = "REML", family = gaussian(),
-             na.action = na.exclude,
-             control = gam.control(nthreads = 3, trace = TRUE,
-                                   newton = list(maxHalf = 60)))
-plot(oxmod, pages = 1)
+## ============================================================================================
+## GAVIN MAY STOP READING HERE!
+## ============================================================================================
 
 ## ==========================================================================================
 ## 2015: no CO2 or O2 shallow data but other params ok
