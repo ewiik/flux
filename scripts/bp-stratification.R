@@ -1,5 +1,5 @@
 ## testing schmidt stability measurement for buffalo pound for 2014
-## the function requires the following units: water temperature in degrees C, depths (in m) 
+## the function requires the following units: water temperature in degrees C, depths (in m)
 ##    cross sectional areas (m^2), salinity (optional) in Practical Salinity Scale units
 ## Schmidt stability is in units J/m^2
 
@@ -14,11 +14,11 @@ if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
 hyp <- read.csv('../data/private/BuffaloPound_Hypso-1.csv')
 
 ## load packages
-library("rLakeAnalyzer")
-library("reshape2")
-library("ggplot2")
-library("viridis")
-library("gridExtra")
+stopifnot(require("rLakeAnalyzer"))
+stopifnot(require("reshape2"))
+stopifnot(require("ggplot2"))
+stopifnot(require("viridis"))
+stopifnot(require("gridExtra"))
 
 ## create a theme to save linespace in plots
 papertheme <- theme_bw(base_size=18, base_family = 'Arial') +
@@ -35,7 +35,7 @@ btemp$depth[grep("5", btemp$variable)] <- 1.23
 btemp$depth[grep("6", btemp$variable)] <- 2.18
 
 
-## schmidt function does not calculate anything if any one value is NA. Let's remove 
+## schmidt function does not calculate anything if any one value is NA. Let's remove
 ##    these from btemp
 btemp <- na.omit(btemp)
 
@@ -59,7 +59,7 @@ hyp <- hyp[-which(hyp$area == 0),]
 hyp$revcum <- with(hyp, revcum(area))
 
 ## split to lists with vectors of each variable
-testing <- with(btemp, split(btemp, list(datetime))) 
+testing <- with(btemp, split(btemp, list(datetime)))
 templist <- lapply(testing, '[[', 3)
 tempdepthlist <- lapply(testing, '[[', 4)
 sallist <- lapply(tempdepthlist, function(x) x*0)
@@ -72,7 +72,7 @@ depthlist <- vector(mode="list", length=nrow(bdat))
 depthlist[1:length(depthlist)] <- list(bthD)
 
 ## apply schmidt function to each date point
-stablist <- lapply(mapply(schmidt.stability, wtr=templist, depths=tempdepthlist, 
+stablist <- lapply(mapply(schmidt.stability, wtr=templist, depths=tempdepthlist,
                                   bthA=arealist, bthD=depthlist, sal=sallist), '[[', 1)
 stablist <- as.data.frame(do.call(rbind, stablist))
 rownames(stablist) <- NULL
@@ -100,5 +100,5 @@ tempplot <- ggplot(btemp, aes(y=value, x=datetime, col=depth)) +
                       option = 'viridis', direction = -1, name="Depth (m)")  +
   theme(axis.title.x = element_blank(), axis.text.x=element_blank()) +
   ylab("Temperature")
-grid.arrange(tempplot, stabplot)  
+grid.arrange(tempplot, stabplot)
 
