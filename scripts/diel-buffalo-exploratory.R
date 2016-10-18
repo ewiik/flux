@@ -1,7 +1,7 @@
 ## script just to plot and check BP diel data...
 ##    1. Looking at temporal trends
 ##    2. Comparing calculated vs measured CO2
-##    3. Compaing rfu, cdom with measured routines chl and doc 
+##    3. Compaing rfu, cdom with measured routines chl and doc
 ##      (see also email from Sep 20 2016; Kimberly Gilmour)
 
 ## load packages
@@ -19,7 +19,8 @@ if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
 bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
 
 if (!file.exists('../data/private/regvars.rds')) {
-  source('../scripts/regression_routines.R')}
+    source('../scripts/regression_routines.R')
+}
 regvars <- readRDS('../data/private/regvars.rds')
 if (!file.exists('../data/private/params-flux.rds')) {
   source("../scripts/co2_scenarios.R")
@@ -35,21 +36,21 @@ bdatf$Month <- as.factor(bdatf$Month)
 ## =========================================================================================
 ## 1. Looking at temporal trends, quality, cleaning, in the data
 ## =========================================================================================
-## cleaning dates in 2014 
-dates <- c('12/08/2014', '15/07/2014', '19/07/2014', '26/06/2014') 
+## cleaning dates in 2014
+dates <- c('12/08/2014', '15/07/2014', '19/07/2014', '26/06/2014')
 # last may not be a cleaning date
 dates <- as.POSIXct(dates, format = "%d/%m/%Y", tz="Canada/Saskatchewan")
 datesDOY <- format(dates, "%j")
 
 ## a few temporal plots
-ggplot(data=bdat, aes(y = co2corr, x = DOY, col = isDay)) + 
+ggplot(data=bdat, aes(y = co2corr, x = DOY, col = isDay)) +
   scale_color_manual(values=c('black', 'red')) +
   geom_point() +
   geom_vline(xintercept = as.numeric(datesDOY)) +
   ylab("CO2 (ppm)") +
   xlab("Day of year 2014 (vertical lines cleaning dates)")
 
-ggplot(data=bdatf, aes(y = ph1, x = Time, col = isDay)) + 
+ggplot(data=bdatf, aes(y = ph1, x = Time, col = isDay)) +
   geom_point() +
   ylab("pH") +
   xlab("Hour")
@@ -70,10 +71,12 @@ dielplot <- ggplot(data=bdat, aes(y = co2corr, x = ODOrel1, col=TimeofDay)) +
   geom_vline(xintercept = 100, linetype='dotted') +
   theme_bw(base_size = 10) +
   theme(legend.title=element_blank(), legend.position='top')
-if(inherits(try(ggsave(plot=dielplot, filename='../docs/private/bp-o2-co2.png')), "try-error"))
-{
-  print("create directory docs/private to save plot")
-} else {ggsave(plot=dielplot, filename='../docs/private/bp-o2-co2.png')}
+
+if(!dir.exists("../docs/private")) {
+    writeLines("creating directory ../docs/private to save plot")
+    dir.create("../docs/private")
+}
+ggsave(plot=dielplot, filename='../docs/private/bp-o2-co2.png')
 
 ## =============================================================================================
 ## 2. compare measured data with calculated data
@@ -85,11 +88,11 @@ ggplot(data=bdatf, aes(y = co2corr, x = pco2, col = Month)) +
   ylab("pCO2 (measured)") +
   xlab("pCO2 (calculated)")
 
-## subset diel data to match most likely times when lake sampled for routines,and 
+## subset diel data to match most likely times when lake sampled for routines,and
 ##    calculate mean ph for this time interval
-real2014 <- subset(bdat, select = c('DOY', 'ODOrel1','co2corr', 'Hour', 'ph1'), 
+real2014 <- subset(bdat, select = c('DOY', 'ODOrel1','co2corr', 'Hour', 'ph1'),
                    Hour >= 10 & Hour <= 13)
-realsplit<- with(real2014[,c('DOY','ph1', 'co2corr')], split(real2014[,c('DOY','ph1','co2corr')], 
+realsplit<- with(real2014[,c('DOY','ph1', 'co2corr')], split(real2014[,c('DOY','ph1','co2corr')],
                                                              list(DOY)))
 realmeans <- do.call(rbind, lapply(realsplit, colMeans, na.rm=TRUE))
 
@@ -109,7 +112,7 @@ recalc <- paramssub[take,]
 recalc$pHalt <- c(8.65, 8.96, 9.02, 8.73, 8.7)
 recalc$TICalt <- 26.57 + 0.018 * recalc$Conductivity  # (mg/L)
 recalc$TICalt <- recalc$TICalt / 0.012 # --> uM
-recalcflux <- with(recalc, gasExchangeUser(temp = Temperature, cond = Conductivity, ph=pHalt, 
+recalcflux <- with(recalc, gasExchangeUser(temp = Temperature, cond = Conductivity, ph=pHalt,
                                            wind=meanWindMS, alknotdic = FALSE,
                                            dic = TICalt, kpa=Pressure,
                                            pco2atm=397, salt=SalCalc))
@@ -117,18 +120,18 @@ recalc <- cbind(recalc, recalcflux)
 
 ## let's put all the pco2 for 2014 together for a ggplot
 names(recalc)[which(names(recalc) == 'pco2')] <- 'Recalculated'
-names(all2014)[which(names(all2014) %in% c('lakepCO2', 'co2corr'))] <- 
+names(all2014)[which(names(all2014) %in% c('lakepCO2', 'co2corr'))] <-
   c('Calculated','Measured')
 names(bp2014sub)[which(names(bp2014sub)== 'lakepCO2')] <-   'Calculated'
 
 bp2014m <- melt(bp2014sub, id.vars = 'DOY', measure.vars = 'Calculated',
                 variable.name = 'whichCO2',
                 factorsAsStrings = FALSE)
-all2014m <- melt(all2014, id.vars = c('DOY'), 
+all2014m <- melt(all2014, id.vars = c('DOY'),
                  measure.vars = c('Measured'),
                  variable.name = 'whichCO2',
                  factorsAsStrings = FALSE)
-recalcm <- melt(recalc, id.vars = c('DOY'), 
+recalcm <- melt(recalc, id.vars = c('DOY'),
                 measure.vars = 'Recalculated',
                 variable.name = 'whichCO2',
                 factorsAsStrings = FALSE)
@@ -136,10 +139,10 @@ recalcs <- rbind(recalcm, all2014m, bp2014m)
 
 recalcs$whichCO2 <- factor(recalcs$whichCO2, levels = c("Measured", "Calculated","Recalculated"))
 
-prec <- ggplot(data=recalcs, aes(y = value, x = DOY, colour = whichCO2)) + 
+prec <- ggplot(data=recalcs, aes(y = value, x = DOY, colour = whichCO2)) +
   theme_bw() +
   geom_jitter(width = 5) +
-  scale_color_viridis(expression(paste(italic('p')*'CO'[2])), discrete = TRUE, 
+  scale_color_viridis(expression(paste(italic('p')*'CO'[2])), discrete = TRUE,
                       option = 'viridis', direction = -1) +
   ylab(expression(paste(mu*'atm'))) +
   xlab("Day of Year")
@@ -152,7 +155,7 @@ prec
 chltest <- merge(buffchl, bdat, by='DOY') # we have five days
 chltest2 <- subset(chltest, Hour >= 10 & Hour <=14)
 
-chlsub <- data.frame(DOY=unique(chltest$DOY), Chl_a_ug_L = unique(chltest$Chl_a_ug_L), 
+chlsub <- data.frame(DOY=unique(chltest$DOY), Chl_a_ug_L = unique(chltest$Chl_a_ug_L),
                      Chl_a_ug_L_sur = unique(chltest$Chl_a_ug_L_sur), x=11)
 sur <- ggplot(chltest2, aes(y=Chl_a_ug_L_sur , x= chl, col=DOY)) +
   papertheme +
@@ -160,13 +163,13 @@ sur <- ggplot(chltest2, aes(y=Chl_a_ug_L_sur , x= chl, col=DOY)) +
   scale_color_viridis() +
   ylab("Routines Surface Chl a") +
   theme(axis.title.x= element_blank(), legend.key.width=unit(2,"cm"))
-  
+
 int <- ggplot(chltest2, aes(y=Chl_a_ug_L, x= chl, col=DOY)) +
   papertheme +
   scale_color_viridis(guide=FALSE) +
   geom_point() +
   ylab("Routines Integrated Chl a") +
-  xlab("Diel Chl from 10:00-14:00") 
+  xlab("Diel Chl from 10:00-14:00")
 grid.arrange(sur, int)
 
 doctest <- merge(buffreg[,c('DOC_mg_L','DOY')], bdat, by='DOY') # we have five days
@@ -177,12 +180,12 @@ ggplot(doctest2, aes(y=DOC_mg_L, x= cdom, col=DOY)) +
   geom_point() +
   theme(legend.key.width=unit(2,"cm")) +
   ylab("Routines DOC (mg/L)") +
-  xlab("Diel CDOM (ug/L) from 10:00-14:00") 
-  
+  xlab("Diel CDOM (ug/L) from 10:00-14:00")
+
 ggplot(doctest2, aes(y=DOC_mg_L, x= log10(turb), col=DOY)) +
   papertheme +
   scale_color_viridis() +
   geom_point() +
   theme(legend.key.width=unit(2,"cm")) +
   ylab("Routines DOC (mg/L)") +
-  xlab("Diel turbidity (log10 NTU) from 10:00-14:00") 
+  xlab("Diel turbidity (log10 NTU) from 10:00-14:00")
