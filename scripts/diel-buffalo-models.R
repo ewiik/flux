@@ -15,7 +15,7 @@ bdat5 <- readRDS('../data/private/bpbuoy2015-mod.rds')
 bdat5 <- bdat5[order(bdat5$datetime),]
 
 if (!file.exists("../data/private/bp-stability.rds")) {
-  source(".bp-stratification.R")
+  source("./bp-stratification.R")
 }
 schmidt <- readRDS("../data/private/bp-stability.rds") # note this for 2014
 bdat <- merge(bdat, schmidt)
