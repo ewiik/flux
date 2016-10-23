@@ -90,6 +90,7 @@ bdat <- transform(bdat, co2lag1 = myAR(bdat$co2corr, 1))
 ##    the generalised likelihood ratio test we might do to compare a selected model
 ##    with a null one" (GS Oct 16)
 ## FIXME: DOY is eating up as many k's as possible; 80 too many, using most of 70
+## FIXME: update model by Gav's ryver comments!
 mco2ti <- gam(co2corr ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=70) + s(co2lag1) +
               ti(Time, DOY, bs = c("cc","tp")), # worried of setting ti k higher, kept crashing
             data = bdat, select = TRUE, method = "REML", family = scat,
@@ -120,60 +121,63 @@ testing2 <- gamm(co2corr ~ s(Time, bs = "cc", k = 20) + s(DOY, k = 30),
 res <- resid(testing2$lme, type = "normalized")
 acf(res, lag.max = 36, main = "ACF - AR(2) errors")
 
-## for pH... To be developed! (ignore section)
-##==========================================================================================
-mnull <- gam(ph1 ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30), data=bdat)
-m1 <- gam(ph1 ~ ti(Time, bs = "cc", k=20) + ti(DOY, k=30) + ti(Time, DOY, bs = c("cc","tp")),
-          data = bdat)
-m2 <- gam(ph1 ~ te(Time, DOY, bs = c("cc","tp")), data=bdat)
-
-plot(acf(resid(m1)))
-
-anova(mnull, m1, test = "LRT") # m1 better
 
 ## gam on other params: based on discussions with Helen, we should use rfu not mg/L
 ## ===========================================================================================
-bpmod <- gam(co2corr ~
-               s(chlrfu) +
-               s(bga1rfu) +
-               s(airtemp) +
-               s(stability) +
-               s(ODOrel1) +
-               s(ph1)  +
-               s(dailyrain) +
-               s(conv) +
-               s(turb) +
-               s(windsp),
-             data = bdat,
-             select = TRUE, method = "REML", family = gaussian(),
-             na.action = na.exclude,
-             control = gam.control(nthreads = 3, trace = TRUE,
-                                   newton = list(maxHalf = 60)))
-## FIXME: tested scat but though histogram looked better nothing else did...??
-## FIXME: O2 nuked by pH. What to do about this? (tested interaction visually as you suggested
-##    and no O2-pH-CO2 pattern seemed apparent)
+mbio <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay)) + s(bga1rfu, by = factor(TimeofDay)) + 
+              s(airtemp) + s(stability) + s(ODOrel1) + s(dailyrain) + s(conv) + 
+              s(turb) + s(cdom) + s(windsp) + s(cond1),
+            data = bdat[bdat$bga1rfu < 20,], select = TRUE, method = "REML", family = tw,
+            na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
+## FIXME - see below , should oxygen also be removed?
+## FIXME - what is up with bga1rfu? skews predictions massivley
 
-## pH again can explain most everything
-bpco2phmod <- gam(co2corr ~ s(ph1), method = "REML", family = gaussian,
-                  na.action = na.exclude, data=bdat,
-                  control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+mbiominus <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay), k=4) + 
+                   s(bga1rfu, by = factor(TimeofDay), k=4) + 
+              s(airtemp) + s(log(stability+1)) + s(log(dailyrain+1), k=4) + s(conv) + 
+              s(log(turb), k=4) + s(cdom) + s(windsp) + s(cond1, k=4),
+            data = bdat[bdat$bga1rfu < 20,], select = TRUE, method = "REML", family = tw,
+            na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
+## no oxygen/ph here since too much sameness going on between co2, o2 and ph
+
+mbiominusti <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay), k=4) + 
+                     s(bga1rfu, by = factor(TimeofDay), k=4) + 
+                     s(airtemp) + ti(log(stability+1)) + s(log(dailyrain+1), k=4) + ti(conv) +
+                     s(log(turb), k=4) + s(cdom) + s(windsp) + s(cond1, k=4),
+                   data = bdat[bdat$bga1rfu < 20,], select = TRUE, method = "REML", family = tw,
+                   na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
+
+mbiominuste <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay), k=4) + 
+                   s(bga1rfu, by = factor(TimeofDay), k=4) + 
+                   s(airtemp) + ti(log(stability+1)) + s(log(dailyrain+1), k=4) + ti(conv) +
+                   ti(log(stability +1), conv) +
+                   s(log(turb), k=4) + s(cdom) + s(windsp) + s(cond1, k=4),
+                 data = bdat[bdat$bga1rfu < 20,], select = TRUE, method = "REML", family = tw,
+                 na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
+anova(mbiominusti, mbiominuste, test="LRT")
+## according to anova the interaction isn't important..
+## FIXME -- gam's p-values have seemed a bit suspicious for a while... higher signif than expected
+##    for many things... has something changed in computation? (e.g. windsp, with v low F)
 
 ## what about modeling pH since in fact these other vars might actually explain both?
-phmod <- gam(ph1 ~
-               s(chlrfu) +
-               s(bga1rfu) +
-               s(airtemp) +
-               s(stability) +
-               s(ODOrel1) +
-               s(dailyrain) +
-               s(conv) +
-               s(turb) +
-               s(windsp),
-             data = bdat,
-             select = TRUE, method = "REML", family = gaussian(),
-             na.action = na.exclude,
-             control = gam.control(nthreads = 3, trace = TRUE,
-                                   newton = list(maxHalf = 60)))
+phbio <- gam(ph1 ~ s(chlrfu, by = factor(TimeofDay)) + s(bga1rfu, by = factor(TimeofDay)) + 
+              s(airtemp) + s(stability) + s(ODOrel1) + s(dailyrain) + s(conv) + 
+              s(turb) + s(cdom) + s(windsp) + s(cond1),
+            data = bdat[bdat$bga1rfu < 20,], select = TRUE, method = "REML", family = gaussian(),
+            na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
+
+## modeling co2 only based on oxygen and pH separated again since explains most everything
+co2phmod <- gam(co2corr ~ s(ph1) + s(ODOrel1), method = "REML", family = tw(),
+                na.action = na.exclude, data=bdat, select=TRUE,
+                control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+co2gamma <- gam(co2corr ~ ti(ph1) + ti(ODOrel1) + ti(ph1, ODOrel1), method = "REML", family = Gamma(),
+                na.action = na.exclude, data=bdat,
+                control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+co2twee<- gam(co2corr ~ ti(ph1) + ti(ODOrel1) + ti(ph1, ODOrel1), method = "REML", family = tw(),
+              na.action = na.exclude, data=bdat,
+              control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+## FIXME -- why is the interaction significant when the relationship really just looks simple?
+## FIXME -- is tweedie the best one here?
 
 ## save models/output
 ## =========================================================================================
@@ -185,7 +189,7 @@ par(opar)
 dev.off()
 
 saveRDS(bpmod, '../data/private/bpmod.rds')
-
+saveRDS(mbiominus, '../data/private/bpmodsimp.rds')
 saveRDS(bpco2phmod, '../data/private/bpco2phmod.rds')
 
 ## ============================================================================================
