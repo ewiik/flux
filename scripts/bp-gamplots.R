@@ -181,8 +181,10 @@ cyanoplot <- ggplot(co2.respnorm, aes(x = bga1rfu, y = Fitted,
 targetlist <- c("airtemp", "stability", "dailyrain", "conv", "turb","cdom","windsp",
                 "cond1")
 realnames <- c("Chlorophyll", "Phycocyanin", "Air temperature", "Schmidt stability", 
-               "Daily rain", "Convection", "Turbidity", "Dissolved carbon",
-               "Wind speed", "Conductivity")
+               "Daily rain", "Convection", "Turbidity", "DOC",
+               "Wind speed", "Conductivity (ca DIC)")
+category <- c("Production", "Production", "Concentrations","Mixing","Mixing","Mixing","Decomposition",
+              "Decomposition","Mixing","Concentrations")
 varWantopt <- c("chlrfu", "bga1rfu", "airtemp", "stability", "dailyrain", "conv", "turb","cdom","windsp",
                 "cond1") 
 
@@ -252,7 +254,7 @@ plot1 <- plotlist[[1]]
 plot2 <- plotlist[[4]]
 plot3 <- plotlist[[6]]
 plot4 <- plotlist[[8]]
-plot_grid(cyanoplot, chlplot, plot1, plot2, plot3, plot4)
+#plot_grid(cyanoplot, chlplot, plot1, plot2, plot3, plot4)
 
 ## by time plots
 ## Testing effect by time plots
@@ -280,7 +282,7 @@ lasts <- testdf[which(!complete.cases(testdf[,c(varWantopt, 'co2corr')])),]
 testdf <- testdf[which(complete.cases(testdf[,c(varWantopt, 'co2corr')])),]
 
 testdfbyday <- testdf[order(testdf$TimeofDay, testdf$datetime),]
-testdfbyday <- rbind(testdf, lasts)
+testdfbyday <- rbind(testdfbyday, lasts)
 
 testdf <- rbind(testdf, lasts)
 
@@ -383,17 +385,23 @@ airtemps <- ggplot(testmeans,
 
 
 testmelt <- melt(testmeans, id.vars=c("TimeofDay", "DOY"))
-testmelt <- merge(testmelt, data.frame(variable=varWantopt, realnames=realnames))
+testmelt <- merge(testmelt, data.frame(variable=varWantopt, realnames=realnames, category=category))
 
 daynightmelt <- melt(daynightmeans, id.vars=c("TimeofDay", "DOY"))
-daynightmelt <- merge(daynightmelt, data.frame(variable=varWantopt, realnames=realnames))
+daynightmelt <- merge(daynightmelt, data.frame(variable=varWantopt, realnames=realnames,
+                                               category=category))
 
 allmelt <- rbind(daynightmelt, testmelt)
+allmelt$realnames <- factor(allmelt$realnames, levels = unique(allmelt$realnames)[c(3,5,4,9,6,7,8,10,
+                                                                                    1,2)])
+
+#saveRDS(allmelt, "../data/private/allmelt.rds")
 
 ggplot(allmelt[-which(allmelt$variable == "chlrfu" | allmelt$variable == "windsp"),], 
-       aes(y=value, x=DOY)) +
+       aes(y=value, x=DOY, col=category)) +
   papertheme +
   geom_line() +
+  scale_color_viridis(name="Category", discrete=TRUE, end=0.9) +
   facet_grid(TimeofDay ~ realnames)
 
 

@@ -14,6 +14,7 @@ library("StreamMetabolism")
 library("mgcv")
 library("viridis")
 library("reshape2")
+library("extrafont")
 
 ## create a theme to save linespace in plots
 papertheme <- theme_bw(base_size=18, base_family = 'Arial') +
