@@ -113,12 +113,16 @@ mco2full <- gam(co2corr ~ te(Time, DOY, bs = c("cc", "tp")) + s(Week), data=bdat
 ## try gamm approach following fromthebottomoftheheap?
 ## FIXME: should we pursue this?
 ctrl <- list(niterEM = 0, msVerbose = TRUE, optimMethod="L-BFGS-B")
-testing2 <- gamm(co2corr ~ s(Time, bs = "cc", k = 20) + s(DOY, k = 30),
-                 data = bdat, correlation = corCAR1(form = ~ datetime),
-                 control = ctrl)
-## gamm crashes if I specify 0.8 as the correlation! in fact gamm crashes almost with anything
-##    I try!
-res <- resid(testing2$lme, type = "normalized")
+testingnull <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat,
+                    control = ctrl, verbosePQL = TRUE)
+testing1 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, 
+                 correlation = corARMA(form = ~ 1, p=1),
+                 control = ctrl, verbosePQL = TRUE)
+testing2 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, 
+                 correlation = corARMA(form = ~ 1, p=2),
+                 control = ctrl, verbosePQL = TRUE)
+
+res <- resid(testing4$lme, type = "normalized")
 acf(res, lag.max = 36, main = "ACF - AR(2) errors")
 
 
@@ -138,6 +142,14 @@ mbiominus <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay), k=4) +
               s(log(turb), k=4) + s(cdom) + s(windsp) + s(cond1, k=4),
             data = bdat[bdat$bga1rfu < 20,], select = TRUE, method = "REML", family = tw,
             na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
+
+mbiominustest <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay), k=4) + 
+                   s(log(bga1rfu), by = factor(TimeofDay), k=4) + 
+                   s(airtemp) + s(log(stability+1)) + s(log(dailyrain+1), k=4) + s(conv) + 
+                   s(log(turb), k=4) + s(cdom) + s(windsp) + s(cond1, k=4),
+                 data = bdat, select = TRUE, method = "REML", family = tw,
+                 na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
+
 ## no oxygen/ph here since too much sameness going on between co2, o2 and ph
 
 mbiominusti <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay), k=4) + 
