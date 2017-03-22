@@ -15,6 +15,25 @@ papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
 
 ## read in data
 diel <- read.csv("../data/private/WS-9-9.csv")
+# get Kyle's station data from September 2015 (see email July 5, 2015)
+if (!file.exists("../data/hodderSep2015.csv")) {
+  download.file("http://uregina.ca/~hodder2k/data/2015_09.txt", destfile = "../data/hodderSep2015.csv")
+}
+if (!file.exists("../data/hodderSep2015.rds")) {
+kyle <- read.csv("../data/hodderSep2015.csv", header = FALSE)
+names(kyle) <- c("date", "time","airtemp","relhum","dewpoint","windspeedkmh","highwindkmh","avwindbear","rainmmh",
+                 "cumrainmm","hpa","totrainmm","rictemp","ricrelhum","windgustkmh","windchill","heatind",
+                 "NA1","NA2","NA3","NA4","apptemp","maxrad","cumsunhours","windbear","NA5","totrainmidnightmm")
+kyle$datetime <- paste(kyle$date, kyle$time)
+kyle <- transform(kyle, date=as.POSIXlt(as.character(date), format="%d/%m/%y", tz="Canada/Saskatchewan"))
+kyle <- transform(kyle, datetime=as.POSIXlt(as.character(datetime), format="%d/%m/%y %H:%M", 
+                                            tz="Canada/Saskatchewan"))
+saveRDS(kyle, "../data/hodderSep2015.rds")
+# http://uregina.ca/~hodder2k/archive.htm
+}
+kyle <- readRDS("../data/hodderSep2015.rds")
+kyle$windms <- kyle$windspeedkmh * (1000/60/60)
+kyle$kpa <- kyle$hpa/10
 
 ## load functions
 source("../functions/gasExchangeFlex.R")
@@ -32,8 +51,10 @@ if (!file.exists("../data/maunaloa2.csv")) {
 ml <- read.csv("../data/maunaloa2.csv")
 
 ## transform date, remove data points prior to instrument stabilisation
-diel <- transform(diel, Date.Time = as.POSIXct(as.character(Date.Time), 
-                                               format = "%y/%m/%d %H:%M:%S"))
+diel <- transform(diel, Date.Time = as.POSIXlt(as.character(Date.Time), 
+                                               format = "%y/%m/%d %H:%M:%S",
+                                               tz="Canada/Saskatchewan"))
+diel$Date.Time <- round(diel$Date.Time, units = "mins")
 diel <- transform(diel, Day = as.numeric(format(Date.Time, format = "%d")))
 diel <- transform(diel, Month = as.numeric(format(Date.Time, format = "%m")))
 diel <- transform(diel, Time = as.numeric(format(Date.Time, "%H")) +
@@ -59,14 +80,26 @@ sundat <- transform(sundat, Day = as.numeric(format(sunrise, format = "%d")))
 sundat <- transform(sundat, UpTime = as.numeric(sundat$sunrise - trunc(sundat$sunrise, "days")))
 sundat <- transform(sundat, DownTime = as.numeric(sundat$sunset - trunc(sundat$sunset, "days")))
 
-## merge
+## merge diel with sundat and kyle (all diel timestamps are contained in kyle)
+## ps merge didn't seem to work with posixlt cause they lists, so made into char (tested
+##    which(!test3$Date.Time == test3$datetime) to check all was ok upon merging by char
+## Note that lt rather than ct time object initially chosen cause ct made seconds unmatchable for diel
 diel <- merge(diel, sundat)
+
+take <- which(kyle$datetime %in% diel$Date.Time)
+kyle$datchar <- as.character(kyle$datetime)
+diel$datchar <- as.character(diel$Date.Time)
+
+diel <- merge(diel, kyle, by="datchar")
+takeout <- which(names(diel) %in% c("datchar", "Date.Time"))
+diel <- diel[,-takeout]
+diel$datetime <- as.POSIXct(diel$datetime)
 
 ## create day or night index
 diel <- transform(diel, isDay = ifelse(Time < DownTime & Time > UpTime, TRUE, FALSE))
 
 ## reorder to time
-diel <- diel[order(diel$Date.Time),]
+diel <- diel[order(diel$datetime),]
 
 ## grab Sep 2015 mauna loa value
 pco2atm <- ml[ml$Month == 9 & ml$Year == 2015, 'pCO2interp']
@@ -76,14 +109,14 @@ pco2atm <- ml[ml$Month == 9 & ml$Year == 2015, 'pCO2interp']
 diel$dic <- 26.57 + 0.018 * diel$Cond  # (mg/L)
 diel$dicumol <- diel$dic / 0.012 # --> uM
 
-## run gasExchangeFlex, using mean wind (from kerri's means) and Wascana's altitude
-CO2Fluxz <- with(diel, gasExchangeFlex(Temp, Cond, pH, wind = 2.8, kerri = FALSE, altnotkpa = TRUE,
-                                       salt = Sal, dic = dicumol, alt = 570.5, pco2atm = pco2atm))
+## run gasExchangeFlex, using Kyle's recorded wind and pressure
+CO2Fluxz <- with(diel, gasExchangeFlex(Temp, Cond, pH, wind = windms, kerri = FALSE, altnotkpa = FALSE,
+                                       salt = Sal, dic = dicumol, kpa = kpa, pco2atm = pco2atm))
 diel <- transform(diel, CO2Flux = CO2Fluxz$fluxenh)
 diel <- transform(diel, pCO2 = CO2Fluxz$pco2)
 
 ## take away times where sonde was pulled out of the water
-diel <- diel[-which(diel$Date.Time >= 
+diel <- diel[-which(diel$datetime >= 
                       as.POSIXct("2015-09-29 14:05", format = "%Y-%m-%d %H:%M")),]
 
 ## save object for other purposes
@@ -91,24 +124,24 @@ saveRDS(diel, '../data/private/WS-9-9-mod.rds')
 
 ## plot
 dielstack <- stack(diel[,2:8])
-dielstack$Date.Time <- rep(diel$Date.Time)
+dielstack$datetime <- rep(diel$datetime)
 dielstack$Day <- rep(diel$Day)
 
 dielsplit <- with(dielstack, split(dielstack, list(ind)))
 
-pH <- diel[,c('pH', 'Date.Time', 'isDay')]
+pH <- diel[,c('pH', 'datetime', 'isDay')]
 names(pH)[1:2] <- c("y", "Date")
 pH$panel <- rep("pH")
-cond <- diel[,c('Cond', 'Date.Time', 'isDay')]
+cond <- diel[,c('Cond', 'datetime', 'isDay')]
 names(cond)[1:2] <- c("y", "Date")
 cond$panel <- rep('COND')
-temp <- diel[,c('Temp', 'Date.Time', 'isDay')]
+temp <- diel[,c('Temp', 'datetime', 'isDay')]
 names(temp)[1:2] <- c("y", "Date")
 temp$panel <- rep("TEMP")
-oxy <- diel[,c('ODOsat', 'Date.Time', 'isDay')]
+oxy <- diel[,c('ODOsat', 'datetime', 'isDay')]
 names(oxy)[1:2] <- c("y", "Date")
 oxy$panel <- rep("OXY")
-oxymg <- diel[,c('ODO', 'Date.Time', 'isDay')]
+oxymg <- diel[,c('ODO', 'datetime', 'isDay')]
 names(oxymg)[1:2] <- c("y", "Date")
 oxymg$panel <- rep("OXYmg")
 
@@ -133,7 +166,7 @@ pdf("../docs/private/dieltrial.pdf", width = 15)
 p
 dev.off()
 
-ggplot(data=diel, aes(y = pCO2, x = Date.Time, col = isDay)) + 
+ggplot(data=diel, aes(y = pCO2, x = datetime, col = isDay)) + 
   scale_color_viridis(discrete = TRUE, alpha=0.4, begin=0.3, end=0.8, name="", breaks=
                         c(TRUE, FALSE), labels=c("Day", "Night")) +
   papertheme + 
@@ -141,7 +174,7 @@ ggplot(data=diel, aes(y = pCO2, x = Date.Time, col = isDay)) +
   ylab("CO2 (ppm)") +
   xlab("Hour")
 
-ggplot(data =diel, aes(y=Temp, x=Date.Time, col = isDay)) +
+ggplot(data =diel, aes(y=Temp, x=datetime, col = isDay)) +
   papertheme +
   geom_point(size=0.4) +
   scale_color_viridis(alpha=0.4, begin=0.3, end=0.8, discrete = TRUE, name="", breaks =
