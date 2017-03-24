@@ -19,6 +19,9 @@ if(!file.exists("../data/private/bp-diel-timemod2015.rds")) {
 time4 <- readRDS("../data/private/bp-diel-timemod2014.rds")  
 time5 <- readRDS("../data/private/bp-diel-timemod2015.rds")
 
+gammnull <- readRDS("../data/private/BPgammnull.rds")
+gammAR1 <- readRDS("../data/private/BPgammAR1.rds")
+
 ## read in originals
 if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
   source("diel-buffalo.R")}
@@ -127,6 +130,35 @@ ggsave('../docs/private/bp-diel-co2gam.png', width=20, height=15, units='cm')
 ## arrange a few plots
 asloplots <- plot_grid(co2modplot, dielplot, ncol=2,label_size = 10)
 ggsave('../docs/private/dielplots.png', asloplots, width=20, height=10, units='cm')
+
+## predict for the gamm models 
+## (as per http://www.fromthebottomoftheheap.net/2014/05/09/modelling-seasonal-data-with-gam/)
+want <- seq(1, nrow(bdat), length.out = 200)
+pdat <- with(bdat, data.frame(Time = Time[want], DOY = DOY[want]))
+ 
+## predict trend contributions
+p  <- predict(gammnull$gam,  newdata = pdat, type = "terms", se.fit = TRUE)
+p1 <- predict(gammAR1$gam, newdata = pdat, type = "terms", se.fit = TRUE)
+
+## combine with the predictions data, including fitted and SEs
+pdat <- transform(pdat, p  = p$fit[,1],  se  = p$se.fit[,1],
+                  p1 = p1$fit[,1], se1 = p1$se.fit[,1])
+
+op <- par(mar = c(5,4,2,2) + 0.1)
+ylim <- with(pdat, range(p, p1))
+ylim[1] <- floor(ylim[1])
+ylim[2] <- ceiling(ylim[2])
+ylab <- "pCO2"
+plot(co2corr - mean(co2corr, na.rm = TRUE) ~ DOY, data = bdat, type="l", lty=2,col="green",
+      ylab = ylab, ylim = ylim)
+lines(p  ~ DOY, data = pdat, col = "black")
+points(p1 ~ DOY, data = pdat, col = "red")
+lines(co2corr - mean(co2corr) ~ DOY, data = bdat, lty=2,col="green")
+legend("topleft",
+        legend = c("Uncorrelated Errors", paste0("AR(", 1, ") Errors")),
+        bty = "n", col = c("black","red"),
+        lty = 1, lwd = c(1,1,1))
+par(op)
 
 ## ============================================================================================
 ## for 2015

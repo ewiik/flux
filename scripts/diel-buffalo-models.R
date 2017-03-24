@@ -118,12 +118,13 @@ testingnull <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat,
 testing1 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, 
                  correlation = corARMA(form = ~ 1, p=1),
                  control = ctrl, verbosePQL = TRUE)
-testing2 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, 
-                 correlation = corARMA(form = ~ 1, p=2),
-                 control = ctrl, verbosePQL = TRUE)
-
-res <- resid(testing4$lme, type = "normalized")
-acf(res, lag.max = 36, main = "ACF - AR(2) errors")
+##testing2 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, 
+       ##          correlation = corARMA(form = ~ 1, p=2),
+      ##           control = ctrl, verbosePQL = TRUE)
+## FIXME: "Error in `coef<-.corARMA`(`*tmp*`, value = value[parMap[, i]]) : 
+##    Coefficient matrix not invertible""
+res <- resid(testing1$lme, type = "normalized")
+acf(res, lag.max = 200, main = "ACF - AR(2) errors")
 
 
 ## gam on other params: based on discussions with Helen, we should use rfu not mg/L
@@ -145,11 +146,11 @@ mbiominus <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay), k=4) +
 
 mbiominustest <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay), k=4) + 
                    s(log(bga1rfu), by = factor(TimeofDay), k=4) + 
-                   s(airtemp) + s(log(stability+1)) + s(log(dailyrain+1), k=4) + s(conv) + 
-                   s(log(turb), k=4) + s(cdom) + s(windsp) + s(cond1, k=4),
+                   s(airtemp) + s(log(stability+1), k=3) + s(log(dailyrain+1), k=4) + s(conv) + 
+                   s(log(turb), k=4) + s(cdom, k=3) + s(windsp) + s(cond1, k=4),
                  data = bdat, select = TRUE, method = "REML", family = tw,
                  na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
-
+# had to put k for some vars to reduce overfitting
 ## no oxygen/ph here since too much sameness going on between co2, o2 and ph
 
 mbiominusti <- gam(co2corr ~ s(chlrfu, by = factor(TimeofDay), k=4) + 
@@ -172,11 +173,12 @@ anova(mbiominusti, mbiominuste, test="LRT")
 ##    for many things... has something changed in computation? (e.g. windsp, with v low F)
 
 ## what about modeling pH since in fact these other vars might actually explain both?
-phbio <- gam(ph1 ~ s(chlrfu, by = factor(TimeofDay)) + s(bga1rfu, by = factor(TimeofDay)) + 
-              s(airtemp) + s(stability) + s(ODOrel1) + s(dailyrain) + s(conv) + 
-              s(turb) + s(cdom) + s(windsp) + s(cond1),
+phbio <- gam(ph1 ~ s(chlrfu, by = factor(TimeofDay), k=2) + s(log(bga1rfu), by = factor(TimeofDay), k=2) + 
+              s(airtemp) + s(stability) + s(ODOrel1, k=4) + s(dailyrain) + s(conv) + 
+              s(turb) + s(cdom) + s(windsp) + s(cond1, k=3),
             data = bdat[bdat$bga1rfu < 20,], select = TRUE, method = "REML", family = gaussian(),
             na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
+# had to put k for some vars to reduce overfitting
 
 ## modeling co2 only based on oxygen and pH separated again since explains most everything
 co2phmod <- gam(co2corr ~ s(ph1) + s(ODOrel1), method = "REML", family = tw(),
@@ -201,8 +203,10 @@ par(opar)
 dev.off()
 
 saveRDS(bpmod, '../data/private/bpmod.rds')
-saveRDS(mbiominus, '../data/private/bpmodsimp.rds')
+saveRDS(mbiominustest, '../data/private/bpmodsimp.rds')
 saveRDS(bpco2phmod, '../data/private/bpco2phmod.rds')
+saveRDS(testingnull, '../data/private/BPgammnull.rds')
+saveRDS(testing1, '../data/private/BPgammAR1.rds')
 
 ## ============================================================================================
 ## GAVIN MAY STOP READING HERE!

@@ -39,11 +39,30 @@ bdat$conv <- bdat$airtemp - bdat$temp4 # this is the topmost, 77cm one
 bdat$TimeofDay <- as.factor(bdat$TimeofDay)
 
 ## predict for all vars in co2minus
+## ============================================================================================================
+## limit prediction data frame to observed intervals
+regsplit <- with(bdat, split(bdat, list(TimeofDay)))
+regsplit <- regsplit[sapply(regsplit, function(x) dim(x)[1]) > 0] #remove empties for lakes R, E etc.
+minmax <- function(df, colnames) {
+  allmin <- as.data.frame(do.call(cbind, lapply(df[,colnames], min, na.rm = TRUE)))
+  names(allmin) <- sapply(names(allmin), function(x) paste("min",x, sep = ""))
+  allmax <- as.data.frame(do.call(cbind, lapply(df[,colnames], max, na.rm = TRUE)))
+  names(allmax) <- sapply(names(allmax), function(x) paste("max",x, sep = ""))
+  summ <- as.data.frame(cbind(allmin, allmax))
+  summ <- cbind(summ, data.frame(TimeofDay = df$TimeofDay[1]))
+  summ
+}
+minmaxes <- do.call(rbind, lapply(regsplit, minmax, colnames = c("chlrfu","bga1rfu", "airtemp", "stability", 
+                                                                 "dailyrain", "conv", "turb","cdom",
+                                                                 "windsp", "cond1")))
+rownames(minmaxes) <- NULL
+
+
 ## ==================================================================================================
 ## 1. chl 
 ## ===================================================================================================
 N <- 200
-varWant <- c("bga1rfu", "airtemp", "stability", "ODOrel1", "dailyrain", "conv", "turb","cdom","windsp",
+varWant <- c("bga1rfu", "airtemp", "stability", "dailyrain", "conv", "turb","cdom","windsp",
              "cond1")
 lakeXbar <- with(bdat, do.call("rbind",
                                    lapply(split(bdat[, varWant], droplevels(TimeofDay)), 
@@ -86,6 +105,11 @@ co2.respnorm <- with(co2.respnorm, transform(co2.respnorm, Fittedplus = Fittedpl
 co2.respnorm <- with(co2.respnorm, transform(co2.respnorm, Fittedminus = Fittedminus + shiftco2))
 whichexp <- grep("Fitted", names(co2.respnorm))
 co2.respnorm[,whichexp] <- exp(co2.respnorm[,whichexp])
+
+co2.respnorm <- merge(co2.respnorm, minmaxes)
+overs <- with(co2.respnorm, which(chlrfu < minchlrfu | chlrfu > maxchlrfu))
+co2.respnorm <- co2.respnorm[-overs,]
+
 
 chlplot <- ggplot(co2.respnorm, aes(x = chlrfu, y = Fitted, 
                                     colour = ifelse(TimeofDay == "Day", "Day", "Night"),
