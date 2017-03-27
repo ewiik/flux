@@ -435,6 +435,22 @@ bdatflux <- with(bdat, gasExchangeUser(temp = temp1, cond = cond1, ph=ph1,
                                        pco2atm = pCO2interp, diccalc = TRUE))
 bdatall <- cbind(bdat, bdatflux)
 
+## make factor numerics intno numerics
+facs <- c("airtemp", "dailyrain")
+bdatall[,facs] <- apply(bdatall[,facs], 2, as.character)
+
+makenas <- as.data.frame(apply(bdatall[,facs], 2, function(x) grep("-Invalid", x)))
+# they're the same!
+makenas <- c(makenas$airtemp)
+
+bdatall[makenas,facs] <- NA
+bdatall[,facs] <- apply(bdatall[,facs], 2, as.numeric)
+
+## some outliers in cdom, turb ...
+## FIXME: not ideal with cdom but not informed enough to start removing everything that looks odd
+bdatall$cdom[bdatall$cdom < 150] <- NA
+bdatall$turb[bdatall$turb > 100] <- NA
+
 ## save for later
 saveRDS(bdatall, "../data/private/bpbuoy2015-mod.rds")
 
