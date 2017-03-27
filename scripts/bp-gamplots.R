@@ -16,27 +16,36 @@ source("../functions/geom_rug3.R")
 papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top')
 
-## read in models
+## read in models for both years
 co2mod <- readRDS('../data/private/bpco2phmod.rds')
-phmod <- readRDS('../data/private/bpmod.rds')
+
+phmod <- readRDS('../data/private/BPphmod.rds')
+phmod5 <- readRDS('../data/private/BPphmod2015.rds')
 
 bptimemod <- readRDS("../data/private/bp-diel-timemod2014.rds")
+
 bpco2mod <- readRDS("../data/private/bpmod.rds")
 co2minus <- readRDS("../data/private/bpmodsimp.rds")
 
 ## read in data
 bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
+bdat5 <- readRDS('../data/private/bpbuoy2015-mod.rds')
 
-if (!file.exists("../data/private/bp-stability.rds")) {
+if (!file.exists("../data/private/bp-stability2015.rds")) {
   source("./bp-stratification.R")
 }
 schmidt <- readRDS("../data/private/bp-stability.rds") # note this for 2014
 bdat <- merge(bdat, schmidt)
 
+schmidt5 <- readRDS("../data/private/bp-stability2015.rds") # note this for 2014
+bdat5 <- merge(bdat5, schmidt5)
+
 ## create index of potential convective mixing, based on diff in T btw air and water
 bdat$conv <- bdat$airtemp - bdat$temp4 # this is the topmost, 77cm one
+bdat5$conv <- bdat5$airtemp - bdat5$temp4 # this is the topmost, 77cm one
 
-bdat$TimeofDay <- as.factor(bdat$TimeofDay)
+
+#bdat$TimeofDay <- as.factor(bdat$TimeofDay)
 
 ## predict for all vars in co2minus
 ## ============================================================================================================
@@ -280,6 +289,7 @@ plot3 <- plotlist[[6]]
 plot4 <- plotlist[[8]]
 #plot_grid(cyanoplot, chlplot, plot1, plot2, plot3, plot4)
 
+
 ## by time plots
 ## Testing effect by time plots
 ## ==================================================================================
@@ -428,4 +438,164 @@ ggplot(allmelt[-which(allmelt$variable == "chlrfu" | allmelt$variable == "windsp
   scale_color_viridis(name="Category", discrete=TRUE, end=0.9) +
   facet_grid(TimeofDay ~ realnames)
 
+## predict for all vars in phmods
+## FIXME: How can 2014 and 2015 be so different? e.g. conductivity non-overlap higher in 2015; many vars 
+##    have completely opposite effect! cdom looks like in different units?? dailyrain crazy too; Conductivity
+##    was higher in 2015 than any historically recorded conductivity by undergrads
+## ============================================================================================================
+## limit prediction data frame to observed intervals
+regsplit <- with(bdat, split(bdat, list(TimeofDay)))
+regsplit <- regsplit[sapply(regsplit, function(x) dim(x)[1]) > 0] #remove empties 
+minmax <- function(df, colnames) {
+  allmin <- as.data.frame(do.call(cbind, lapply(df[,colnames], min, na.rm = TRUE)))
+  names(allmin) <- sapply(names(allmin), function(x) paste("min",x, sep = ""))
+  allmax <- as.data.frame(do.call(cbind, lapply(df[,colnames], max, na.rm = TRUE)))
+  names(allmax) <- sapply(names(allmax), function(x) paste("max",x, sep = ""))
+  summ <- as.data.frame(cbind(allmin, allmax))
+  summ <- cbind(summ, data.frame(TimeofDay = df$TimeofDay[1]))
+  summ
+}
+minmaxes <- do.call(rbind, lapply(regsplit, minmax, colnames = c("chlrfu","bga1rfu", "airtemp", "stability", 
+                                                                 "dailyrain", "conv", "turb","cdom",
+                                                                 "windsp", "cond1")))
+rownames(minmaxes) <- NULL
+
+##  the variables which do not vary by day or night
+## ===================================================================================================
+targetlist <- c("airtemp", "stability", "dailyrain", "conv", "turb","cdom","windsp",
+                "cond1")
+realnames <- c("Chlorophyll", "Phycocyanin", "Air temperature", "Schmidt stability", 
+               "Daily rain", "Convection", "Turbidity", "DOC",
+               "Wind speed", "Conductivity (ca DIC)")
+category <- c("Production", "Production", "Concentrations","Mixing","Mixing","Mixing","Decomposition",
+              "Decomposition","Mixing","Concentrations")
+varWantopt <- c("chlrfu", "bga1rfu", "airtemp", "stability", "dailyrain", "conv", "turb","cdom","windsp",
+                "cond1") 
+
+plotlist <- list()
+for (i in 1: length(targetlist)) {
+  target <- targetlist[[i]]
+  N <- 200
+  varWant <- varWantopt[- which(varWantopt == target)]
+  lakeXbar <- as.data.frame(t(colMeans(bdat[, varWant], na.rm = TRUE)))
+  
+  take <- which(names(bdat) %in% target)
+  ph.pdat <- data.frame(target = rep(seq(min(bdat[,take], na.rm = TRUE),
+                                          max(bdat[,take], na.rm = TRUE),
+                                          length = N), times=2),
+                         TimeofDay = rep(c("Day", "Night"), each=N))
+  ph.pdat$TimeofDay <- factor(ph.pdat$TimeofDay)
+  names(ph.pdat)[1] <- target
+  ph.pdat <- cbind(ph.pdat, lakeXbar)
+  
+  ## let's predict
+  ph.pred <- predict(phmod, newdata = ph.pdat, type = "terms", se.fit = TRUE)
+  
+  whichCols <- grep(target, colnames(ph.pred$fit))
+  whichColsSE <- grep(target, colnames(ph.pred$se.fit))
+  
+  ph.resp <- cbind(ph.pdat, Fitted = ph.pred$fit[, whichCols], 
+                    se.Fitted = ph.pred$se.fit[, whichColsSE])
+  
+  ph.resp <- with(ph.resp, transform(ph.resp, Fittedplus = Fitted + se.Fitted))
+  ph.resp <- with(ph.resp, transform(ph.resp, Fittedminus = Fitted - se.Fitted))
+  
+  ## make into original limits
+  shiftco2 <- attr(predict(phmod, newdata = ph.pdat, type = "iterms"), "constant")
+  ph.respnorm <- ph.resp
+  ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fitted = Fitted + shiftco2))
+  ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fittedplus = Fittedplus + shiftco2))
+  ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fittedminus = Fittedminus + shiftco2))
+  whichexp <- grep("Fitted", names(ph.respnorm))
+  
+  ph.respnorm <- ph.respnorm[-which(ph.respnorm$TimeofDay == "Night"),]
+  ph.respnorm$target <- ph.respnorm[,which(names(ph.respnorm) == target)]
+  
+  bdat$target <- bdat[,which(names(bdat) == target)]
+  realnameindex <- which(varWantopt %in% target)
+  realname <- realnames[realnameindex]
+  
+  plotlist[[i]] <- ggplot(ph.respnorm, aes(x = target, y = Fitted)) +
+    papertheme + 
+    #annotate("rect", xmin=phquants[1], xmax=phquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
+    geom_line() +
+    geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+                alpha = 0.25, fill='white', col="grey50") +  
+    #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
+    #         show.legend = FALSE, inherit.aes = FALSE) +
+    #geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
+    #geom_vline(xintercept = meanpH, linetype = 'dotted') +
+    geom_rug3(aes(x=target, y=ph1), data = bdat, stat = "identity", position = "identity", 
+              sides = "bl", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
+    theme(legend.position='top') +
+    xlab(realname) + ylab("pH")
+}
+
+
+plotlist[c(1:length(plotlist))]
+
+plotlist2015 <- list()
+for (i in 1: length(targetlist)) {
+  target <- targetlist[[i]]
+  N <- 200
+  varWant <- varWantopt[- which(varWantopt == target)]
+  lakeXbar <- as.data.frame(t(colMeans(bdat5[, varWant], na.rm = TRUE)))
+  
+  take <- which(names(bdat5) %in% target)
+  ph.pdat <- data.frame(target = rep(seq(min(bdat5[,take], na.rm = TRUE),
+                                         max(bdat5[,take], na.rm = TRUE),
+                                         length = N), times=2),
+                        TimeofDay = rep(c("Day", "Night"), each=N))
+  ph.pdat$TimeofDay <- factor(ph.pdat$TimeofDay)
+  names(ph.pdat)[1] <- target
+  ph.pdat <- cbind(ph.pdat, lakeXbar)
+  
+  ## let's predict
+  ph.pred <- predict(phmod5, newdata = ph.pdat, type = "terms", se.fit = TRUE)
+  
+  whichCols <- grep(target, colnames(ph.pred$fit))
+  whichColsSE <- grep(target, colnames(ph.pred$se.fit))
+  
+  ph.resp <- cbind(ph.pdat, Fitted = ph.pred$fit[, whichCols], 
+                   se.Fitted = ph.pred$se.fit[, whichColsSE])
+  
+  ph.resp <- with(ph.resp, transform(ph.resp, Fittedplus = Fitted + se.Fitted))
+  ph.resp <- with(ph.resp, transform(ph.resp, Fittedminus = Fitted - se.Fitted))
+  
+  ## make into original limits
+  shiftco2 <- attr(predict(phmod, newdata = ph.pdat, type = "iterms"), "constant")
+  ph.respnorm <- ph.resp
+  ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fitted = Fitted + shiftco2))
+  ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fittedplus = Fittedplus + shiftco2))
+  ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fittedminus = Fittedminus + shiftco2))
+  whichexp <- grep("Fitted", names(ph.respnorm))
+  
+  ph.respnorm <- ph.respnorm[-which(ph.respnorm$TimeofDay == "Night"),]
+  ph.respnorm$target <- ph.respnorm[,which(names(ph.respnorm) == target)]
+  
+  bdat5$target <- bdat5[,which(names(bdat5) == target)]
+  realnameindex <- which(varWantopt %in% target)
+  realname <- realnames[realnameindex]
+  
+  plotlist2015[[i]] <- ggplot(ph.respnorm, aes(x = target, y = Fitted)) +
+    papertheme + 
+    #annotate("rect", xmin=phquants[1], xmax=phquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
+    geom_line() +
+    geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+                alpha = 0.25, fill='white', col="grey50") +  
+    #geom_text(data = labdatco2, aes(label = label, x = x, y = y, size = 5), 
+    #         show.legend = FALSE, inherit.aes = FALSE) +
+    #geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
+    #geom_vline(xintercept = meanpH, linetype = 'dotted') +
+    geom_rug3(aes(x=target, y=ph1), data = bdat5, stat = "identity", position = "identity", 
+              sides = "bl", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
+    theme(legend.position='top') +
+    xlab(realname) + ylab("pH")
+}
+
+
+plotlist2015[c(1:length(plotlist2015))]
+
+idx <- order(c(seq_along(plotlist), seq_along(plotlist2015)))
+allplots <- c(plotlist,plotlist2015)[idx]
 

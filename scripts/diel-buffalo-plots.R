@@ -1,6 +1,4 @@
-## plots from modelling buffalo pound diel data
-## FIXME: justa quick copy paste for now, need to save and load models from 
-##    diel-buffalo-models.R!!!
+## plots from modelling time on buffalo pound diel data
 
 ## load packages
 library("mgcv")
@@ -16,12 +14,12 @@ papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
 ## read in models
 if(!file.exists("../data/private/bp-diel-timemod2015.rds")) {
   source("../scripts/diel-buffalo-models.R")}
-time4 <- readRDS("../data/private/bp-diel-timemod2014.rds")  
-time5 <- readRDS("../data/private/bp-diel-timemod2015.rds")
+gamm5null <- readRDS("../data/private/bp-diel-nullmod2015.rds")
+gamm5AR1 <- readRDS("../data/private/bp-diel-timemod2015.rds")
 
 gammnull <- readRDS("../data/private/BPgammnull.rds")
 gammAR1 <- readRDS("../data/private/BPgammAR1.rds")
-
+phgamm <- readRDS("../data/private/BPphgamm.rds")
 ## read in originals
 if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
   source("diel-buffalo.R")}
@@ -31,6 +29,66 @@ bdat <- bdat[order(bdat$datetime),]
 bdat5 <- readRDS('../data/private/bpbuoy2015-mod.rds')
 bdat5 <- bdat5[order(bdat5$datetime),]
 
+## 2014 & 2015 - let's check how different the pH is between the years!
+##=======================================================================
+master <- rbind(bdat[,c('ph1', 'ph2','DOY','datetime','Time', 'UpTime','DownTime')], 
+                bdat5[,c('ph1','ph2','DOY','datetime', 'Time', 'UpTime','DownTime')])
+master$Year <- format(master$datetime, format="%Y")
+
+realplot <- ggplot(data=master, aes(y = Time, x = DOY, z=ph1, group=Year)) + 
+  theme_bw() +
+  facet_wrap('Year', nrow=2) +
+  geom_raster(aes(fill=ph1)) + # change to turn grey background into nothing
+  scale_fill_viridis(na.value='transparent', name="pH") +
+  geom_line(aes(y=UpTime)) +
+  geom_line(aes(y=DownTime)) +
+  ylab("Time of day; sunset & sunrise") +
+  xlab("Day of year")
+
+ggplot(data=master, aes(y = Time, x = DOY, z=ph1-ph2, group=Year)) + 
+  theme_bw() +
+  facet_wrap('Year', nrow=2) +
+  geom_raster(aes(fill=ph1-ph2)) + # change to turn grey background into nothing
+  scale_fill_viridis(na.value='transparent') +
+  geom_line(aes(y=UpTime)) +
+  geom_line(aes(y=DownTime)) +
+  ylab("Time of day; sunset & sunrise") +
+  xlab("Day of year")
+# biggest diffs when high ph....same controls?
+
+pred2014 <- predict(phgamm$gam, newdata=bdat, type = "response") # couldn't get NA rows to retain unless
+#   specififed newdata...
+pred2015 <- predict(gamm5AR1$gam, newdata=bdat5, type = "response")
+pred2015null <- predict(gamm5null$gam, newdata=bdat5, type = "response")
+
+allpred <- cbind(master, c(pred2014, pred2015))
+names(allpred)[grep("pred",names(allpred))] <- "Fitted"
+allpred$nullFitted <- rep(NA)
+allpred$nullFitted[allpred$Year == 2015] <- pred2015null
+
+Fittedplot <- ggplot(data=allpred, aes(y = Time, x = DOY, z=Fitted, group=Year)) + 
+  theme_bw() +
+  facet_wrap('Year', nrow=2) +
+  geom_raster(aes(fill=Fitted)) + # change to turn grey background into nothing
+  scale_fill_viridis(na.value='transparent', name="Fitted pH") +
+  geom_line(aes(y=UpTime)) +
+  geom_line(aes(y=DownTime)) +
+  ylab("Time of day; sunset & sunrise") +
+  xlab("Day of year")
+
+nullplot <- ggplot(data=allpred, aes(y = Time, x = DOY, z=nullFitted, group=Year)) + 
+  theme_bw() +
+  facet_wrap('Year', nrow=2) +
+  geom_raster(aes(fill=nullFitted)) + # change to turn grey background into nothing
+  scale_fill_viridis(na.value='transparent', name="Fitted null pH") +
+  geom_line(aes(y=UpTime)) +
+  geom_line(aes(y=DownTime)) +
+  ylab("Time of day; sunset & sunrise") +
+  xlab("Day of year")
+
+grid.arrange(realplot, Fittedplot, nullplot,ncol=3)
+## FIXME: for 2015, the null model (no AR terms) is a lot better at summarising what happened...
+##    The AR1 model just seems to miss the whole point..?!Why?
 
 ## 2014: 
 ## ============================================================================================

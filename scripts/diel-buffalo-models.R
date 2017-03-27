@@ -14,14 +14,18 @@ bdat <- bdat[order(bdat$datetime),]
 bdat5 <- readRDS('../data/private/bpbuoy2015-mod.rds')
 bdat5 <- bdat5[order(bdat5$datetime),]
 
-if (!file.exists("../data/private/bp-stability.rds")) {
+if (!file.exists("../data/private/bp-stability2015.rds")) {
   source("./bp-stratification.R")
 }
 schmidt <- readRDS("../data/private/bp-stability.rds") # note this for 2014
 bdat <- merge(bdat, schmidt)
 
+schmidt5 <- readRDS("../data/private/bp-stability2015.rds") # note this for 2014
+bdat5 <- merge(bdat5, schmidt5)
+
 ## create index of potential convective mixing, based on diff in T btw air and water
 bdat$conv <- bdat$airtemp - bdat$temp4 # this is the topmost, 77cm one
+bdat5$conv <- bdat5$airtemp - bdat5$temp4 # this is the topmost, 77cm one
 
 ## load packages
 library("mgcv")
@@ -126,6 +130,10 @@ testing1 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat,
 res <- resid(testing1$lme, type = "normalized")
 acf(res, lag.max = 200, main = "ACF - AR(2) errors")
 
+phgamm <- gamm(ph1 ~te(Time, DOY, bs = c("cc","tp")), data = bdat, 
+                 correlation = corARMA(form = ~ 1, p=1),
+                 control = ctrl, verbosePQL = TRUE)
+
 
 ## gam on other params: based on discussions with Helen, we should use rfu not mg/L
 ## ===========================================================================================
@@ -173,10 +181,10 @@ anova(mbiominusti, mbiominuste, test="LRT")
 ##    for many things... has something changed in computation? (e.g. windsp, with v low F)
 
 ## what about modeling pH since in fact these other vars might actually explain both?
-phbio <- gam(ph1 ~ s(chlrfu, by = factor(TimeofDay), k=2) + s(log(bga1rfu), by = factor(TimeofDay), k=2) + 
-              s(airtemp) + s(stability) + s(ODOrel1, k=4) + s(dailyrain) + s(conv) + 
-              s(turb) + s(cdom) + s(windsp) + s(cond1, k=3),
-            data = bdat[bdat$bga1rfu < 20,], select = TRUE, method = "REML", family = gaussian(),
+phbio <- gam(ph1 ~ s(log(chlrfu), by = factor(TimeofDay), k=4) + s(log(bga1rfu), by = factor(TimeofDay), k=4) + 
+              s(airtemp) + s(log(stability +1), k=3) + s(log(dailyrain+1), k=4) + s(conv) + 
+              s(log(turb), k=4) + s(cdom, k=3) + s(windsp) + s(cond1, k=4),
+            data = bdat, select = TRUE, method = "REML", family = gaussian(),
             na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
 # had to put k for some vars to reduce overfitting
 
@@ -207,6 +215,8 @@ saveRDS(mbiominustest, '../data/private/bpmodsimp.rds')
 saveRDS(bpco2phmod, '../data/private/bpco2phmod.rds')
 saveRDS(testingnull, '../data/private/BPgammnull.rds')
 saveRDS(testing1, '../data/private/BPgammAR1.rds')
+saveRDS(phbio, '../data/private/BPphmod.rds')
+saveRDS(phgamm, '../data/private/BPphgamm.rds')
 
 ## ============================================================================================
 ## GAVIN MAY STOP READING HERE!
@@ -215,6 +225,12 @@ saveRDS(testing1, '../data/private/BPgammAR1.rds')
 ## ==========================================================================================
 ## 2015: no CO2 or O2 shallow data but other params ok
 ## ==========================================================================================
+## are the controls of pH the same in 2015?
+phbio5 <- gam(ph1 ~ s(log(chlrfu), by = factor(TimeofDay), k=4) + s(log(bga1rfu), by = factor(TimeofDay), k=4) + 
+               s(airtemp) + s(log(stability +1), k=3) + s(log(dailyrain+1), k=4) + s(conv) + 
+               s(log(turb), k=4) + s(cdom, k=3) + s(windsp) + s(cond1, k=4),
+             data = bdat5, select = TRUE, method = "REML", family = gaussian(),
+             na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
 
 ## gamming the time component of the data
 m1 <- gam(ph1 ~ ti(Time, bs = "cc") + ti(DOY),
@@ -230,4 +246,32 @@ mco2 <- gam(co2corr ~ ti(Time, bs = "cc") + ti(DOY) + ti(Time, DOY, bs = c("cc",
 plot(m2, scheme=2)
 plot(acf(resid(m3)))
 
-saveRDS(m3, "../data/private/bp-diel-timemod2015.rds")
+## try gamm approach following fromthebottomoftheheap?
+## FIXME: should we pursue this?
+ctrl <- list(niterEM = 0, msVerbose = TRUE, optimMethod="L-BFGS-B")
+testingnull5 <- gamm(ph1 ~te(Time, DOY, bs = c("cc","tp")), data = bdat5,
+                    control = ctrl, verbosePQL = TRUE)
+testing15 <- gamm(ph1 ~te(Time, DOY, bs = c("cc","tp")), data = bdat5, 
+                 correlation = corARMA(form = ~ 1, p=1),
+                 control = ctrl, verbosePQL = TRUE) #for this model to run, I had to kill firefox
+#   "Error in recalc.corAR1(cSt, list(Xy = as.matrix(val))) : 
+#   'Calloc' could not allocate memory (305795169 of 8 bytes)""
+
+##testing2 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, 
+##          correlation = corARMA(form = ~ 1, p=2),
+##           control = ctrl, verbosePQL = TRUE)
+## FIXME: Haven't tried this yet since for 2014 data it doesn't fit with matrix error
+
+res <- resid(testing15$lme, type = "normalized")
+resnull <- resid(testingnull5$lme, type = "normalized")
+
+op <-par(mfrow=c(2,1))
+acf(resnull, lag.max = 200, main = "ACF - default errors")
+acf(res, lag.max = 200, main = "ACF - AR(1) errors")
+par(op)
+
+
+## save best models
+saveRDS(phbio5, "../data/private/BPphmod2015.rds")
+saveRDS(testing15, "../data/private/bp-diel-timemod2015.rds")
+saveRDS(testingnull5, "../data/private/bp-diel-nullmod2015.rds")
