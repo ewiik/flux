@@ -12,14 +12,22 @@ papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top')
 
 ## read in models
-if(!file.exists("../data/private/bp-diel-timemod2015.rds")) {
+if(!file.exists("../data/private/BPphtimegammnull2015.rds")) {
   source("../scripts/diel-buffalo-models.R")}
-gamm5null <- readRDS("../data/private/bp-diel-nullmod2015.rds")
-gamm5AR1 <- readRDS("../data/private/bp-diel-timemod2015.rds")
 
-gammnull <- readRDS("../data/private/BPgammnull.rds")
-gammAR1 <- readRDS("../data/private/BPgammAR1.rds")
-phgamm <- readRDS("../data/private/BPphgamm.rds")
+gamm5null <- readRDS("../data/private/BPphtimegammnull2015.rds")
+#gamm5AR1 <- readRDS("../data/private/BPphtimegammAR12015.rds")
+## SFIXME: couldn't get the model to run in newest naming convention; too complex
+
+#gamm4null <- readRDS("../data/private/BPphtimegammnull.rds") not created
+gamm4AR1 <- readRDS("../data/private/BPphtimegammAR12014.rds")
+
+bam5AR1 <- readRDS('../data/private/BPphtimebamAR12015.rds')
+
+
+co2gammAR1 <- readRDS("../data/private/BPtimegammAR1.rds")
+co2gammnull <- readRDS('../data/private/BPtimegammnull.rds')
+
 ## read in originals
 if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
   source("diel-buffalo.R")}
@@ -56,7 +64,7 @@ ggplot(data=master, aes(y = Time, x = DOY, z=ph1-ph2, group=Year)) +
   xlab("Day of year")
 # biggest diffs when high ph....same controls?
 
-pred2014 <- predict(phgamm$gam, newdata=bdat, type = "response") # couldn't get NA rows to retain unless
+pred2014 <- predict(gamm4AR1$gam, newdata=bdat, type = "response") # couldn't get NA rows to retain unless
 #   specififed newdata...
 pred2015 <- predict(gamm5AR1$gam, newdata=bdat5, type = "response")
 pred2015null <- predict(gamm5null$gam, newdata=bdat5, type = "response")
@@ -139,7 +147,7 @@ preddf <- data.frame(`Time` = rep(seq(min(bdat$Time, na.rm=TRUE),
                                       max(bdat$Time, na.rm=TRUE),
                                       length = N), times=reptimes),
                      `DOY` = rep(simDOY, each = N))
-mpred <- predict(time4, newdata = preddf, type = "link")
+mpred <- predict(gamm4AR1$gam, newdata = preddf, type = "link")
 
 DOYgroups <- rep(DOYgroup, each = N)
 
@@ -165,7 +173,7 @@ preddf <- data.frame(`Time` = rep(seq(min(bdat2014full$Time, na.rm=TRUE),
                                       max(bdat2014full$Time, na.rm=TRUE),
                                       length = N), times=reptimes),
                      `DOY` = rep(simDOY, each = N))
-mco2pred <- predict(mco2, newdata = preddf, type = "link")
+mco2pred <- predict(co2gammAR1$gam, newdata = preddf, type = "link")
 
 DOYgroups <- rep(DOYgroup, each = N)
 
@@ -195,8 +203,8 @@ want <- seq(1, nrow(bdat), length.out = 200)
 pdat <- with(bdat, data.frame(Time = Time[want], DOY = DOY[want]))
  
 ## predict trend contributions
-p  <- predict(gammnull$gam,  newdata = pdat, type = "terms", se.fit = TRUE)
-p1 <- predict(gammAR1$gam, newdata = pdat, type = "terms", se.fit = TRUE)
+p  <- predict(gamm4null$gam,  newdata = pdat, type = "terms", se.fit = TRUE)
+p1 <- predict(gamm4AR1$gam, newdata = pdat, type = "terms", se.fit = TRUE)
 
 ## combine with the predictions data, including fitted and SEs
 pdat <- transform(pdat, p  = p$fit[,1],  se  = p$se.fit[,1],
@@ -229,7 +237,7 @@ preddf <- data.frame(`Time` = rep(seq(min(bdat5$Time, na.rm=TRUE),
                                       max(bdat5$Time, na.rm=TRUE),
                                       length = N), times=reptimes),
                      `DOY` = rep(simDOY, each = N))
-mpred <- predict(time5, newdata = preddf, type = "link")
+mpred <- predict(gamm5AR1$gam, newdata = preddf, type = "link")
 
 DOYgroups <- rep(DOYgroup, each = N)
 

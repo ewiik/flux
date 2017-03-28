@@ -17,15 +17,13 @@ papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top')
 
 ## read in models for both years
-co2mod <- readRDS('../data/private/bpco2phmod.rds')
+co2chemmod <- readRDS('../data/private/BPco2pho2mod.rds')
 
-phmod <- readRDS('../data/private/BPphmod.rds')
-phmod5 <- readRDS('../data/private/BPphmod2015.rds')
+co2mechmod <- readRDS("../data/private/BPco2mechmod.rds")
 
-bptimemod <- readRDS("../data/private/bp-diel-timemod2014.rds")
+phmechmod4 <- readRDS('../data/private/BPphmechmod2014.rds')
+phmechmod5 <- readRDS('../data/private/BPphmechmod2015.rds')
 
-bpco2mod <- readRDS("../data/private/bpmod.rds")
-co2minus <- readRDS("../data/private/bpmodsimp.rds")
 
 ## read in data
 bdat <- readRDS('../data/private/bpbuoy2014-mod.rds')
