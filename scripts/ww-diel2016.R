@@ -13,10 +13,10 @@ papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top')
 
 ## read in data
-diel <- read.csv("../data/private/Wascana2016.csv", skip = 2, header=FALSE)
-names(diel) <- c("Date.Time","temp","condus", "salppt","ph","odorel","odomgl","batvolts")
+diel <- read.csv("../data/private/Wascana_2016_complete.csv", skip = 2, header=FALSE)
+names(diel) <- c("Date.Time","temp","condus", "spcondus","ph","odorel","odomgl","salppt")
 
-# get Kyle's station data from September 2015 (see email July 5, 2015)
+# get Kyle's station data (see email July 5, 2015)
 if (!file.exists("../data/hodder20164.csv")) {
   urls <- c(paste0("http://uregina.ca/~hodder2k/data/2016_0",4:9,".txt"), 
             "http://uregina.ca/~hodder2k/data/2016_10.txt")
@@ -44,7 +44,7 @@ kyles$kpa <- kyles$hpa/10
 source("../functions/gasExchangeFlex.R")
 
 ## mauna loa stuff online has been updated from my getmaunaloa script, and since I need
-##    2015....
+##    2016....
 if (!file.exists("../data/maunaloa2.csv")) {
   download.file("ftp://aftp.cmdl.noaa.gov/products/trends/co2/co2_mm_mlo.txt", 
                 destfile = "../data/maunaloa2.csv") 
@@ -57,7 +57,7 @@ ml <- read.csv("../data/maunaloa2.csv")
 
 ## transform date, remove data points prior to instrument stabilisation
 diel <- transform(diel, Date.Time = as.POSIXlt(as.character(Date.Time), 
-                                               format = "%d/%m/%y %H:%M:%S",
+                                               format = "%y/%m/%d %H:%M:%S",
                                                tz="Canada/Saskatchewan"))
 diel$Date.Time <- round(diel$Date.Time, units = "mins")
 diel <- transform(diel, Day = as.numeric(format(Date.Time, format = "%d")))
@@ -106,14 +106,20 @@ names(diel)[grep("interp", names(diel))] <- "pCO2ml"
 diel$dic <- 26.57 + 0.018 * diel$condus  # (mg/L)
 diel$dicumol <- diel$dic / 0.012 # --> uM
 
+## take out nonsense values
+diel <- diel[-which(diel$ph < 8.2),] # removes still-in-ph4buffer times, and sonde blips
+diel$condus[which(diel$condus < 800)] <- NA # some malfunction but other probes ok
+diel$salppt[which(diel$condus < 800)] <- NA
+diel$salppt[which(diel$salppt < 0.5)] <- NA
+
+## FIXME: take out sonde removal readings once date from D
+#diel <- diel[-which()]
+
 ## run gasExchangeFlex, using Kyle's recorded wind and pressure
 CO2Fluxz <- with(diel, gasExchangeFlex(temp, condus, ph, wind = windms, kerri = FALSE, altnotkpa = FALSE,
                                        salt = salppt, dic = dicumol, kpa = kpa, pco2atm = pCO2ml))
 diel <- transform(diel, CO2Flux = CO2Fluxz$fluxenh)
 diel <- transform(diel, pCO2 = CO2Fluxz$pco2)
 
-## take out nonsense values
-diel <- diel[-which(diel$ph < 7),] # removes most of still-in-ph4buffer times
-diel <- diel[-which(diel$condus < 1000 & diel$Month == 6 & diel$Day ==14),] # removes rest of them
-diel$condus[which(diel$condus < 1000)] <- NA # some malfunction but other probes ok
-diel$salppt[which(diel$condus < 1000)] <- NA
+## save rds for further examination and modeling
+saveRDS(diel, '../data/private/diel-W-2016.rds')
