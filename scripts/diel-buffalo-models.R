@@ -39,7 +39,7 @@ bdat5 <- merge(bdat5, schmidt5)
 
 ## create index of potential convective mixing, based on diff in T btw air and water
 bdat$conv <- bdat$airtemp - bdat$temp4 # this is the topmost, 77cm one
-bdat5$conv <- bdat5$airtemp - bdat5$temp4 # this is the topmost, 77cm one
+bdat5$conv <- bdat5$airtemp - bdat5$temp4 # this is the 77cm one (temp4 at 45cm)
 
 
 ## create ARn term function
