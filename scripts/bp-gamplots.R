@@ -10,7 +10,8 @@ library("grid")
 library("gridExtra")
 library("reshape2")
 
-source("../functions/geom_rug3.R")
+#source("../functions/geom_rug3.R")
+## FIXME: unfortunately this seems to have become deprecated... need to fix, now on default
 
 ## create a theme to save linespace in plots
 papertheme <- theme_bw(base_size=14, base_family = 'Arial') +
@@ -42,10 +43,11 @@ bdat5 <- merge(bdat5, schmidt5)
 bdat$conv <- bdat$airtemp - bdat$temp4 # this is the topmost, 77cm one
 bdat5$conv <- bdat5$airtemp - bdat5$temp4 # this is the topmost, 77cm one
 
+## make TimeofDay into factor for dropping levels
+bdat$TimeofDay <- as.factor(bdat$TimeofDay)
+bdat5$TimeofDay <- as.factor(bdat5$TimeofDay)
 
-#bdat$TimeofDay <- as.factor(bdat$TimeofDay)
-
-## predict for all vars in co2minus
+## predict for all vars in co2mechmod
 ## ============================================================================================================
 ## limit prediction data frame to observed intervals
 regsplit <- with(bdat, split(bdat, list(TimeofDay)))
@@ -86,9 +88,9 @@ co2.pdat <- with(droplevels(bdat),
 co2.pdat <- merge(co2.pdat, lakeXbar)
 
 ## let's see what the output is for 
-co2.pred <- predict(co2minus, newdata = co2.pdat, type = "terms", se.fit = TRUE)
-co2.test <- predict(co2minus, newdata = co2.pdat, type = "response", se.fit = TRUE)
-co2.test2 <- predict(co2minus, newdata = co2.pdat, type = "link", se.fit = TRUE)
+co2.pred <- predict(co2mechmod, newdata = co2.pdat, type = "terms", se.fit = TRUE)
+co2.test <- predict(co2mechmod, newdata = co2.pdat, type = "response", se.fit = TRUE)
+co2.test2 <- predict(co2mechmod, newdata = co2.pdat, type = "link", se.fit = TRUE)
 ## ok this works: exp is the link function's return path. (see also mod$family$linkinv)
 ##    the following all produce the same
 exp(head(co2.test2$fit))
@@ -105,7 +107,7 @@ co2.resp <- with(co2.resp, transform(co2.resp, Fittedplus = Fitted + se.Fitted))
 co2.resp <- with(co2.resp, transform(co2.resp, Fittedminus = Fitted - se.Fitted))
 
 ## make into original limits
-shiftco2 <- attr(predict(co2minus, newdata = co2.pdat, type = "iterms"), "constant")
+shiftco2 <- attr(predict(co2mechmod, newdata = co2.pdat, type = "iterms"), "constant")
 co2.respnorm <- co2.resp
 co2.respnorm <- with(co2.respnorm, transform(co2.respnorm, Fitted = Fitted + shiftco2))
 co2.respnorm <- with(co2.respnorm, transform(co2.respnorm, Fittedplus = Fittedplus + shiftco2))
@@ -133,7 +135,7 @@ chlplot <- ggplot(co2.respnorm, aes(x = chlrfu, y = Fitted,
   #         show.legend = FALSE, inherit.aes = FALSE) +
   #geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
   #geom_vline(xintercept = meanpH, linetype = 'dotted') +
-  geom_rug3(aes(x=chlrfu, y=co2corr), data = bdat, stat = "identity", position = "identity", 
+  geom_rug(aes(x=chlrfu, y=co2corr), data = bdat, stat = "identity", position = "identity", 
             sides = "bl", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
   theme(legend.position='top') +
   guides(colour=guide_legend(ncol=3, bycol =TRUE,title.position = 'left')) +
@@ -159,9 +161,9 @@ co2.pdat <- with(droplevels(bdat),
 co2.pdat <- merge(co2.pdat, lakeXbar)
 
 ## let's see what the output is for 
-co2.pred <- predict(co2minus, newdata = co2.pdat, type = "terms", se.fit = TRUE)
-co2.test <- predict(co2minus, newdata = co2.pdat, type = "response", se.fit = TRUE)
-co2.test2 <- predict(co2minus, newdata = co2.pdat, type = "link", se.fit = TRUE)
+co2.pred <- predict(co2mechmod, newdata = co2.pdat, type = "terms", se.fit = TRUE)
+co2.test <- predict(co2mechmod, newdata = co2.pdat, type = "response", se.fit = TRUE)
+co2.test2 <- predict(co2mechmod, newdata = co2.pdat, type = "link", se.fit = TRUE)
 ## ok this works: exp is the link function's return path. (see also mod$family$linkinv)
 ##    the following all produce the same
 exp(head(co2.test2$fit))
@@ -178,7 +180,7 @@ co2.resp <- with(co2.resp, transform(co2.resp, Fittedplus = Fitted + se.Fitted))
 co2.resp <- with(co2.resp, transform(co2.resp, Fittedminus = Fitted - se.Fitted))
 
 ## make into original limits
-shiftco2 <- attr(predict(co2minus, newdata = co2.pdat, type = "iterms"), "constant")
+shiftco2 <- attr(predict(co2mechmod, newdata = co2.pdat, type = "iterms"), "constant")
 co2.respnorm <- co2.resp
 co2.respnorm <- with(co2.respnorm, transform(co2.respnorm, Fitted = Fitted + shiftco2))
 co2.respnorm <- with(co2.respnorm, transform(co2.respnorm, Fittedplus = Fittedplus + shiftco2))
@@ -201,7 +203,7 @@ cyanoplot <- ggplot(co2.respnorm, aes(x = bga1rfu, y = Fitted,
   #         show.legend = FALSE, inherit.aes = FALSE) +
   #geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
   #geom_vline(xintercept = meanpH, linetype = 'dotted') +
-  geom_rug3(aes(x=chlrfu, y=co2corr), data = bdat, stat = "identity", position = "identity", 
+  geom_rug(aes(x=chlrfu, y=co2corr), data = bdat, stat = "identity", position = "identity", 
             sides = "bl", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
   theme(legend.position='top') +
   guides(colour=guide_legend(ncol=3, bycol =TRUE,title.position = 'left')) +
@@ -236,7 +238,7 @@ for (i in 1: length(targetlist)) {
   co2.pdat <- cbind(co2.pdat, lakeXbar)
   
   ## let's predict
-  co2.pred <- predict(co2minus, newdata = co2.pdat, type = "terms", se.fit = TRUE)
+  co2.pred <- predict(co2mechmod, newdata = co2.pdat, type = "terms", se.fit = TRUE)
   
   whichCols <- grep(target, colnames(co2.pred$fit))
   whichColsSE <- grep(target, colnames(co2.pred$se.fit))
@@ -248,7 +250,7 @@ for (i in 1: length(targetlist)) {
   co2.resp <- with(co2.resp, transform(co2.resp, Fittedminus = Fitted - se.Fitted))
   
   ## make into original limits
-  shiftco2 <- attr(predict(co2minus, newdata = co2.pdat, type = "iterms"), "constant")
+  shiftco2 <- attr(predict(co2mechmod, newdata = co2.pdat, type = "iterms"), "constant")
   co2.respnorm <- co2.resp
   co2.respnorm <- with(co2.respnorm, transform(co2.respnorm, Fitted = Fitted + shiftco2))
   co2.respnorm <- with(co2.respnorm, transform(co2.respnorm, Fittedplus = Fittedplus + shiftco2))
@@ -273,7 +275,7 @@ for (i in 1: length(targetlist)) {
     #         show.legend = FALSE, inherit.aes = FALSE) +
     #geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
     #geom_vline(xintercept = meanpH, linetype = 'dotted') +
-    geom_rug3(aes(x=target, y=co2corr), data = bdat, stat = "identity", position = "identity", 
+    geom_rug(aes(x=target, y=co2corr), data = bdat, stat = "identity", position = "identity", 
               sides = "bl", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
     theme(legend.position='top') +
     xlab(realname) + ylab(expression(paste(italic('p')*'CO'[2]~"(ppm)")))
@@ -291,7 +293,7 @@ plot4 <- plotlist[[8]]
 ## by time plots
 ## Testing effect by time plots
 ## ==================================================================================
-testing1 <- predict(co2minus, type = 'terms')
+testing1 <- predict(co2mechmod, type = 'terms')
 testing <- as.data.frame(testing1)
 tosum <- grep("chl", colnames(testing))
 chleffect <- rowSums(testing[,tosum], na.rm = TRUE)
@@ -309,7 +311,7 @@ daynights <- testing[,c('chlrfu','bga1rfu')]
 testing <- testing[,-grep('rfu', names(testing))]
 
 ## reorder bdat, since predictions all fucked up
-testdf <- bdat[-which(bdat$bga1rfu >= 20),]
+testdf <- bdat
 lasts <- testdf[which(!complete.cases(testdf[,c(varWantopt, 'co2corr')])),]
 testdf <- testdf[which(complete.cases(testdf[,c(varWantopt, 'co2corr')])),]
 
@@ -470,7 +472,7 @@ category <- c("Production", "Production", "Concentrations","Mixing","Mixing","Mi
 varWantopt <- c("chlrfu", "bga1rfu", "airtemp", "stability", "dailyrain", "conv", "turb","cdom","windsp",
                 "cond1") 
 
-plotlist <- list()
+plotlist2014 <- list()
 for (i in 1: length(targetlist)) {
   target <- targetlist[[i]]
   N <- 200
@@ -487,7 +489,7 @@ for (i in 1: length(targetlist)) {
   ph.pdat <- cbind(ph.pdat, lakeXbar)
   
   ## let's predict
-  ph.pred <- predict(phmod, newdata = ph.pdat, type = "terms", se.fit = TRUE)
+  ph.pred <- predict(phmechmod4, newdata = ph.pdat, type = "terms", se.fit = TRUE)
   
   whichCols <- grep(target, colnames(ph.pred$fit))
   whichColsSE <- grep(target, colnames(ph.pred$se.fit))
@@ -499,7 +501,7 @@ for (i in 1: length(targetlist)) {
   ph.resp <- with(ph.resp, transform(ph.resp, Fittedminus = Fitted - se.Fitted))
   
   ## make into original limits
-  shiftco2 <- attr(predict(phmod, newdata = ph.pdat, type = "iterms"), "constant")
+  shiftco2 <- attr(predict(phmechmod4, newdata = ph.pdat, type = "iterms"), "constant")
   ph.respnorm <- ph.resp
   ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fitted = Fitted + shiftco2))
   ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fittedplus = Fittedplus + shiftco2))
@@ -513,7 +515,7 @@ for (i in 1: length(targetlist)) {
   realnameindex <- which(varWantopt %in% target)
   realname <- realnames[realnameindex]
   
-  plotlist[[i]] <- ggplot(ph.respnorm, aes(x = target, y = Fitted)) +
+  plotlist2014[[i]] <- ggplot(ph.respnorm, aes(x = target, y = Fitted)) +
     papertheme + 
     #annotate("rect", xmin=phquants[1], xmax=phquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
     geom_line() +
@@ -523,14 +525,14 @@ for (i in 1: length(targetlist)) {
     #         show.legend = FALSE, inherit.aes = FALSE) +
     #geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
     #geom_vline(xintercept = meanpH, linetype = 'dotted') +
-    geom_rug3(aes(x=target, y=ph1), data = bdat, stat = "identity", position = "identity", 
+    geom_rug(aes(x=target, y=ph1), data = bdat, stat = "identity", position = "identity", 
               sides = "bl", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
     theme(legend.position='top') +
     xlab(realname) + ylab("pH")
 }
 
 
-plotlist[c(1:length(plotlist))]
+plotlist2014[c(1:length(plotlist2014))]
 
 plotlist2015 <- list()
 for (i in 1: length(targetlist)) {
@@ -549,7 +551,7 @@ for (i in 1: length(targetlist)) {
   ph.pdat <- cbind(ph.pdat, lakeXbar)
   
   ## let's predict
-  ph.pred <- predict(phmod5, newdata = ph.pdat, type = "terms", se.fit = TRUE)
+  ph.pred <- predict(phmechmod5, newdata = ph.pdat, type = "terms", se.fit = TRUE)
   
   whichCols <- grep(target, colnames(ph.pred$fit))
   whichColsSE <- grep(target, colnames(ph.pred$se.fit))
@@ -561,7 +563,7 @@ for (i in 1: length(targetlist)) {
   ph.resp <- with(ph.resp, transform(ph.resp, Fittedminus = Fitted - se.Fitted))
   
   ## make into original limits
-  shiftco2 <- attr(predict(phmod, newdata = ph.pdat, type = "iterms"), "constant")
+  shiftco2 <- attr(predict(phmechmod5, newdata = ph.pdat, type = "iterms"), "constant")
   ph.respnorm <- ph.resp
   ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fitted = Fitted + shiftco2))
   ph.respnorm <- with(ph.respnorm, transform(ph.respnorm, Fittedplus = Fittedplus + shiftco2))
@@ -585,7 +587,7 @@ for (i in 1: length(targetlist)) {
     #         show.legend = FALSE, inherit.aes = FALSE) +
     #geom_abline(slope = 0, intercept = meanco2, linetype="dotted") +
     #geom_vline(xintercept = meanpH, linetype = 'dotted') +
-    geom_rug3(aes(x=target, y=ph1), data = bdat5, stat = "identity", position = "identity", 
+    geom_rug(aes(x=target, y=ph1), data = bdat5, stat = "identity", position = "identity", 
               sides = "bl", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
     theme(legend.position='top') +
     xlab(realname) + ylab("pH")
