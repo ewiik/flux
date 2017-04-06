@@ -28,18 +28,30 @@ bdat <- bdat[order(bdat$datetime),]
 bdat5 <- readRDS('../data/private/bpbuoy2015-mod.rds')
 bdat5 <- bdat5[order(bdat5$datetime),]
 
-if (!file.exists("../data/private/bp-stability2015.rds")) {
+if (!file.exists('../data/private/bpbuoy2016-mod.rds')) {
+  source("diel-buffalo-2016.R")         # initial script for 2016
+}
+bdat6 <- readRDS('../data/private/bpbuoy2016-mod.rds')
+bdat6 <- bdat6[order(bdat6$datetime),]
+
+if (!file.exists("../data/private/bp-stability2016.rds")) {
   source("./bp-stratification.R")
 }
 schmidt <- readRDS("../data/private/bp-stability.rds") # note this for 2014
 bdat <- merge(bdat, schmidt)
 
-schmidt5 <- readRDS("../data/private/bp-stability2015.rds") # note this for 2014
+schmidt5 <- readRDS("../data/private/bp-stability2015.rds") 
 bdat5 <- merge(bdat5, schmidt5)
+
+schmidt6 <- readRDS("../data/private/bp-stability2016.rds") 
+# note some error in some probes.... so negative stabilities occur
+schmidt6 <- schmidt6[-which(schmidt6$stability < 0),]
+bdat6 <- merge(bdat6, schmidt6)
 
 ## create index of potential convective mixing, based on diff in T btw air and water
 bdat$conv <- bdat$airtemp - bdat$temp4 # this is the topmost, 77cm one
-bdat5$conv <- bdat5$airtemp - bdat5$temp4 # this is the 77cm one (temp4 at 45cm)
+bdat5$conv <- bdat5$airtemp - bdat5$temp4 # this is the 77cm one (temp3 at 45cm)
+bdat6$conv <- bdat6$airtemp - bdat6$temp4 # this is the 77cm one (temp3 at 45cm)
 
 
 ## create ARn term function
@@ -208,7 +220,7 @@ saveRDS(testing1, '../data/private/BPtimegammAR1.rds') # time model AR1
 
 ## Mechanistic models:
 ## ==========================================================================================
-## Are the controls of pH the same in 2015?
+## Are the controls of pH the same in 2015 & 2016?
 ## FIXME: note that some suspicious data in 2015, like unprecedented high cond, and high cdom..!??
 ##    has it been calibrated differently that year? Proceed to compare models with great caution
 phbio <- gam(ph1 ~ s(log(chlrfu), by = factor(TimeofDay), k=4) + s(log(bga1rfu), by = factor(TimeofDay), k=4) + 
@@ -224,6 +236,14 @@ phbio5 <- gam(ph1 ~ s(log(chlrfu), by = factor(TimeofDay), k=4) + s(log(bga1rfu)
              data = bdat5, select = TRUE, method = "REML", family = gaussian(),
              na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
 
+phbio6 <- gam(ph1 ~ s(log(chlrfu), by = factor(TimeofDay), k=4) + s(log(bga1rfu), by = factor(TimeofDay), k=4) + 
+                s(airtemp) + s(log(stability +1), k=3) + s(log(dailyrain+1), k=4) + s(conv) + 
+                s(log(turb), k=4) + s(cond1us, k=4),
+              data = bdat6, select = TRUE, method = "REML", family = gaussian(),
+              na.action = na.exclude, control = gam.control(nthreads = 3, trace = TRUE))
+## NOTE!!!! No cdom here because the meter was tripped out all season. note also that lots of time points
+##    missing due to missing wind readings, so took wind out too!
+
 ## Time models (2014, 2015):
 ## ==========================================================================================
 ## FIXME: using here the gamm approach, but if decided otherwise, need to mod
@@ -234,20 +254,22 @@ phgamm4AR1 <- gamm(ph1 ~te(Time, DOY, bs = c("cc","tp")), data = bdat,
                control = ctrl, verbosePQL = TRUE)
 phgamm5null <- gamm(ph1 ~te(Time, DOY, bs = c("cc","tp")), data = bdat5, method="REML",
                     control = ctrl, verbosePQL = TRUE)
-phgamm5AR1 <- gamm(ph1 ~te(Time, DOY, bs = c("cc","tp")), data = bdat5, 
-                correlation = corARMA(form = ~ 1, p=1), method="REML",
-                control = ctrl, verbosePQL = TRUE) #for this model to run, I had to kill firefox, if I
-#   could run it at all
-#   "Error in recalc.corAR1(cSt, list(Xy = as.matrix(val))) : 
-#   'Calloc' could not allocate memory (305795169 of 8 bytes)""
-
-res <- resid(phgamm5AR1$lme, type = "normalized")
-resnull <- resid(phgamm5null$lme, type = "normalized")
-
-op <-par(mfrow=c(2,1))
-acf(resnull, lag.max = 200, main = "ACF - default errors")
-acf(res, lag.max = 200, main = "ACF - AR(1) errors")
-par(op)
+if(runextras) {
+  phgamm5AR1 <- gamm(ph1 ~te(Time, DOY, bs = c("cc","tp")), data = bdat5, 
+                     correlation = corARMA(form = ~ 1, p=1), method="REML",
+                     control = ctrl, verbosePQL = TRUE)
+  #for this model to run, I had to kill firefox, if I
+  #   could run it at all
+  #   "Error in recalc.corAR1(cSt, list(Xy = as.matrix(val))) : 
+  #   'Calloc' could not allocate memory (305795169 of 8 bytes)""
+  res <- resid(phgamm5AR1$lme, type = "normalized")
+  resnull <- resid(phgamm5null$lme, type = "normalized")
+  
+  op <-par(mfrow=c(2,1))
+  acf(resnull, lag.max = 200, main = "ACF - default errors")
+  acf(res, lag.max = 200, main = "ACF - AR(1) errors")
+  par(op)
+}
 
 ## trying bam to see if model fitting improves cause I can perhaps make more complex
 ## http://www.sfs.uni-tuebingen.de/~jvanrij/Tutorial/GAMM.html#setting-up-a-gamm-model
@@ -265,7 +287,7 @@ acf_resid(bamAR1) #https://cran.r-project.org/web/packages/itsadug/vignettes/acf
 ## save best models
 saveRDS(phbio, '../data/private/BPphmechmod2014.rds') # mecganistic pH model 2014
 saveRDS(phbio5, "../data/private/BPphmechmod2015.rds") # mechanistic pH model 2015
-saveRDS(phgamm5AR1, "../data/private/BPphtimegammAR12015.rds") # time pH model 2015 AR1
+#saveRDS(phgamm5AR1, "../data/private/BPphtimegammAR12015.rds") # time pH model 2015 AR1
 saveRDS(phgamm5null, "../data/private/BPphtimegammnull2015.rds") # time pH model 2015 no AR
 saveRDS(phgamm4AR1, '../data/private/BPphtimegammAR12014.rds') # time pH model 2014 AR1
 saveRDS(bamAR1, '../data/private/BPphtimebamAR12015.rds') # time pH model 2015 using BAM, AR1
