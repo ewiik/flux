@@ -12,6 +12,10 @@ bdat <- bdat[order(bdat$datetime),]
 bdat5 <- readRDS('../data/private/bpbuoy2015-mod.rds')
 bdat5 <- bdat5[order(bdat5$datetime),]
 
+if (!file.exists('../data/private/bpbuoy2016-mod.rds')) {
+  source("../scripts/diel-buffalo-2016.R")}
+bdat6 <- readRDS('../data/private/bpbuoy2016-mod.rds')
+
 if (!file.exists('../data/private/bpbuoy2014-mod.rds')) {
   stop("get hypsometry from Emma")}
 hyp <- read.csv('../data/private/BuffaloPound_Hypso-1.csv')
@@ -48,10 +52,24 @@ btemp5$depth[grep("5", btemp5$variable)] <- 1.23
 btemp5$depth[grep("6", btemp5$variable)] <- 2.18
 btemp5$depth[grep("7", btemp5$variable)] <- 3.18
 
+## melt vectors for the temperature profile : 2016 
+## FIXME: correct the depths if different, don't have meta yet
+btemp6 <- melt(bdat6, id.vars = "datetime", measure.vars = c("temp1", "temp2", "temp3", "temp4",
+                                                             "temp5", "temp6", "temp7"))
+btemp6$depth <- rep(0) #0.45, 0.77, 1.23, 2.18, 3.18 + reg 82, 2.92 depth
+btemp6$depth[grep("1", btemp6$variable)] <- 0.82
+btemp6$depth[grep("2", btemp6$variable)] <- 2.94 # using summary() all seem ranked right 
+btemp6$depth[grep("3", btemp6$variable)] <- 0.45
+btemp6$depth[grep("4", btemp6$variable)] <- 0.77
+btemp6$depth[grep("5", btemp6$variable)] <- 1.23
+btemp6$depth[grep("6", btemp6$variable)] <- 2.18
+btemp6$depth[grep("7", btemp6$variable)] <- 3.18
+
 ## schmidt function does not calculate anything if any one value is NA. Let's remove
 ##    these from btemp
 btemp <- na.omit(btemp)
 btemp5 <- na.omit(btemp5)
+btemp6 <- na.omit(btemp6)
 
 ## arange hyp into format required: in examples in pdf,
 ##    bthA    <- c(10000,8900,5000,3500,2000,1000,300,10)
@@ -87,16 +105,29 @@ depthlist[1:length(depthlist)] <- list(bthD)
 
 ## split to lists with vectors of each variable: 2015
 testing5 <- with(btemp5, split(btemp5, list(datetime)))
-templist5 <- lapply(testing, '[[', 3)
-tempdepthlist5 <- lapply(testing, '[[', 4)
-sallist5 <- lapply(tempdepthlist, function(x) x*0)
+templist5 <- lapply(testing5, '[[', 3)
+tempdepthlist5 <- lapply(testing5, '[[', 4)
+sallist5 <- lapply(tempdepthlist5, function(x) x*0)
 
 bthA <- hyp$revcum
 bthD <- hyp$depth
 arealist5 <- vector(mode="list", length=nrow(bdat5))
-arealist5[1:length(arealist)] <- list(bthA)
+arealist5[1:length(arealist5)] <- list(bthA)
 depthlist5 <- vector(mode="list", length=nrow(bdat5))
-depthlist5[1:length(depthlist)] <- list(bthD)
+depthlist5[1:length(depthlist5)] <- list(bthD)
+
+## split to lists with vectors of each variable: 2016
+testing6 <- with(btemp6, split(btemp6, list(datetime)))
+templist6 <- lapply(testing6, '[[', 3)
+tempdepthlist6 <- lapply(testing6, '[[', 4)
+sallist6 <- lapply(tempdepthlist6, function(x) x*0)
+
+bthA <- hyp$revcum
+bthD <- hyp$depth
+arealist6 <- vector(mode="list", length=nrow(bdat6))
+arealist6[1:length(arealist6)] <- list(bthA)
+depthlist6 <- vector(mode="list", length=nrow(bdat6))
+depthlist6[1:length(depthlist6)] <- list(bthD)
 
 ## apply schmidt function to each date point:2014
 stablist <- lapply(mapply(schmidt.stability, wtr=templist, depths=tempdepthlist,
@@ -108,15 +139,24 @@ stablist$datetime <- bdat$datetime
 
 ## apply schmidt function to each date point:2015
 stablist5 <- lapply(mapply(schmidt.stability, wtr=templist5, depths=tempdepthlist5,
-                          bthA=arealist, bthD=depthlist5, sal=sallist5), '[[', 1)
+                          bthA=arealist5, bthD=depthlist5, sal=sallist5), '[[', 1)
 stablist5 <- as.data.frame(do.call(rbind, stablist5))
 rownames(stablist5) <- NULL
 names(stablist5) <- "stability"
 stablist5$datetime <- bdat5$datetime
 
+## apply schmidt function to each date point:2016
+stablist6 <- lapply(mapply(schmidt.stability, wtr=templist6, depths=tempdepthlist6,
+                           bthA=arealist6, bthD=depthlist6, sal=sallist6), '[[', 1)
+stablist6 <- as.data.frame(do.call(rbind, stablist6))
+rownames(stablist6) <- NULL
+names(stablist6) <- "stability"
+stablist6$datetime <- bdat6$datetime
+
 ## save for modeling
 saveRDS(stablist, "../data/private/bp-stability.rds")
 saveRDS(stablist5, "../data/private/bp-stability2015.rds")
+saveRDS(stablist6, "../data/private/bp-stability2016.rds")
 
 ## merge with bdat for plotting
 tester <- merge(stablist, bdat)

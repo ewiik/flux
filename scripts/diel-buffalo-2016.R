@@ -93,6 +93,8 @@ bdat2016$spcond2[bdat2016$spcond2 < 600] <- NA #basically a few near-0s
 bdat2016$pressure[bdat2016$pressure > 200] <- NA 
 bdat2016$co2.1[bdat2016$co2.1 >= 1900] <- NA 
 
+bdat2016$airtemp[bdat2016$airtemp <0] <- NA #wtf???!! these readings just after a series of -Invalid-
+## in original data
 
 ## add pressure in kpa (original in inHg)
 bdat2016$pressureKPA <- bdat2016$pressure * 3.3864
@@ -140,6 +142,7 @@ corrairpress <- -bdat2016$co2.1*((1014.14 - 1013.25) * 0.0015)
 bdat2016$co2.1corr <- bdat2016$co2.1 + corrpress + corrtemp + corrairpress
 
 ## calculate flux
+## FIXME: wind missing for a month which means can't calculate flux =/ any other way of getting it?
 bdat2016flux <- with(bdat2016, gasExchangeUser(temp = temp1, cond = cond1us, ph=ph1,
                                                        wind=windms, alknotdic = FALSE,
                                                        salt = salcalc, kpa=pressureKPA,
@@ -147,6 +150,9 @@ bdat2016flux <- with(bdat2016, gasExchangeUser(temp = temp1, cond = cond1us, ph=
 bdat2016all <- cbind(bdat2016, bdat2016flux)
 names(bdat2016all)[which(names(bdat2016all)=="pco2")] <- "pco2calc"
 
+## order and save
+bdat2016all <- bdat2016all[order(bdat2016all$datetime),]
+saveRDS(bdat2016all, "../data/private/bpbuoy2016-mod.rds")
 
 ## plot some diagnostics
 with(bdat2016all, plot(co2.1corr ~ datetime))
