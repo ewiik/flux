@@ -25,7 +25,7 @@ library("gridExtra")
 library("cowplot")
 library("knitr")
 
-source("../functions/geom_rug3.R")
+#source("../functions/geom_rug3.R")
 
 ## create ARn term function
 myAR <- function(term, lag) {
@@ -81,9 +81,13 @@ There are a few overarching questions regarding these models:
     a. This comes back to what the final model should be: GAMM, BAM or GAM (with ```gp```)
 3. How to construct a BAM wisely? e.g. I can choose to almost follow the data completely, which in a way could be what I want?
 
+The stuff I've copy pasted here comes from these model and plotting scripts: diel-buffalo-models.R and bp-gamplots.R.. There's also diel-buffalo-plots.R specifically for the time models, but I thought it best to not go into this until we've decided on how to construct the model(s)?
+
 ### Here are the candidate models:
 
 __1. 2014__
+
+Unfortunately I cannot seem to manage a GAMM model with AR(2)....
 
 ``` {r timemodels, echo=TRUE}
  bdat <- transform(bdat, co2lag1 = myAR(bdat$co2corr, 1))
@@ -127,7 +131,7 @@ acf(res, lag.max = 200, main = "ACF - AR1 errors for gamm (2014)")
 
 ```
 
-__2. 2015__ -- note here, much more data so bam became necessary. For ```gamm()```, I got ```## for this model to run, I had to kill firefox, if I could run it at all:  "Error in recalc.corAR1(cSt, list(Xy = as.matrix(val))) : 'Calloc' could not allocate memory (305795169 of 8 bytes)" ``` I decided to try ```bam()```
+__2. 2015__ -- note here, much more data available (ca 20000). For ```gamm()```, I got the error ```Error in recalc.corAR1(cSt, list(Xy = as.matrix(val))) : 'Calloc' could not allocate memory (305795169 of 8 bytes) ``` For the ```gamm``` to run, I had to kill firefox, if I could run it at all...  I decided to try ```bam()```
 
 ``` {r bammod, echo=TRUE}
 ## trying bam to see if model fitting improves cause I can perhaps make more complex
@@ -151,7 +155,7 @@ par(op)
 
 ```
 
-### Mechanistic models (CO2 ~ . for 2014, pH ~ . for 2014 and 2015)
+### Issues with mechanistic models (CO2 ~ . for 2014, pH ~ . for 2014 and 2015)
 
 These contain the model variables we all selected together in that email chain a good while ago. Here, I was mainly confused by two things
 
@@ -213,3 +217,27 @@ plot_grid(plotlist = plotlist2014, ncol=2, nrow=4)
 plot_grid(plotlist = plotlist2015, ncol=2, nrow=4)
 ```
 
+## Bonus issues
+
+### Modeling CO2 based on pH and O2 (to demonstrate how closely they interact, to justify dropping them out of mechanistic model, perhaps as appendix material)
+
+1. If a GAM encounters co-varying variables, does it 'select' the more influential variable for the main effect (strong effect spline), and the less influential variable as the rubbish variable (strange/dampened effect spline)
+2. Why, according to my models, is the interaction between pH and O2 significant even if plots do not imply so? The added % explained is from 74.8 to 75.2%
+
+``` {r corrmods, echo=TRUE}
+co2phmod <- gam(co2corr ~ s(ph1) + s(ODOrel1), method = "REML", family = tw(),
+                na.action = na.exclude, data=bdat4, select=TRUE,
+                control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = FALSE))
+co2inter<- gam(co2corr ~ ti(ph1) + ti(ODOrel1) + ti(ph1, ODOrel1), method = "REML", family = tw(),
+               na.action = na.exclude, data=bdat4,
+               control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = FALSE))
+## FIXME -- why is the interaction significant when the relationship really just looks simple?
+anova(co2phmod, co2inter, test="LRT")
+
+co2phmodte <- gam(co2corr ~ te(ph1, ODOrel1), method = 'REML', family=tw(), na.action = na.exclude, 
+                  data=bdat4, select=TRUE,  control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = FALSE))
+```
+
+``` {r corrplots,plot-ref, fig.height=5, fig.width=7, fig.cap="2014 pCO2 with te() model" }
+plot(co2phmodte, scheme=2)
+```
