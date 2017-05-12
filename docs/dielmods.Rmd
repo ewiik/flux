@@ -70,6 +70,29 @@ bdat5$conv <- bdat5$airtemp - bdat5$temp4 # this is the topmost, 77cm one
 source("bp-gamplots.R")
 ```
 
+## Nuggets from Gavin on older version
+### co2corr models (gam)
+"most of the distributions can't be fitted in GLM-like software as they aren't part of the exponential family or aren't very closely related to that family. My advice is always to choose the distribution on the basis of the range of possible values. A concentration can't be negative so you can't use any distribution that allows negative values (Gaussian, t, ...), and it is continuous, so you can't use a discrete distribution like Poisson, Negative binomial etc. The main choices are Gamma (strictly positive, constant coefficient of variation, data), inverse Gaussian (similar to Gamma but with variance increasing at a fast rate as the mean increases), Tweedie (where the Gamma is a special case - it allows for a point mass on 0 so enables data that have support on the range 0 to infinity where as Gamma and inv Gaussian are strictly positive"
+
+"    Emma said:
+    may be stupid Q but is inv. gaussian not an option then?
+
+If you have actual 0s then no, as it has support on the positive real values, just like the Gamma. If you don't have 0s, then start with the Gamma - I've rarely seen or needed an inverse Guassian
+
+    Gavin Simpson said:
+    I would go back to the first gam() model for mco2te and change the family to tw() and do as I mentioned above and check that you are sufficiently large a basis for the te() by adding suitable k = c(a,b) where a and b are appropriate basis dimensions for the Time and DOY marginals.
+
+or use family = Gamma(link = "log") depending on whether you have 0s or not. The Tweedie can be useful as it has a power parameter that can vary the dispersion and not have it set to a fixed function of the mean^2"
+
+### co2corr models (gamm)
+"With the first gamm() models:
+
+    I think you have the coARMA() incorrectly specified. What this corARMA(form = ~ 1) is that the data are correlated in the order they are in the data set. I think we should try to next this structure so that we address short-term AR within a day - the early lag correlations suggest this might be the issue. It will also speed up computation if you try corAR1(form = ~ Time | DOY) (you can do the corARMA() versions later but they aren't very efficient, so see if the corAR1() works first before going to those less efficient versions.
+    Having said that, are there missing data?
+    you may be under-estimating the smooths; you can specify the basis dimensions for each marginal smooth in the te(); so try te(Time, DOY, bs = c("cc", "tp"), k = c(10, 10)) say, for 100 edfs max minus a couple for identifiability constraints. The default in te() is only to use 5^d edfs where d = 2 in your case for a 2d spline
+
+The bam() models suggest the mean function (the trends over time) haven't been well-estimated. how to set k is demonstrated above for the te() terms in the gamm()."
+
 ## Issues with models describing CO2 (or pH) using time variables
 
 I have selected to make models both with pH and CO2. This is because for 2014, we have CO2 data available (which led to the comparison of calculated and measured CO2 for a part of the paper), but for 2015, only pH. 
@@ -77,7 +100,7 @@ I have selected to make models both with pH and CO2. This is because for 2014, w
 There are a few overarching questions regarding these models:
 
 1. Since autocorrelation is a problem mostly for predictions, is it absolutely necessary to account for it here since my main aim is to just describe the data? (Time isn't necessarily informative since interannual variation in weather etc is so high... The main point was to display what happens through time, and be able to show that diel fluctuations are smaller than seasonal fluxes, and those in turn are smaller than interannual fluxes)
-2. You mentioned a ```gp``` spline before, and a Gamma with log link -- is this something we still should pursue? How are ```scat``` and ```Gamma``` different in helping with heteroscedasticity?
+2. You mentioned a ```gp``` spline before, and a Gamma with log link -- is this something we still should pursue? 
     a. This comes back to what the final model should be: GAMM, BAM or GAM (with ```gp```)
 3. How to construct a BAM wisely? e.g. I can choose to almost follow the data completely, which in a way could be what I want?
 
@@ -91,7 +114,22 @@ Unfortunately I cannot seem to manage a GAMM model with AR(2)....
 
 ``` {r timemodels, echo=TRUE}
  bdat <- transform(bdat, co2lag1 = myAR(bdat$co2corr, 1))
-  
+
+## now making all values <5ppm into 5ppm as per discussion on detection limit of probe???
+bdat$co2corr[which(bdat$co2corr < 5)] <- 5
+
+## FIXME: in all models that require contiguous time spaces (even if NA in obs) - noticed that bdat has time
+##    gaps with diff() (which is a bit strange since all my faulty data changes involved making into NA
+##    rather than removing).. so make sure to do this also in original models script in case we do the
+##    lags etc.
+start = as.POSIXct(" 2014-06-11 19:30:00", tz="Canada/Saskatchewan")
+end = as.POSIXct("2014-08-29 23:45:00", tz="Canada/Saskatchewan")
+full <- seq(start, end, by=900)
+
+which(!full %in% bdat$datetime)
+alltimes <- data.frame(datetime = full)
+bdat <- merge(bdat, alltimes, all.x = TRUE)
+
   ## create models; testing AR inclusion and comparing k with edf to set k (gam.check)
   ## note that "in recent mgcv versions the output in summary() is more reliable than
   ##    the generalised likelihood ratio test we might do to compare a selected model
@@ -102,27 +140,31 @@ Unfortunately I cannot seem to manage a GAMM model with AR(2)....
   ##    Model will be ok-ish for now. Will look at model with predictors in AM"
   
 # interaction term significant -->
-  mco2te <- gam(co2corr ~ te(Time, DOY, bs = c("cc","tp")) + s(co2lag1),
-                data = bdat, select = TRUE, method = "REML", family = scat,
+  mco2te <- gam(co2corr ~ te(Time, DOY, bs = c("cc","tp"), k=c(10,10)) + s(co2lag1),
+                data = bdat, select = TRUE, method = "REML", family = tw,
                 na.action = na.exclude)
   ## co2 dependence on previous value dwarfs all other terms... not sure I'm including everything
   ##    correctly? was I meant to do the autoregression separately?
   
-  plot(acf(resid(mco2te), na.action = na.exclude)) # still autocorrelated.. could add AR2?
+  plot(acf(resid(mco2te), na.action = na.exclude)) # autocorrelation after increasing k for te() term 
+  #   now down to <0.2
 
 ## try gamm approach following fromthebottomoftheheap?
-## FIXME: should we pursue this?
-ctrl <- list(niterEM = 0, msVerbose = FALSE, optimMethod="L-BFGS-B")
-testingnull <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, method="REML",
-                    control = ctrl, verbosePQL = FALSE)
-testing1 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, method="REML",
-                 correlation = corARMA(form = ~ 1, p=1),
-                 control = ctrl, verbosePQL = FALSE)
+## FIXME: now amended to have a better corARMA definition and also a AR(1) term with Time|DOY
+ctrl <- list(niterEM = 0, msVerbose = FALSE, optimMethod="L-BFGS-B") 
+testingnull <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat, 
+                    family=Gamma(link="log"), control = ctrl, verbosePQL = FALSE)
+testing1 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat,
+                 correlation = corARMA(form = ~ 1, p=1), family=Gamma(link="log"),
+                 control = ctrl, verbosePQL = TRUE)
 ##testing2 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, 
        ##          correlation = corARMA(form = ~ 1, p=2),
       ##           control = ctrl, verbosePQL = TRUE)
 ## FIXME: "Error in `coef<-.corARMA`(`*tmp*`, value = value[parMap[, i]]) : 
 ##    Coefficient matrix not invertible""
+testing3 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat,
+                 correlation = corAR1(form = ~ Time | DOY), family=Gamma(link="log"),
+                 control = ctrl, verbosePQL = TRUE)
 ```
 
 ``` {r gammresids}
