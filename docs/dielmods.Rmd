@@ -93,6 +93,10 @@ or use family = Gamma(link = "log") depending on whether you have 0s or not. The
 
 The bam() models suggest the mean function (the trends over time) haven't been well-estimated. how to set k is demonstrated above for the te() terms in the gamm()."
 
+In general: "Ideally you would use a GLM; the mean of log(x) is not the same as the log(mean(x)), which is to say that you are fitting a model for the mean of log(x) and what you are interested in is the mean(x).
+
+If we have to we can log transform, but I'd rather see what we can do with gam() first"
+
 ## Issues with models describing CO2 (or pH) using time variables
 
 I have selected to make models both with pH and CO2. This is because for 2014, we have CO2 data available (which led to the comparison of calculated and measured CO2 for a part of the paper), but for 2015, only pH. 
@@ -100,7 +104,7 @@ I have selected to make models both with pH and CO2. This is because for 2014, w
 There are a few overarching questions regarding these models:
 
 1. Since autocorrelation is a problem mostly for predictions, is it absolutely necessary to account for it here since my main aim is to just describe the data? (Time isn't necessarily informative since interannual variation in weather etc is so high... The main point was to display what happens through time, and be able to show that diel fluctuations are smaller than seasonal fluxes, and those in turn are smaller than interannual fluxes)
-2. You mentioned a ```gp``` spline before, and a Gamma with log link -- is this something we still should pursue? 
+2. You mentioned __a ```gp``` spline__ before, and a Gamma with log link -- is this something we still should pursue? 
     a. This comes back to what the final model should be: GAMM, BAM or GAM (with ```gp```)
 3. How to construct a BAM wisely? e.g. I can choose to almost follow the data completely, which in a way could be what I want?
 
@@ -118,7 +122,7 @@ Unfortunately I cannot seem to manage a GAMM model with AR(2)....
 ## now making all values <5ppm into 5ppm as per discussion on detection limit of probe???
 bdat$co2corr[which(bdat$co2corr < 5)] <- 5
 
-## FIXME: in all models that require contiguous time spaces (even if NA in obs) - noticed that bdat has time
+## FIXME: if models that require contiguous time spaces (even if NA in obs) - noticed that bdat has time
 ##    gaps with diff() (which is a bit strange since all my faulty data changes involved making into NA
 ##    rather than removing).. so make sure to do this also in original models script in case we do the
 ##    lags etc.
@@ -134,37 +138,44 @@ bdat <- merge(bdat, alltimes, all.x = TRUE)
   ## note that "in recent mgcv versions the output in summary() is more reliable than
   ##    the generalised likelihood ratio test we might do to compare a selected model
   ##    with a null one" (GS Oct 16)
-  ## FIXME: DOY is eating up as many k's as possible; 80 too many, using most of 70
-  ## FIXME: update model by Gav's ryver comments! "Made some progress with time model. 
-  ## Change "tp" to "gp" for both DoY terms and remove any k values. Use Gamma and log link. 
-  ##    Model will be ok-ish for now. Will look at model with predictors in AM"
   
 # interaction term significant -->
   mco2te <- gam(co2corr ~ te(Time, DOY, bs = c("cc","tp"), k=c(10,10)) + s(co2lag1),
                 data = bdat, select = TRUE, method = "REML", family = tw,
                 na.action = na.exclude)
-  ## co2 dependence on previous value dwarfs all other terms... not sure I'm including everything
-  ##    correctly? was I meant to do the autoregression separately?
+  ## tested with inverse gaussian, takes longer to fit, doesn't seem improved based on resids &
+  ##    gam.check
   
   plot(acf(resid(mco2te), na.action = na.exclude)) # autocorrelation after increasing k for te() term 
   #   now down to <0.2
 
-## try gamm approach following fromthebottomoftheheap?
-## FIXME: now amended to have a better corARMA definition and also a AR(1) term with Time|DOY
+## try gamm approach following fromthebottomoftheheap
+## now amended to have a better corARMA definition and also a AR(1) term with Time|DOY
 ctrl <- list(niterEM = 0, msVerbose = FALSE, optimMethod="L-BFGS-B") 
 testingnull <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat, 
                     family=Gamma(link="log"), control = ctrl, verbosePQL = FALSE)
-testing1 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat,
+
+testingARMAsimp <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat,
                  correlation = corARMA(form = ~ 1, p=1), family=Gamma(link="log"),
                  control = ctrl, verbosePQL = TRUE)
+##testingARMA1 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat,
+       ##          correlation = corARMA(form =  ~ Time | DOY, p=1), family=Gamma(link="log"),
+       ##          control = ctrl, verbosePQL = TRUE)
+testingAR1simp <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat,
+                correlation = corAR1(form = ~ 1), family=Gamma(link="log"),
+               control = ctrl, verbosePQL = TRUE)
+##testingAR1 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat,
+   ##              correlation = corAR1(form = ~ Time | DOY), family=Gamma(link="log"),
+    ##             control = ctrl, verbosePQL = TRUE)
+## FIXME: Error in chol.default(V$V[[i]]) : the leading minor of order 2 is not positive definite
+##    for both testingAR1 and testing ARMA1 when form = ~ Time | DOY
+
 ##testing2 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp")), data = bdat, 
        ##          correlation = corARMA(form = ~ 1, p=2),
       ##           control = ctrl, verbosePQL = TRUE)
 ## FIXME: "Error in `coef<-.corARMA`(`*tmp*`, value = value[parMap[, i]]) : 
 ##    Coefficient matrix not invertible""
-testing3 <- gamm(co2corr ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat,
-                 correlation = corAR1(form = ~ Time | DOY), family=Gamma(link="log"),
-                 control = ctrl, verbosePQL = TRUE)
+
 ```
 
 ``` {r gammresids}
@@ -178,11 +189,11 @@ __2. 2015__ -- note here, much more data available (ca 20000). For ```gamm()```,
 ``` {r bammod, echo=TRUE}
 ## trying bam to see if model fitting improves cause I can perhaps make more complex
 ## http://www.sfs.uni-tuebingen.de/~jvanrij/Tutorial/GAMM.html#setting-up-a-gamm-model
-bamnull <- bam(ph1 ~te(Time, DOY, bs = c("cc","tp")), data = bdat5)
+bamnull <- bam(ph1 ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat5)
 
 resnull <- resid(bamnull, type = "scaled.pearson")
 
-bamAR1 <- bam(ph1 ~te(Time, DOY, bs = c("cc","tp"), k=25), data = bdat5, rho=0.85, method='REML')
+bamAR1 <- bam(ph1 ~te(Time, DOY, bs = c("cc","tp"), k=c(10,10)), data = bdat5, rho=0.9, method='REML')
 ## FIXME: how to choose k intelligently? Can almost just choose to exactly follow the data
 ## FIXME: could play with setting rho a bit more -- obvs ACF reduces the higher I set it
 ```
@@ -234,15 +245,17 @@ Model exactly the same for both years:
 phmechmod4 <- gam(ph1 ~ s(log(chlrfu), by = factor(TimeofDay), k=4) + s(log(bga1rfu), by = factor(TimeofDay), k=4) + 
                s(airtemp) + s(log(stability +1), k=3) + s(log(dailyrain+1), k=4) + s(conv) + 
                s(log(turb), k=4) + s(cdom, k=3) + s(windsp) + s(cond1, k=4),
-             data = bdat, select = TRUE, method = "REML", family = gaussian(),
+             data = bdat, select = TRUE, method = "REML", family = scat(),
              na.action = na.exclude, control = gam.control(nthreads = 3, trace = FALSE))
 # had to put k for some vars to reduce overfitting
+# NOTE scat seemed to be better based on gam.check than gaussian
 
 phmechmod5 <- gam(ph1 ~ s(log(chlrfu), by = factor(TimeofDay), k=4) + s(log(bga1rfu), by = factor(TimeofDay), k=4) + 
                s(airtemp) + s(log(stability +1), k=3) + s(log(dailyrain+1), k=4) + s(conv) + 
                s(log(turb), k=4) + s(cdom, k=3) + s(windsp) + s(cond1, k=4),
              data = bdat5, select = TRUE, method = "REML", family = gaussian(),
              na.action = na.exclude, control = gam.control(nthreads = 3, trace = FALSE))
+# scat vs gaussian not that clear for 2015
 ```
 
 In 2014, 91% is explained; in 2015, 70%. Some bizarre things are occurring anyway which I'm checking with Helen, like non-overlapping conductivity between 2014 and 2015. cdom looks like in different units, and so does dailyrain. Checking against our long-term data set, conductivity registered by Helen's sonde was higher in 2015 than any historically recorded conductivity by undergrads...
