@@ -3,6 +3,12 @@
 ## final models chosen were co2mod and its residuals as resmodred for CO2 ~.
 ##    and egmodred.2 for pH ~ . These models are in this script run, the others
 ##    are set to not run
+## UPDATE: archive-preparation and model changes: changed GPP to R since that works much better
+##      with our hypotheses by incorporating at least one real respiration proxy
+##    Also changing the final model, since after further source data changes oxygen is 
+##      significant also with the climate indices
+##    NOTE that TDN and DOC interfere with each other (check pairs with logs); needs
+##      discussing
 
 ## set to whether or not to run the discarded models, and whether or not to plot output
 ##    from models that were kept
@@ -46,50 +52,50 @@ regsplit <- regsplit[lapply(regsplit,nrow) > 1]
 ## =================================================================================
 ## 1. model most similar to ones done before
 if(runextras) {
-egmod <- gam(pH_surface ~ 
-               s(Chl_a_ug_L) + s(Chl_a_ug_L, by = Lake, m = 1) +
-               # m = 1 means that penalty goes with 1st derivative... required
-               #    here because we're doing both s() and s(..,by = ...)
-               s(GPP_h) + s(GPP_h, by = Lake, m = 1) +
-               s(TDN_ug_L) + s(TDN_ug_L, by = Lake, m = 1) + 
-               s(DOC_mg_L) + s(DOC_mg_L, by = Lake, m = 1) +
-               s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) +
-               te(PDO, SOI) + te(PDO, SOI, by = Lake, m = 1) +
-               s(Lake, Year, bs = "re"), # still need to explicitly keep Lake as re!!!
-             data = regvarf,
-             select = FALSE, method = "REML", family = gaussian,
-             na.action = na.exclude,
-             control = gam.control(nthreads = 3, trace = TRUE))
-
-## save summary as txt document
-egmodsum <- summary(egmod)
-sink("../data/private/egmodsummary.txt")
-egmodsum
-sink()
+  egmod <- gam(pH_surface ~ 
+                 s(Chl_a_ug_L) + s(Chl_a_ug_L, by = Lake, m = 1) +
+                 # m = 1 means that penalty goes with 1st derivative... required
+                 #    here because we're doing both s() and s(..,by = ...)
+                 s(GPP_h) + s(GPP_h, by = Lake, m = 1) +
+                 s(TDN_ug_L) + s(TDN_ug_L, by = Lake, m = 1) + 
+                 s(DOC_mg_L) + s(DOC_mg_L, by = Lake, m = 1) +
+                 s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) +
+                 te(PDO, SOI) + te(PDO, SOI, by = Lake, m = 1) +
+                 s(Lake, Year, bs = "re"), # still need to explicitly keep Lake as re!!!
+               data = regvarf,
+               select = FALSE, method = "REML", family = gaussian,
+               na.action = na.exclude,
+               control = gam.control(nthreads = 3, trace = TRUE))
+  
+  ## save summary as txt document
+  egmodsum <- summary(egmod)
+  sink("../data/private/egmodsummary.txt")
+  egmodsum
+  sink()
 }
 
 ## 2. for this model, we are removing some of the Lake-specificity where nothing signif
 ##    was found in previous model + using regvarf2
 if(runextras) {
-egmod.red <- gam(pH_surface ~ 
-                   s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
-                   s(GPP_h) + s(GPP_h, by = Lake, m = 1) +
-                   s(log10(TDN_ug_L)) + 
-                   s(log10(DOC_mg_L)) +
-                   s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) +
-                   te(PDO, SOI) +
-                   s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator),
-                 data = regvarf2,
-                 select = TRUE, method = "REML", family = gaussian,
-                 na.action = na.exclude,
-                 control = gam.control(nthreads = 3, trace = TRUE))
-                 # this setting makes the computation a bit more efficient 
-## longer object length is not a multiple of shorter object length!!??
-
-egmodredsum <- summary(egmod.red)
-sink("../data/private/egmodredsummary.txt")
-egmodredsum
-sink()
+  egmod.red <- gam(pH_surface ~ 
+                     s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
+                     s(GPP_h) + s(GPP_h, by = Lake, m = 1) +
+                     s(log10(TDN_ug_L)) + 
+                     s(log10(DOC_mg_L)) +
+                     s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) +
+                     te(PDO, SOI) +
+                     s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator),
+                   data = regvarf2,
+                   select = TRUE, method = "REML", family = gaussian,
+                   na.action = na.exclude,
+                   control = gam.control(nthreads = 3, trace = TRUE))
+  # this setting makes the computation a bit more efficient 
+  ## longer object length is not a multiple of shorter object length!!??
+  
+  egmodredsum <- summary(egmod.red)
+  sink("../data/private/egmodredsummary.txt")
+  egmodredsum
+  sink()
 }
 
 # 3. model that removes further unnecessary elements to make fitting faster and simpler
@@ -111,25 +117,27 @@ egmod.red2 <- gam(pH_surface ~
 saveRDS(egmod.red2, "../data/private/egmodred2.rds")
 egmodred2sum <- summary(egmod.red2)
 if (plotmods) {
-sink("../docs/private/egmodred2summary.txt")
-egmodred2sum
-sink()
+  sink("../docs/private/egmodred2summary.txt")
+  egmodred2sum
+  sink()
 }
 # 4. model that uses lagged SOI and PDO, and includes SPEI (see climate-weather-modeling.R)
+#  Not here R instead (models with GPP and R still conclude the same -- it's not signif,
+#   and other var effects don't change)
 egmodlagged <- gam(pH_surface ~
-                   s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1,k=5) +
-                   s(GPP_h) +
-                   s(log10(TDN_ug_L)) +
-                   s(log10(DOC_mg_L)) +
-                   s(Oxygen_ppm) +
-                   s(SPEI02) +
-                   te(PDOmean, SOImean) + # tested this and we need interaction
-                   s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator
-                 data = regvarf2,
-                 select = TRUE, method = "REML", family = scat(),
-                 na.action = na.exclude,
-                 control = gam.control(nthreads = 3, trace = TRUE,
-                                       newton = list(maxHalf = 60)))
+                     s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1,k=5) +
+                     s(R_h) +
+                     s(log10(TDN_ug_L)) +
+                     s(log10(DOC_mg_L)) +
+                     s(Oxygen_ppm) +
+                     s(SPEI02) +
+                     te(PDOmean, SOImean) + # tested this and we need interaction
+                     s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator
+                   data = regvarf2,
+                   select = TRUE, method = "REML", family = scat(),
+                   na.action = na.exclude,
+                   control = gam.control(nthreads = 3, trace = TRUE,
+                                         newton = list(maxHalf = 60)))
 #egmodlaggedti <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) + ti(PDOmean) + ti(SOImean) 
 #   + ti(PDOmean, SOImean))
 #egmodlaggedtimarg <- update(egmodlagged, . ~ . - te(PDOmean, SOImean) 
@@ -137,26 +145,28 @@ egmodlagged <- gam(pH_surface ~
 #anova(egmodlaggedti, egmodlaggedtimarg, test = "LRT")
 saveRDS(egmodlagged,"../data/private/egmodlagged.rds")
 
-## oxygen drops out when lag induced.... can interactive PDO and SOI predict oxygen?
-oxygam <- gam(Oxygen_ppm ~ 
-                te(PDOmean, SOImean) + 
-                s(Lake, Year, bs="re"), 
-              data = regvarf2, select = TRUE, method="REML", family=scat(), 
-              na.action=na.exclude, control=gam.control(nthreads = 3, trace=TRUE, 
-                                                        newton = list(maxHalf=60)))
-# yes.... not the best model fit but 32.6% var expl.
-egmodox <- update(egmodlagged, .~. - te(PDOmean, SOImean))
-egmodinter <- update(egmodlagged, .~. - s(Oxygen_ppm))
-AIC(egmodox, egmodinter) # looks like climate better than oxy
+## ... can interactive PDO and SOI predict oxygen?
+if (runextras){
+  oxygam <- gam(Oxygen_ppm ~ 
+                  te(PDOmean, SOImean) + 
+                  s(Lake, Year, bs="re"), 
+                data = regvarf2, select = TRUE, method="REML", family=scat(), 
+                na.action=na.exclude, control=gam.control(nthreads = 3, trace=TRUE, 
+                                                          newton = list(maxHalf=60)))
+  # yes.... not the best model fit but 32.6% var expl.
+  egmodox <- update(egmodlagged, .~. - te(PDOmean, SOImean))
+  egmodinter <- update(egmodlagged, .~. - s(Oxygen_ppm))
+  AIC(egmodox, egmodinter) # looks like climate better than oxy
+  
+  saveRDS(oxygam,"../data/private/oxygam.rds")
+  saveRDS(egmodox,"../data/private/egmodox.rds")
+  saveRDS(egmodinter,"../data/private/egmodinter.rds")
+}
 
-saveRDS(oxygam,"../data/private/oxygam.rds")
-saveRDS(egmodox,"../data/private/egmodox.rds")
-saveRDS(egmodinter,"../data/private/egmodinter.rds")
-
-egmodlaggedsimp <- update(egmodinter, . ~ . -s(GPP_h) - s(log10(DOC_mg_L)))
+egmodlaggedsimp <- update(egmodlagged, . ~ . -s(R_h) - s(log10(TDN_ug_L)) -s(SPEI02) +
+                            s(SPEI02, k=3)) #became squiggly
 summary(egmodlaggedsimp)
 saveRDS(egmodlaggedsimp,"../data/private/egmodlaggedsimp.rds")
-
 
 ## testing to makes sure we really want SOI and PDO as te()
 ##  however couldn't get nointer to stabilise unless family was set to gaussian so
@@ -193,11 +203,11 @@ if(runextras) {
 }
 ## plot output of model
 if (plotmods) {
-pdf("../docs/private/egmod-reduced-log-covariates.pdf")
-op <- par(mar = c(4,4,1,1) + 0.1)
-plot(egmod.red2, pages = 4, scheme = 2)
-par(op)
-dev.off()
+  pdf("../docs/private/egmod-reduced-log-covariates.pdf")
+  op <- par(mar = c(4,4,1,1) + 0.1)
+  plot(egmod.red2, pages = 4, scheme = 2)
+  par(op)
+  dev.off()
 }
 
 ## use final models created for CO2, adapted to see if any one Lake deviates
@@ -205,20 +215,20 @@ dev.off()
 ## =================================================================================
 ## 1. can we use a blanket model for CO2 based on pH?
 co2mod <- gam(co2Flux ~ 
-               s(pH_surface) + s(pH_surface, by = Lake, m = 1) +
-               # m = 1 means that penalty goes with 1st derivative... required
-               #    here because we're doing both s() and s(..,by = ...)
-               s(Lake, Year, bs = "re"), # still need to explicitly keep Lake as re!!!
-             data = regvarf,
-             select = TRUE, method = "REML", family = gaussian,
-             na.action = na.exclude,
-             control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+                s(pH_surface) + s(pH_surface, by = Lake, m = 1) +
+                # m = 1 means that penalty goes with 1st derivative... required
+                #    here because we're doing both s() and s(..,by = ...)
+                s(Lake, Year, bs = "re"), # still need to explicitly keep Lake as re!!!
+              data = regvarf,
+              select = TRUE, method = "REML", family = gaussian,
+              na.action = na.exclude,
+              control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
 
 co2modsum <- summary(co2mod)
 if (plotmods) {
-sink("../data/private/co2modsummary.txt")
-co2modsum
-sink()
+  sink("../data/private/co2modsummary.txt")
+  co2modsum
+  sink()
 }
 
 gam.check(co2mod)
@@ -227,57 +237,57 @@ saveRDS(co2mod, "../data/private/co2mod.rds")
 ## FIXME: the kindex and pvalues are still NA for this model too
 
 if(runextras) {
-co2modnull <- gam(co2Flux ~ 
-                s(pH_surface) +
-                s(Lake, Year, bs = "re"), 
-              data = regvarf,
-              select = TRUE, method = "REML", family = gaussian,
-              na.action = na.exclude,
-              control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
-
-saveRDS(co2modnull, '../data/private/co2modnull.rds')
-anova(co2modnull, co2mod, test = "LRT")
-AIC(co2modnull, co2mod)
-# --> we need to take the more complex model
+  co2modnull <- gam(co2Flux ~ 
+                      s(pH_surface) +
+                      s(Lake, Year, bs = "re"), 
+                    data = regvarf,
+                    select = TRUE, method = "REML", family = gaussian,
+                    na.action = na.exclude,
+                    control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+  
+  saveRDS(co2modnull, '../data/private/co2modnull.rds')
+  anova(co2modnull, co2mod, test = "LRT")
+  AIC(co2modnull, co2mod)
+  # --> we need to take the more complex model
 }
 
 ## plot output of model
 if (plotmods) {
-pdf("../docs/co2mod.pdf")
-op <- par(mar = c(4,4,1,1) + 0.1)
-plot(co2mod, pages = 4, scheme = 2)
-par(op)
-dev.off()
+  pdf("../docs/co2mod.pdf")
+  op <- par(mar = c(4,4,1,1) + 0.1)
+  plot(co2mod, pages = 4, scheme = 2)
+  par(op)
+  dev.off()
 }
 
 ## model residuals
 res <- resid(co2mod, type = "pearson")
 
 if(runextras) {
-resmod <- gam(res ~ 
-                    s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
-                    s(GPP_h) + s(GPP_h, by = Lake, m = 1) +
-                    s(log10(TDN_ug_L)) + s(log10(TDN_ug_L), by = Lake, m = 1) +
-                    s(log10(DOC_mg_L)) + s(log10(DOC_mg_L), by = Lake, m = 1) +
-                    s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) +
-                    te(PDO, SOI) +
-                    s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator),
-                  data = regvarf2,
-                  select = TRUE, method = "REML", family = scat(),
-                  na.action = na.exclude,
-                  control = gam.control(nthreads = 3, trace = TRUE,
-                                        newton = list(maxHalf = 60)))
-
-co2resmodsum <- summary(resmod)
-sink("../data/private/co2resmodsummary.txt")
-co2resmodsum
-sink()
-
-pdf("../docs/resmod-full-covariates.pdf")
-op <- par(mar = c(4,4,1,1) + 0.1)
-plot(resmod, pages = 5, scheme = 2)
-par(op)
-dev.off()
+  resmod <- gam(res ~ 
+                  s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
+                  s(GPP_h) + s(GPP_h, by = Lake, m = 1) +
+                  s(log10(TDN_ug_L)) + s(log10(TDN_ug_L), by = Lake, m = 1) +
+                  s(log10(DOC_mg_L)) + s(log10(DOC_mg_L), by = Lake, m = 1) +
+                  s(Oxygen_ppm) + s(Oxygen_ppm, by = Lake, m = 1) +
+                  te(PDO, SOI) +
+                  s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator),
+                data = regvarf2,
+                select = TRUE, method = "REML", family = scat(),
+                na.action = na.exclude,
+                control = gam.control(nthreads = 3, trace = TRUE,
+                                      newton = list(maxHalf = 60)))
+  
+  co2resmodsum <- summary(resmod)
+  sink("../data/private/co2resmodsummary.txt")
+  co2resmodsum
+  sink()
+  
+  pdf("../docs/resmod-full-covariates.pdf")
+  op <- par(mar = c(4,4,1,1) + 0.1)
+  plot(resmod, pages = 5, scheme = 2)
+  par(op)
+  dev.off()
 }
 
 ## some of the GPP lake-specific things look a bit far-fetched so took Lake away there.
@@ -295,45 +305,45 @@ resmodred <- gam(res ~
                  control = gam.control(nthreads = 3, trace = TRUE,
                                        newton = list(maxHalf = 60)))
 if (runextras) {
-anova(resmodred, resmod, test = "LRT")
-## the simpler model is just fine
+  anova(resmodred, resmod, test = "LRT")
+  ## the simpler model is just fine
 }
 saveRDS(resmodred, "../data/private/resmodred.rds")
 
 co2resmodredsum <- summary(resmodred)
 
 if (plotmods) {
-sink("../data/private/co2resmodredsummary.txt")
-co2resmodredsum
-## s(log10(TDN_ug_L))          2.931e+00      9 25.756 9.97e-06 ***
-sink()
-
-pdf("../docs/resmodred.pdf")
-op <- par(mar = c(4,4,1,1) + 0.1)
-plot(resmodred, pages = 3, scheme = 2)
-par(op)
-dev.off()
-
-plot(resmodred, pages = 3, scheme = 2)
+  sink("../data/private/co2resmodredsummary.txt")
+  co2resmodredsum
+  ## s(log10(TDN_ug_L))          2.931e+00      9 25.756 9.97e-06 ***
+  sink()
+  
+  pdf("../docs/resmodred.pdf")
+  op <- par(mar = c(4,4,1,1) + 0.1)
+  plot(resmodred, pages = 3, scheme = 2)
+  par(op)
+  dev.off()
+  
+  plot(resmodred, pages = 3, scheme = 2)
 }
 ## can we simplify even further?
 if (runextras) {
-resmodredchl <- gam(res ~ 
-                      s(log10(Chl_a_ug_L)) +
-                      s(GPP_h) +
-                      s(log10(TDN_ug_L)) + 
-                      s(log10(DOC_mg_L)) + 
-                      s(Oxygen_ppm) + 
-                      te(PDO, SOI) +
-                      s(Lake, Year, bs = "re"),
-                    data = regvarf2,
-                    select = TRUE, method = "REML", family = scat(),
-                    na.action = na.exclude,
-                    control = gam.control(nthreads = 3, trace = TRUE,
-                                          newton = list(maxHalf = 60)))
-
-anova(resmodredchl, resmodred, test = "LRT")
-## better to keep the more complicated model
+  resmodredchl <- gam(res ~ 
+                        s(log10(Chl_a_ug_L)) +
+                        s(GPP_h) +
+                        s(log10(TDN_ug_L)) + 
+                        s(log10(DOC_mg_L)) + 
+                        s(Oxygen_ppm) + 
+                        te(PDO, SOI) +
+                        s(Lake, Year, bs = "re"),
+                      data = regvarf2,
+                      select = TRUE, method = "REML", family = scat(),
+                      na.action = na.exclude,
+                      control = gam.control(nthreads = 3, trace = TRUE,
+                                            newton = list(maxHalf = 60)))
+  
+  anova(resmodredchl, resmodred, test = "LRT")
+  ## better to keep the more complicated model
 }
 
 ## ==========================================================================
@@ -346,12 +356,12 @@ ww <- subset(regvarf2, Lake == "WW") # 168 data points
 
 ## model CO2 on pH with Year as factor
 co2wwmod <- gam(co2Flux ~ 
-                    s(pH_surface) +
-                    s(Year, bs = "re"), 
-                  data = ww,
-                  select = TRUE, method = "REML", family = gaussian,
-                  na.action = na.exclude,
-                  control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+                  s(pH_surface) +
+                  s(Year, bs = "re"), 
+                data = ww,
+                select = TRUE, method = "REML", family = gaussian,
+                na.action = na.exclude,
+                control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
 saveRDS(co2wwmod, "../data/private/co2wwmod.rds")
 
 ## save summary as txt document
@@ -366,9 +376,9 @@ phwwmod <- gam(pH_surface ~
                  s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) +
                  s(Year, bs = "re"), 
                data = ww,
-             select = TRUE, method = "REML", family = gaussian,
-             na.action = na.exclude,
-             control = gam.control(nthreads = 3, trace = TRUE))
+               select = TRUE, method = "REML", family = gaussian,
+               na.action = na.exclude,
+               control = gam.control(nthreads = 3, trace = TRUE))
 # a note regarding select = T | F: "select = FALSE just fits the model 
 #   without the second penalty on the linear part of the function. It seems to want to 
 #   keep some small amount of curvature but put a little shrinkage into the null space 
@@ -384,13 +394,13 @@ sink()
 
 ## one more model with co2 against everything
 dummymod <- gam(co2Flux ~ 
-                 s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
-                 s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) +
-                 s(Year, bs = "re"), 
-               data = ww,
-               select = TRUE, method = "REML", family = gaussian,
-               na.action = na.exclude,
-               control = gam.control(nthreads = 3, trace = TRUE))
+                  s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+                  s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) +
+                  s(Year, bs = "re"), 
+                data = ww,
+                select = TRUE, method = "REML", family = gaussian,
+                na.action = na.exclude,
+                control = gam.control(nthreads = 3, trace = TRUE))
 
 saveRDS(dummymod, "../data/private/dummymod.rds")
 
@@ -412,14 +422,14 @@ nointer <- gam(pH_surface ~
                control = gam.control(nthreads = 3, trace = TRUE))
 
 inter <- gam(pH_surface ~ 
-                 s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
-                 s(log10(DOC_mg_L)) + s(Oxygen_ppm) + 
-                 ti(PDO) + ti(SOI) + ti(PDO, SOI) +
-                 s(Year, bs = "re"), 
-               data = ww,
-               select = TRUE, method = "REML", family = gaussian,
-               na.action = na.exclude,
-               control = gam.control(nthreads = 3, trace = TRUE))
+               s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+               s(log10(DOC_mg_L)) + s(Oxygen_ppm) + 
+               ti(PDO) + ti(SOI) + ti(PDO, SOI) +
+               s(Year, bs = "re"), 
+             data = ww,
+             select = TRUE, method = "REML", family = gaussian,
+             na.action = na.exclude,
+             control = gam.control(nthreads = 3, trace = TRUE))
 anova(nointer, inter, test = "LRT")
 
 # a note regarding select = T | F: "select = FALSE just fits the model 
@@ -433,8 +443,8 @@ anova(nointer, inter, test = "LRT")
 
 ## predict CO2 based on pH: keep using iterms
 phwant <- with(ww, seq(min(`pH_surface`, na.rm = TRUE),
-     max(`pH_surface`, na.rm = TRUE),
-     length = N))
+                       max(`pH_surface`, na.rm = TRUE),
+                       length = N))
 
 ww.pdatc <- data.frame(pH_surface = phwant, Year = 2004) 
 ww.predc <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms") 
@@ -523,8 +533,8 @@ ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedminus = Fitted - Fittedse))
 shiftph <- attr(predict(phwwmod, newdata = ww.pdat, type = "iterms"), "constant")
 ww.pdatnorm <- ww.pdat
 ww.pdatnorm <- with(ww.pdatnorm, transform(ww.pdatnorm, Fitted = Fitted + shiftph, 
-                            Fittedplus = Fittedplus + shiftph, 
-                            Fittedminus = Fittedminus + shiftph))
+                                           Fittedplus = Fittedplus + shiftph, 
+                                           Fittedminus = Fittedminus + shiftph))
 
 labdat2 <- data.frame(x = 270, y = 9.1, label = "mean pH: 9.1")
 # without this step, the resolution of the text is really off for some reason
@@ -554,60 +564,60 @@ ggplot(ww.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted)) +
 dev.off()
 
 if (runextras) {
-## ===========================================================================
-## Below are my initial apply applications before learning that I can introduce
-##    by = ... into a gam call which makes it all better cause I am still using 
-##    all the data that way and other obvious reasons
-## ===========================================================================
-co2gams <- function(df) {
-  if (nrow(df) < 3) { return(NA) } else {
-    co2gam <- gam(co2Flux ~ s(pH_surface, k = 20), data = df,
-             select = TRUE, method = "ML", family = scat(),
-             na.action = na.exclude)
-  }}
-
-resgams <- function(df, res) {
-  if (nrow(df) < 3) { return(NA) } else {
-  res <- as.vector(res)
-    resmod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
-             s(DOC_mg_L) + s(Oxygen_ppm) + 
-             te(PDO, SOI) + s(Year, bs = "re"), data = df,
-           select = TRUE, method = "REML", family = scat(),
-           na.action = na.exclude) }
+  ## ===========================================================================
+  ## Below are my initial apply applications before learning that I can introduce
+  ##    by = ... into a gam call which makes it all better cause I am still using 
+  ##    all the data that way and other obvious reasons
+  ## ===========================================================================
+  co2gams <- function(df) {
+    if (nrow(df) < 3) { return(NA) } else {
+      co2gam <- gam(co2Flux ~ s(pH_surface, k = 20), data = df,
+                    select = TRUE, method = "ML", family = scat(),
+                    na.action = na.exclude)
+    }}
+  
+  resgams <- function(df, res) {
+    if (nrow(df) < 3) { return(NA) } else {
+      res <- as.vector(res)
+      resmod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
+                      s(DOC_mg_L) + s(Oxygen_ppm) + 
+                      te(PDO, SOI) + s(Year, bs = "re"), data = df,
+                    select = TRUE, method = "REML", family = scat(),
+                    na.action = na.exclude) }
   }
-
-## apply gam 
-regmods <- lapply(regsplit, co2gams)
-
-## apply residual extraction to regmods
-allres <- lapply(regmods, resid, type = "pearson", na.action = na.exclude)
-
-## apply resgams to the residuals
-## FIXME: this not doing the right thing!
-resmods <- mapply(resgams, regsplit, allres)
-
-## can lapply these to the above to check diagnostics however
-##    over gam.check the plotting default means I don't know how to store objects
-lapply(regmods, gam.check)
-regsumms <- lapply(regmods, summary)
-## deviance explained ranges from 68 - 80%
-lapply(regsumms, '[[', "dev.expl")
-
-lapply(regmods, plot, pers = TRUE, pages = 1)
-
-
-## 2. pH ~ .
-## ===========================================================================
-phgams <- function(df) {
-  if (nrow(df) < 3) { return(NA) } else {
-  gam(pH_surface ~ s(Lake, Year, bs = "re") + s(Chl_a_ug_L) + s(GPP_h) +
-               s(TDN_ug_L) + s(DOC_mg_L) + s(Oxygen_ppm) + te(PDO, SOI), data = df,
-             select = TRUE, method = "REML", family = gaussian, na.action = na.exclude)
-}}
-
-phmods <- lapply(regsplit, phgams)
-
-summary(phmod)
-plot(phmod, pages = 1, pers = TRUE)
-gam.check(phmod)
+  
+  ## apply gam 
+  regmods <- lapply(regsplit, co2gams)
+  
+  ## apply residual extraction to regmods
+  allres <- lapply(regmods, resid, type = "pearson", na.action = na.exclude)
+  
+  ## apply resgams to the residuals
+  ## FIXME: this not doing the right thing!
+  resmods <- mapply(resgams, regsplit, allres)
+  
+  ## can lapply these to the above to check diagnostics however
+  ##    over gam.check the plotting default means I don't know how to store objects
+  lapply(regmods, gam.check)
+  regsumms <- lapply(regmods, summary)
+  ## deviance explained ranges from 68 - 80%
+  lapply(regsumms, '[[', "dev.expl")
+  
+  lapply(regmods, plot, pers = TRUE, pages = 1)
+  
+  
+  ## 2. pH ~ .
+  ## ===========================================================================
+  phgams <- function(df) {
+    if (nrow(df) < 3) { return(NA) } else {
+      gam(pH_surface ~ s(Lake, Year, bs = "re") + s(Chl_a_ug_L) + s(GPP_h) +
+            s(TDN_ug_L) + s(DOC_mg_L) + s(Oxygen_ppm) + te(PDO, SOI), data = df,
+          select = TRUE, method = "REML", family = gaussian, na.action = na.exclude)
+    }}
+  
+  phmods <- lapply(regsplit, phgams)
+  
+  summary(phmod)
+  plot(phmod, pages = 1, pers = TRUE)
+  gam.check(phmod)
 }
