@@ -16,7 +16,7 @@ prep for makefile. * = does not depend on parent script (but may depend on a fun
 
 6: prepare data for regressions for CO2 flux
 =============================================
-6. co2ExplVar: 
+6a. co2ExplVar: 
 	takes pdo from online and creates an annual mean column. saves as pdo.rds
 	takes soi from online and saves as soi_stand.rds (nonstand for unstandardised data)
 	takes nao from online and saves as naoseasonal.rds
@@ -29,7 +29,10 @@ prep for makefile. * = does not depend on parent script (but may depend on a fun
 	
 	merges all above excepting climate indices, and saves as co2explained.rds
 		+++ this has all the POTENTIAL predictors too	
- 	
+6b. climate-weather-modeling:
+	takes most of previous data and incorporates evaporation and SPEI index into 
+		appropriate measures, saves as weathers.rds 	
+
 7: do regressions for CO2 flux
 ==============================================
 7. regression_routines: combines co2 flux with predictors; subsets available predictors from
@@ -42,7 +45,7 @@ prep for makefile. * = does not depend on parent script (but may depend on a fun
 8b. regression_routines_ph: regresses pH against variables of interest, Year and Lake as
 	random effect. reads in regvars. no output.
 8c. regression_routines_eachlake: models developed and then selected for paper, including
-	rationale. subsets to WW for Matt's paper. reads in regvars. produces models and
+	rationale. subsets to WW for Matt's paper. reads in regvars, weathers.rds. produces models and
 	model summaries as output. 
 	
 
