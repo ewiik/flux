@@ -169,7 +169,7 @@ mycolSums <- function(df, cols) {
 
 precipsplit <- with(precip, split(precip, list(Year, Month), drop = TRUE))
 preciptotal <- do.call(rbind, lapply(precipsplit, mycolSums, 
-                                     cols = "Total Precip (mm)")) # assumes 1:10 ratio water:snow
+                                     cols = "Total.Precip..mm.")) # assumes 1:10 ratio water:snow
 colnames(preciptotal) <- c("Year", "Month", "Precipmm")
 preciptotal <- preciptotal[order(preciptotal$Year, preciptotal$Month),]
 rownames(preciptotal) <- NULL
@@ -245,16 +245,7 @@ condmod <- gam(Conductivity ~
                control = gam.control(nthreads = 3, trace = TRUE, 
                                      newton = list(maxHalf = 60)))
 condmodlag <- gam(Conductivity ~ # ti model showed interaction required
-                 te(SOImean, PDOmean) +
-                 s(SPEI01, k=4) +
-                 s(Lake, bs = "re"), 
-               data = alldat,
-               select = TRUE, method = "REML", family = scat(),
-               na.action = na.exclude,
-               control = gam.control(nthreads = 3, trace = TRUE, 
-                                     newton = list(maxHalf = 60)))
-condmodlagpna <- gam(Conductivity ~ # ti model showed interaction required
-                    s(PNA, k=4) +
+                    te(SOImean, PDOmean) +
                     s(SPEI01, k=4) +
                     s(Lake, bs = "re"), 
                   data = alldat,
@@ -262,6 +253,15 @@ condmodlagpna <- gam(Conductivity ~ # ti model showed interaction required
                   na.action = na.exclude,
                   control = gam.control(nthreads = 3, trace = TRUE, 
                                         newton = list(maxHalf = 60)))
+condmodlagpna <- gam(Conductivity ~ # ti model showed interaction required
+                       s(PNA, k=4) +
+                       s(SPEI01, k=4) +
+                       s(Lake, bs = "re"), 
+                     data = alldat,
+                     select = TRUE, method = "REML", family = scat(),
+                     na.action = na.exclude,
+                     control = gam.control(nthreads = 3, trace = TRUE, 
+                                           newton = list(maxHalf = 60)))
 condmodplus <- gam(Conductivity ~
                      te(SOImean, PDOmean) +
                      s(Chl_a_ug_L) + # logging here didn't seem to improve resids
@@ -283,23 +283,23 @@ dicmod <- gam(TIC ~
               control = gam.control(nthreads = 3, trace = TRUE, 
                                     newton = list(maxHalf = 60)))
 phmod <- gam(pH_surface ~
-                te(SOImean, PDOmean) + # ti model showed interaction required
-                s(SPEI01, k=4) +
-                s(Lake, bs = "re"), 
-              data = alldat,
-              select = TRUE, method = "REML", family = scat(),
-              na.action = na.exclude,
-              control = gam.control(nthreads = 3, trace = TRUE, 
-                                    newton = list(maxHalf = 60)))
-
-plot(condmodlag, select = 3, scheme = 2)
-with(alldat, text(x=PDOmean, y=SOImean, labels = Year))
-
-fluxdicmod <- gam(co2Flux ~
-               s(TIC) +
-               s(TIC, by=Lake, m=1), 
+               te(SOImean, PDOmean) + # ti model showed interaction required
+               s(SPEI01, k=4) +
+               s(Lake, bs = "re"), 
              data = alldat,
              select = TRUE, method = "REML", family = scat(),
              na.action = na.exclude,
              control = gam.control(nthreads = 3, trace = TRUE, 
                                    newton = list(maxHalf = 60)))
+
+plot(condmodlag, select = 3, scheme = 2)
+with(alldat, text(x=PDOmean, y=SOImean, labels = Year))
+
+fluxdicmod <- gam(co2Flux ~
+                    s(TIC) +
+                    s(TIC, by=Lake, m=1), 
+                  data = alldat,
+                  select = TRUE, method = "REML", family = scat(),
+                  na.action = na.exclude,
+                  control = gam.control(nthreads = 3, trace = TRUE, 
+                                        newton = list(maxHalf = 60)))
