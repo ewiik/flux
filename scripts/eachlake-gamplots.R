@@ -721,11 +721,14 @@ var_labeller <- function(variable,value){
 }
 
 # run the ggplot
+melted$Lake <- as.character(melted$Lake)
+melted$Lake[melted$Lake == 'WW'] <- "W"
+melted$Lake <- factor(melted$Lake)
 meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
   geom_boxplot(outlier.colour="black", outlier.shape=5,
                outlier.size=1) +
   theme_bw(base_size = 14, base_family = 'Arial') +
-  facet_wrap( "variable", scales = "free", labeller = var_labeller, ncol=2) +
+  facet_wrap( "variable", scales = "free", labeller = var_labeller, ncol=2, strip.position = "left") +
   theme(axis.title = element_blank())
 
 boxgrid <- plot_grid(meltplot, Yearplot, ncol = 1, nrow=2, 
