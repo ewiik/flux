@@ -22,12 +22,12 @@ fluxes <- readRDS("../data/private/params-flux.rds")
 ## choose params that we want in model from co2expl offerings
 ## at the mo, relative humidity is in as a proxy for evaporation effects.. Considered this better than using
 ##    just precipitation since that may not be directly linked due to advective-dominated precip
-## Further, NPP and R so neatly related that I will use GPP rather than the two. Might add that the bias in
+## NPP and R very neatly related; selecting GPP and R. Might add that the bias in
 ##    1:1 is generally in favour of NPP
 regvars <- subset(co2expl,
                   select = c("YEAR", "Month", "Date", "DOY", "LAKE", "Chl_a_ug_L", "GPP_h",
-                  "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "Chl_a_ug_L_sur",
-                  "AirTempMonthly", "RelHum"))
+                             "R_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "Chl_a_ug_L_sur",
+                             "AirTempMonthly", "RelHum"))
 
 ## do whatever needs to be done with precip data. and March things
 ## ============================================================================
