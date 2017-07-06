@@ -10,6 +10,8 @@ source("../functions/genURLS.R")
 stations <- data.frame(StationID = c(3007), start = c(1994), end = c(2014))
 
 ## create precipitation data frame
+if (!dir.exists('../data/precipdata/routines')) {dir.create('../data/precipdata/routines',
+                                                            recursive = TRUE)}
 precip <- getData(stations, folder = "../data/precipdata/routines", timeframe='daily')
 precips <- do.call("rbind", precip)
 rownames(precips) <- NULL
@@ -31,6 +33,6 @@ mycolSums <- function(df, cols) {
 }
 
 precipsplit <- with(precips, split(precips, list(Year), drop = TRUE))
-snowtotal <- lapply(precipsplit, mycolSums, cols = c("Total Snow (cm)"))
+snowtotal <- lapply(precipsplit, mycolSums, cols = c("Total.Snow..cm."))
 snowtotal <- do.call("rbind", snowtotal)
 rownames(snowtotal) <- NULL
