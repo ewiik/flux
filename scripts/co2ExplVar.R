@@ -10,7 +10,7 @@
 
 ## download PDO url and create data frame structure with numerics
 if (!file.exists("../data/pdo.txt")) {
-  download.file("http://research.jisao.washington.edu/pdo/PDO.latest", "data/pdo.txt")
+  download.file("http://research.jisao.washington.edu/pdo/PDO.latest", "../data/pdo.txt")
   }
 
 file <- read.fwf(file = "../data/pdo.txt", skip = 30, n = 118,
