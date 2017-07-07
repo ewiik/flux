@@ -25,8 +25,7 @@ weathers <- readRDS('../data/weathers.rds')
 
 ## Load in gam models
 egmodlagged <- readRDS("../data/private/egmodlaggedsimp.rds")
-
-source("../functions/geom_rug3.R")
+egmodtdn <- readRDS("../data/private/egmodlaggedtdn.rds")
 
 ## change to match what was used to create the models
 regvars <- merge(regvars, weathers)
@@ -130,63 +129,64 @@ speiplot <- ggplot(spei.pdatnorm, aes(x = SPEI02, y = Fitted)) +
   geom_vline(xintercept = meanspei, linetype="dotted") +
   xlab("SPEI index (dry to wet)") + ylab('pH') +
   ylim(c(8.7, 9.2)) +
-  ggtitle('D') + theme(plot.title = element_text(hjust = -0.1, size=14, face="bold"))
+  ggtitle('d.') + theme(plot.title = element_text(hjust = -0.1, size=14, face="bold"))
 
-## for TDN
-#N <- 200
-#varWant <- c("Chl_a_ug_L", "PDOmean", "SOImean", "SPEI02", "Oxygen_ppm", "R_h", "DOC_mg_L")
-#lakeXbar <- with(regvarf2, do.call("rbind",
-#                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
-#                                          colMeans, na.rm = TRUE)))
-#lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
+# for TDN
+N <- 200
+varWant <- c("Chl_a_ug_L", "PDOmean", "SOImean", "SPEI02", "Oxygen_ppm", "R_h", "DOC_mg_L")
+lakeXbar <- with(regvarf2, do.call("rbind",
+                                   lapply(split(regvarf2[, varWant], droplevels(Lake)), 
+                                          colMeans, na.rm = TRUE)))
+lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
 
-#TDN.pdat <- with(droplevels(regvarf2),
-#                data.frame(`TDN_ug_L` = rep(seq(min(`TDN_ug_L`, na.rm = TRUE),
-#                                               max(`TDN_ug_L`, na.rm = TRUE),
-#                                              length = N),
-#                                         nlevels(Lake)),
-#                       Lake = rep(levels(Lake), each = N),
-#                      Year = rep(2004, prod(nlevels(Lake), N)),
-#                     dummy = rep(0, prod(nlevels(Lake), N))))
-#TDN.pdat <- merge(TDN.pdat, lakeXbar)
-#TDN.pred <- predict(egmodlagged, newdata = TDN.pdat, type = "terms", se.fit = TRUE)
-#whichCols <- grep("TDN", colnames(TDN.pred$fit))
-#whichColsSE <- grep("TDN", colnames(TDN.pred$se.fit))
-#TDN.pdat <- cbind(TDN.pdat, Fitted = TDN.pred$fit[, whichCols], 
-#                  se.Fitted = TDN.pred$se.fit[, whichColsSE])
-#limits <- aes(ymax = Fitted + se.Fitted, ymin= Fitted - se.Fitted)
+TDN.pdat <- with(droplevels(regvarf2),
+                data.frame(`TDN_ug_L` = rep(seq(min(`TDN_ug_L`, na.rm = TRUE),
+                                               max(`TDN_ug_L`, na.rm = TRUE),
+                                              length = N),
+                                         nlevels(Lake)),
+                       Lake = rep(levels(Lake), each = N),
+                      Year = rep(2004, prod(nlevels(Lake), N)),
+                     dummy = rep(0, prod(nlevels(Lake), N))))
+TDN.pdat <- merge(TDN.pdat, lakeXbar)
+TDN.pred <- predict(egmodlaggedtdn, newdata = TDN.pdat, type = "terms", se.fit = TRUE)
+whichCols <- grep("TDN", colnames(TDN.pred$fit))
+whichColsSE <- grep("TDN", colnames(TDN.pred$se.fit))
+TDN.pdat <- cbind(TDN.pdat, Fitted = TDN.pred$fit[, whichCols], 
+                  se.Fitted = TDN.pred$se.fit[, whichColsSE])
+limits <- aes(ymax = Fitted + se.Fitted, ymin= Fitted - se.Fitted)
 
-## make into original limits
-#TDN.pdat <- with(TDN.pdat, transform(TDN.pdat, Fittedplus = Fitted + se.Fitted))
-#TDN.pdat <- with(TDN.pdat, transform(TDN.pdat, Fittedminus = Fitted - se.Fitted))
+# make into original limits
+TDN.pdat <- with(TDN.pdat, transform(TDN.pdat, Fittedplus = Fitted + se.Fitted))
+TDN.pdat <- with(TDN.pdat, transform(TDN.pdat, Fittedminus = Fitted - se.Fitted))
 
-#shiftTDN <- attr(predict(egmodlagged, newdata = TDN.pdat, type = "iterms"), "constant")
-#TDN.pdatnorm <- TDN.pdat
-#TDN.pdatnorm <- with(TDN.pdatnorm, transform(TDN.pdatnorm, Fitted = Fitted + shiftTDN, 
-#                                            Fittedplus = Fittedplus + shiftTDN, 
-#                                           Fittedminus = Fittedminus + shiftTDN))
-#TDN.pdatnorm <- merge(TDN.pdatnorm, minmaxes)
-#overs <- with(TDN.pdatnorm, which(TDN_ug_L < minTDN_ug_L | TDN_ug_L > maxTDN_ug_L))
-#TDN.pdatnorm <- TDN.pdatnorm[-overs,]
+shiftTDN <- attr(predict(egmodlagged, newdata = TDN.pdat, type = "iterms"), "constant")
+TDN.pdatnorm <- TDN.pdat
+TDN.pdatnorm <- with(TDN.pdatnorm, transform(TDN.pdatnorm, Fitted = Fitted + shiftTDN, 
+                                            Fittedplus = Fittedplus + shiftTDN, 
+                                           Fittedminus = Fittedminus + shiftTDN))
+TDN.pdatnorm <- merge(TDN.pdatnorm, minmaxes)
+overs <- with(TDN.pdatnorm, which(TDN_ug_L < minTDN_ug_L | TDN_ug_L > maxTDN_ug_L))
+TDN.pdatnorm <- TDN.pdatnorm[-overs,]
 
-#labdatN <- data.frame(x = 3000, y = meanpH + 0.03, label = "mean pH")
+labdatN <- data.frame(x = 3000, y = meanpH + 0.03, label = "mean pH")
 
-#TDNquants <- quantile(regvarf2$TDN_ug_L, c(.05,.95), na.rm = TRUE)
+TDNquants <- quantile(regvarf2$TDN_ug_L, c(.05,.95), na.rm = TRUE)
 
-#TDNplot <- ggplot(TDN.pdatnorm, aes(x = TDN_ug_L, y = Fitted)) +
-# papertheme +
-#annotate("rect", xmin=TDNquants[1], xmax=TDNquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
-#geom_line() +
-#geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-#           alpha = 0.25) +  
-#geom_rug3(aes(x=TDN_ug_L), data = regvarf2, stat = "identity", position = "identity", 
-#         sides = "b", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
-#geom_text(data = labdatN, aes(label = label, x = x, y = y, size = 5), 
-#         show.legend = FALSE) +
-#scale_x_log10(breaks = c(100,200,400,800,1600,3200,6400)) +
-#geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
-#geom_vline(xintercept = meanTDN, linetype = 'dotted') +
-#xlab(expression(paste("TDN ("~mu*"g"~L^{-1}*")"))) + ylab('pH')
+TDNplot <- ggplot(TDN.pdatnorm, aes(x = TDN_ug_L, y = Fitted)) +
+  theme_bw(base_size=12, base_family = 'Arial') +
+  theme(legend.position='top') +
+  annotate("rect", xmin=TDNquants[1], xmax=TDNquants[2], ymin=-Inf, ymax=Inf, alpha = 0.1, fill='gray60') +
+  geom_line() +
+  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+              alpha = 0.25) +  
+  geom_rug3(aes(x=TDN_ug_L), data = regvarf2, stat = "identity", position = "identity", 
+            sides = "b", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
+  #geom_text(data = labdatN, aes(label = label, x = x, y = y, size = 5), 
+  #         show.legend = FALSE) +
+  scale_x_log10(breaks = c(100,200,400,800,1600,3200,6400)) +
+  geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
+  geom_vline(xintercept = meanTDN, linetype = 'dotted') +
+  xlab(expression(paste("TDN ("~mu*"g"~L^{-1}*")"))) + ylab('pH')
 
 ## for Oxygen_ppm
 N <- 200
@@ -237,7 +237,8 @@ Oxygenplot <- ggplot(Oxygen.pdatnorm, aes(x = Oxygen_ppm, y = Fitted)) +
             sides = "b", na.rm = FALSE, show.legend = NA, inherit.aes = FALSE, alpha=0.3) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   geom_vline(xintercept = meanox, linetype = 'dotted') +
-  xlab(expression(paste("Oxygen ("~mu*"g"~L^{-1}*")"))) + ylab('pH')
+  xlab(expression(paste("Oxygen ("~mu*"g"~L^{-1}*")"))) + ylab('pH')+
+  ggtitle('b.') + theme(plot.title = element_text(hjust = -0.1, size=14, face="bold"))
 
 ## for DOC
 N <- 200
@@ -291,7 +292,8 @@ DOCplot <- ggplot(DOC.pdatnorm, aes(x = DOC_mg_L, y = Fitted)) +
   scale_x_log10(breaks = c(10,20,40,60,80)) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   geom_vline(xintercept = meanDOC, linetype = 'dotted') +
-  xlab(expression(paste("DOC ("~mu*"g"~L^{-1}*")"))) + ylab('pH')
+  xlab(expression(paste("DOC ("~mu*"g"~L^{-1}*")"))) + ylab('pH') +
+  ggtitle('c.') + theme(plot.title = element_text(hjust = -0.1, size=14, face="bold"))
 
 ## for chl a
 ## Get site-specific data/predictions
@@ -349,17 +351,18 @@ chlaplot <- ggplot(chl.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted, group = Lake, c
   #          show.legend = FALSE, inherit.aes = FALSE) +
   geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   geom_vline(xintercept = meanchl, linetype='dotted') +
-  scale_linetype_manual(name='Lake', values = c("solid", "solid","solid", "solid", "solid", 
-                                                "longdash", "longdash")) +
-  scale_colour_manual(name="Lake", values = c("#5e3c99", "#5e3c99","#5e3c99", "#b2abd2", "#5e3c99",
-                                              "#b2abd2", "#e66101"))+
+  scale_linetype_manual(name='Lake', values = c("dotdash", "solid","solid", "solid", "solid", 
+                                                "solid", "longdash")) +
+  scale_colour_manual(name="Lake", values = c("#b2abd2","#5e3c99", "#5e3c99","#5e3c99", "#5e3c99",
+                                              "#5e3c99", "#e66101"))+
   theme(legend.position = 'top', legend.direction = "vertical", 
         axis.text.x = element_text(angle = 45)) +
   scale_x_log10(breaks = c(5,10,25,50,100,200,300)) +
   xlab(expression(paste("Chl"~italic(a)~"("~mu*"g"~"L"^{-1}*")"))) + 
   guides(colour=guide_legend(ncol=3,nrow=4,bycol =TRUE,title.position = 'left'),
          lty=guide_legend(ncol=3,nrow=4, bycol =TRUE,title.position = 'left')) +
-  ylab('pH')
+  ylab('pH') +
+  ggtitle('a.') + theme(plot.title = element_text(hjust = -0.1, size=14, face="bold"))
 ## '#e66101','#fdb863','#b2abd2','#5e3c99' (order red:light:dark)
 
 ## see http://stackoverflow.com/questions/11838278/
@@ -412,8 +415,8 @@ SOIplot <- ggplot(SOI.pdat[SOI.pdat$Lake=='B',], aes(x = PDOmean, y = pH, group=
   theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top') +
   geom_line() +
-  scale_color_manual(name=expression(paste(bold('B')~'      SOI')), values = c("#5e3c99", "#b2abd2", "#e66101"))+
-  scale_linetype_manual(name=expression(paste(bold('B')~'      SOI')), values = c("solid", "solid","longdash")) +
+  scale_color_manual(name=expression(paste(bold('b.')~'      SOI')), values = c("#5e3c99", "#b2abd2", "#e66101"))+
+  scale_linetype_manual(name=expression(paste(bold('b.')~'      SOI')), values = c("solid", "solid","longdash")) +
   #scale_colour_brewer(name = "SOI", type = 'qual', palette = 'Dark2', direction=1) +
   #geom_abline(slope = 0, intercept = meanpH, linetype="dotted") +
   xlab('PDO') + ylab('pH')
@@ -466,8 +469,8 @@ PDOplot <- ggplot(PDO.pdat[PDO.pdat$Lake=='B',], aes(x = SOImean, y = pH, group=
   theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top') +
   geom_line() +
-  scale_color_manual(name=expression(paste(bold('C')~'      PDO')), values = c("#5e3c99", "#b2abd2", "#e66101"))+
-  scale_linetype_manual(name=expression(paste(bold('C')~ '      PDO')), values = c("solid", "solid","longdash")) +
+  scale_color_manual(name=expression(paste(bold('c.')~'      PDO')), values = c("#5e3c99", "#b2abd2", "#e66101"))+
+  scale_linetype_manual(name=expression(paste(bold('c.')~ '      PDO')), values = c("solid", "solid","longdash")) +
   #scale_colour_brewer(name = "PDO", type = 'qual', palette = 'Dark2', direction=1) +
   #geom_abline(slope = 0, intercept = meanpH) +
   xlab('SOI') + ylab('pH')
@@ -512,7 +515,7 @@ comboplot <- ggplot(comb.pdatnorm, aes(x = SOImean, y = PDOmean, z=pH)) + #, z=F
   theme_bw(base_size=14, base_family = 'Arial') +
   theme(legend.position='top') +
   geom_raster(aes(fill=pH)) + # change to turn grey background into nothing
-  scale_fill_viridis(na.value='transparent',name=expression(paste(bold('A')~'      pH'))) +
+  scale_fill_viridis(na.value='transparent',name=expression(paste(bold('a.')~'      pH'))) +
   geom_point(data=regvarf2, aes(x=SOImean, y=PDOmean, z=NULL)) +
   theme(legend.key.width=unit(2,"cm")) +
   geom_vline(linetype='dashed', xintercept = c(-1.1, 0.3, 1.1)) +
@@ -520,8 +523,9 @@ comboplot <- ggplot(comb.pdatnorm, aes(x = SOImean, y = PDOmean, z=pH)) + #, z=F
   ylab("PDO") + xlab("SOI")
 
 ## save objects:
-plots <- list(Oxygenplot, chlaplot, DOCplot, SOIplot, PDOplot, comboplot, speiplot)
-plotnames <- c('Oxygenplot', 'chlaplot', 'DOCplot', 'SOIplot', 'PDOplot', 'comboplot', 'SPEIplot')
+plots <- list(Oxygenplot, chlaplot, DOCplot, SOIplot, PDOplot, comboplot, speiplot, TDNplot)
+plotnames <- c('Oxygenplot', 'chlaplot', 'DOCplot', 'SOIplot', 'PDOplot', 'comboplot', 'SPEIplot', 
+               'TDNplot')
 
 invisible( # this means I don't get the list [[1:3]] returned on screen
   lapply(
@@ -537,6 +541,7 @@ metabplots <- grid.arrange(chlaplot, Oxygenplot, DOCplot, ncol = 2,
                            layout_matrix=cbind(c(1,1), c(2,3)))
 ggsave("../docs/private/ph-metab-lagged.pdf", metabplots, scale=1.1, width=10) #width=28, height=18, units = 'cm'
 ggsave("../docs/private/ph-clim-lagged.pdf", climgam, scale=0.9, width = 8, height=13)
+ggsave("../docs/private/ph-TDN-lagged.pdf", TDNplot, scale=0.9, width = 6, height=4)
 
 ## time plots
 ## ==================================================================================

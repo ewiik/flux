@@ -7,8 +7,8 @@
 ##      with our hypotheses by incorporating at least one real respiration proxy
 ##    Also changing the final model, since after further source data changes oxygen is 
 ##      significant also with the climate indices
-##    NOTE that TDN and DOC interfere with each other (check pairs with logs); needs
-##      discussing
+##    NOTE that TDN and DOC interfere with each other (check pairs() with logs); needs
+##      discussing and therefore new TDN model is developed for paper
 
 ## set to whether or not to run the discarded models, and whether or not to plot output
 ##    from models that were kept
@@ -101,22 +101,23 @@ if(runextras) {
 # 3. model that removes further unnecessary elements to make fitting faster and simpler
 #    AND introduces scat() again. Testing to see if the step failure can be averted
 #    by setting maxHalf = 60
-egmod.red2 <- gam(pH_surface ~
-                    s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1,k=5) +
-                    s(GPP_h) +
-                    s(log10(TDN_ug_L)) +
-                    s(log10(DOC_mg_L)) +
-                    s(Oxygen_ppm) +
-                    te(PDO, SOI) +
-                    s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator
-                  data = regvarf2,
-                  select = TRUE, method = "REML", family = scat(),
-                  na.action = na.exclude,
-                  control = gam.control(nthreads = 3, trace = TRUE,
-                                        newton = list(maxHalf = 60)))
-saveRDS(egmod.red2, "../data/private/egmodred2.rds")
-egmodred2sum <- summary(egmod.red2)
-if (plotmods) {
+if(runextras){
+  egmod.red2 <- gam(pH_surface ~
+                      s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1,k=5) +
+                      s(GPP_h) +
+                      s(log10(TDN_ug_L)) +
+                      s(log10(DOC_mg_L)) +
+                      s(Oxygen_ppm) +
+                      te(PDO, SOI) +
+                      s(Lake, Year, bs = "re", by = dummy), # dummy is 0/1 indicator
+                    data = regvarf2,
+                    select = TRUE, method = "REML", family = scat(),
+                    na.action = na.exclude,
+                    control = gam.control(nthreads = 3, trace = TRUE,
+                                          newton = list(maxHalf = 60)))
+  saveRDS(egmod.red2, "../data/private/egmodred2.rds")
+  egmodred2sum <- summary(egmod.red2)
+  
   sink("../docs/private/egmodred2summary.txt")
   egmodred2sum
   sink()
@@ -145,28 +146,27 @@ egmodlagged <- gam(pH_surface ~
 #anova(egmodlaggedti, egmodlaggedtimarg, test = "LRT")
 saveRDS(egmodlagged,"../data/private/egmodlagged.rds")
 
-## ... can interactive PDO and SOI predict oxygen?
-if (runextras){
-  oxygam <- gam(Oxygen_ppm ~ 
-                  te(PDOmean, SOImean) + 
-                  s(Lake, Year, bs="re"), 
-                data = regvarf2, select = TRUE, method="REML", family=scat(), 
-                na.action=na.exclude, control=gam.control(nthreads = 3, trace=TRUE, 
-                                                          newton = list(maxHalf=60)))
-  # yes.... not the best model fit but 32.6% var expl.
-  egmodox <- update(egmodlagged, .~. - te(PDOmean, SOImean))
-  egmodinter <- update(egmodlagged, .~. - s(Oxygen_ppm))
-  AIC(egmodox, egmodinter) # looks like climate better than oxy
-  
-  saveRDS(oxygam,"../data/private/oxygam.rds")
-  saveRDS(egmodox,"../data/private/egmodox.rds")
-  saveRDS(egmodinter,"../data/private/egmodinter.rds")
-}
-
+# take out insignificant vars
 egmodlaggedsimp <- update(egmodlagged, . ~ . -s(R_h) - s(log10(TDN_ug_L)) -s(SPEI02) +
                             s(SPEI02, k=3)) #became squiggly
 summary(egmodlaggedsimp)
 saveRDS(egmodlaggedsimp,"../data/private/egmodlaggedsimp.rds")
+
+# see mumdat below for why this created
+egmodlaggedtdn <- update(egmodlagged, . ~ . -s(R_h) - s(log10(DOC_mg_L)) -s(SPEI02) +
+                            s(SPEI02, k=3)) #became squiggly
+summary(egmodlaggedtdn)
+saveRDS(egmodlaggedtdn,"../data/private/egmodlaggedtdn.rds")
+
+nullvars <- c("Chl_a_ug_L" , "Chl_a_ug_L", "R_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", 
+              "SPEI02", "PDOmean", "SOImean", "Lake", "Year", "pH_surface")
+mumdat <- regvarf2[complete.cases(regvarf2[,nullvars]),] # want to AIC compare, and NA diff
+#   between vars
+mummod <- update(egmodlagged, data=mumdat, na.action="na.fail")
+mummodtdn <- update(mummod, .~.-s(log10(DOC_mg_L)))
+mummoddoc <- update(mummod, .~.-s(log10(TDN_ug_L)))
+AIC(mummod, mummoddoc, mummodtdn) # basically we can drop tdn with no added AIC,
+#   but dropping DOC in favour of TDN makes it worse.
 
 ## testing to makes sure we really want SOI and PDO as te()
 ##  however couldn't get nointer to stabilise unless family was set to gaussian so
