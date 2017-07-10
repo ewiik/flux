@@ -12,24 +12,21 @@ extras <- FALSE # for running extra bits at end
 ## download PDO url and create data frame structure with numerics
 if (!file.exists("../data/pdo.txt")) {
   download.file("http://research.jisao.washington.edu/pdo/PDO.latest", "../data/pdo.txt")
-  }
+}
 
-file <- read.fwf(file = "../data/pdo.txt", skip = 30, n = 118,
-                   widths = c(8, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7))
+file <- read.fwf(file = "../data/pdo.txt", skip = 32, n = 118,
+                 widths = c(8, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7))
 
 colnames(file) <- unlist(file[1,])
 pdo <- file[-c(1, 2),] # all as factors and straight to numeric gives gibberish
-pdo <- lapply(pdo, as.character)
-pdo <- lapply(pdo, as.numeric) #though this makes NA out of the years that have asterisks.
+pdo <- data.frame(lapply(pdo, as.character), stringsAsFactors=FALSE)
+pdo$YEAR.... <- gsub("**", "", pdo$YEAR...., fixed = TRUE) # remove asterisks for numeric conversion
+pdo <- data.frame(lapply(pdo, as.numeric)) 
 #   these asterisks actually mean "Derived from OI.v2 SST fields" (erm...)
-pdo <- do.call(cbind, pdo)
 pdo[pdo == 99.9] <- NA
-pdo <- as.data.frame(pdo)
 names(pdo) <- c("year", "jan", "feb", "mar", "apr","may", "jun", "jul", "aug", "sep", "oct", "nov",
                 "dec") # unlist() earlier maintained spaces in the names...
 # could've had month.abb here to c all months in a year
-allna <- which(is.na(pdo$year))
-pdo$year[allna] <- c(seq(from = 2002, length.out = length(allna), by = 1))
 
 ## create yearly means since I believe we want annual reso
 pdo <- transform(pdo, mean = rowMeans(pdo[,-1], na.rm = TRUE))
