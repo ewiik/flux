@@ -3,7 +3,6 @@
 ## 1. download weather pattern data from web: PDO, SOI, NAO
 ## 2. process routines sampling data tables
 ## 3. get flow et al data from other sources
-## FIXME: develope if file exists clauses for all private files in one
 
 ## Part 1: all these data are complete
 ## ==================================================================================================
@@ -120,6 +119,13 @@ saveRDS(emi, "../data/emi.rds")
 ## read in supporting monitoring data tables grabbed from database
 ## I created a Date2 column in OpenOffice to convert the current display of month as character to month
 ##    as numeric (former is how it came from database into excel)
+if(any(!file.exists(c("../data/private/qpco2supportdata.csv","../data/private/Production.csv",
+                      "../data/private/Chl.csv", "../data/private/qprodsupportdata.csv",
+                      "../data/private/qprofilesoxtemp.csv","../data/private/qsecchietal.csv",
+                      "../data/private/Lakes.csv","../data/private/qDICDOCupdate.csv")))) {
+  stop("get all necessary private files from Emma")
+}
+
 routines <- read.csv("../data/private/qpco2supportdata.csv")
 routines <- transform(routines, Date = as.Date(as.character(Date2), format = "%Y-%m-%d",
                                                tz="Canada/Saskatchewan"))
