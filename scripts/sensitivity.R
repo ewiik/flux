@@ -11,8 +11,7 @@
 ##  6. chisq: https://www.youtube.com/watch?v=hcDb12fsbBU
 ##          http://www.civil.uwaterloo.ca/brodland/EasyStats/EasyStats/Chi_squared_Distribution.html
 
-## NB could not seem to extract prcc indices out of object table so copy pasted them
-##    manually into /private/lhs-prcc.csv
+runextras <- FALSE
 
 ## source necessary packages:
 library("mc2d")
@@ -38,29 +37,31 @@ factors <- c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", "TICu
 
 ## Get distributions for each variables
 ## ====================================
-## basic distro plotting
 dplott <- function(vect) {
   plot(density(vect, na.rm = TRUE), ylab = mean(vect, na.rm = TRUE))
 }
-opar <- par(mfrow = c(2,4))
-apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
-                "TICumol", "Pressure", "pco2atm")], 2, dplott) 
-par(opar)
-
 qqplott <- function(vect) {
   qqnorm(vect, ylab = mean(vect, na.rm = TRUE))
   qqline(vect)
 }
-opar <- par(mfrow = c(2,4))
-apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
-                "TICumol", "Pressure", "pco2atm")], 
-      2, qqplott)  
-par(opar)
-apply(fluxes[,c(7:8,11,13,17:18,22)], 2, shapiro.test)   
-# normal: NONE
-## see this: http://stats.stackexchange.com/questions/16646/
-##    what-is-a-good-index-of-the-degree-of-violation-of-normality-and-what-descriptive
 
+if (runextras) {
+  ## basic distro plotting
+  opar <- par(mfrow = c(2,4))
+  apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+                  "TICumol", "Pressure", "pco2atm")], 2, dplott) 
+  par(opar)
+  
+  opar <- par(mfrow = c(2,4))
+  apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+                  "TICumol", "Pressure", "pco2atm")], 
+        2, qqplott)  
+  par(opar)
+  apply(fluxes[,c(7:8,11,13,17:18,22)], 2, shapiro.test)   
+  # normal: NONE
+  ## see this: http://stats.stackexchange.com/questions/16646/
+  ##    what-is-a-good-index-of-the-degree-of-violation-of-normality-and-what-descriptive
+}
 ## So let's try the packages on fitting distributions
 giveDist <- function(vect) {
   if(any(is.na(vect))) {
@@ -69,54 +70,55 @@ giveDist <- function(vect) {
   else {descdist(vect, discrete = FALSE)}
   legend("bottomleft", legend = head(vect))
 }
-opar <- par(mfrow = c(2,4))
-apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
-                "TICumol", "Pressure", "pco2atm")], 
-      2, giveDist) 
-par(opar)
-## --> normal:  dicumol, salcalc, (meanwind)
-## --> unif: cond, pressure, pco2atm
-## normal-logistic: pH               
-## bleurgh: temperature
-
-## Look at uncertain-distro variables and test with likely distro 
-## "For the following named distributions, reasonable starting values will be computed 
-##    if start is omitted (i.e. NULL) : "norm", "lnorm", "exp" and "pois", "cauchy", 
-##    "gamma", "logis", "nbinom" (parametrized by mu and size), "geom", "beta", 
-##    "weibull" from the stats package; "invgamma", "llogis", "invweibull", "pareto1", 
-##    "pareto" from the actuar package. Note that these starting values may not be 
-##    good enough if the fit is poor. The function uses a closed-form formula to fit the 
-##    uniform distribution. If start is a list, then it should be a named list with the 
-##    same names as in the d,p,q,r functions of the chosen distribution. 
-##    If start is a function of data, then the function should return a named list with 
-##    the same names as in the d,p,q,r functions of the chosen distribution. 
-x <- fluxes$Conductivity
-disttest <- "gamma"
-## chisq may require this to run: start = list(df = 8) or some other number
-## t requires same to run but behaves suspiciously (see plots with expected lines)
-{if(any(is.na(x))) {
-  remove <- which(is.na(x)) 
-  fit.test <- fitdist(x[-remove], disttest)
-  fit.norm <- fitdist(x[-remove], "norm")
+if(runextras) {
+  opar <- par(mfrow = c(2,4))
+  apply(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+                  "TICumol", "Pressure", "pco2atm")], 
+        2, giveDist) 
+  par(opar)
+  ## --> normal:  dicumol, salcalc, (meanwind)
+  ## --> unif: cond, pressure, pco2atm
+  ## normal-logistic: pH               
+  ## bleurgh: temperature
+  
+  ## Look at uncertain-distro variables and test with likely distro 
+  ## "For the following named distributions, reasonable starting values will be computed 
+  ##    if start is omitted (i.e. NULL) : "norm", "lnorm", "exp" and "pois", "cauchy", 
+  ##    "gamma", "logis", "nbinom" (parametrized by mu and size), "geom", "beta", 
+  ##    "weibull" from the stats package; "invgamma", "llogis", "invweibull", "pareto1", 
+  ##    "pareto" from the actuar package. Note that these starting values may not be 
+  ##    good enough if the fit is poor. The function uses a closed-form formula to fit the 
+  ##    uniform distribution. If start is a list, then it should be a named list with the 
+  ##    same names as in the d,p,q,r functions of the chosen distribution. 
+  ##    If start is a function of data, then the function should return a named list with 
+  ##    the same names as in the d,p,q,r functions of the chosen distribution. 
+  x <- fluxes$Conductivity
+  disttest <- "gamma"
+  ## chisq may require this to run: start = list(df = 8) or some other number
+  ## t requires same to run but behaves suspiciously (see plots with expected lines)
+  {if(any(is.na(x))) {
+    remove <- which(is.na(x)) 
+    fit.test <- fitdist(x[-remove], disttest)
+    fit.norm <- fitdist(x[-remove], "norm")
+  }
+    else { fit.test <- fitdist(x, disttest)
+    fit.norm <- fitdist(x, "norm")}
+  }
+  
+  plot(fit.test)
+  plot(fit.norm)
+  
+  ## lower = better, not in the absolute value sense
+  fit.test$aic
+  fit.norm$aic
+  ## for temperature, weibull > normal > chisq | gamma --> weibull
+  ## for pH, logis > normal > cauchy
+  ## for cond, pressure: unif doesn't produce AIC but by eye, normal is better
+  ## for DICumol, normal > logis > cauchy
+  ## looking at dist plot, normal for windspeed
+  ## for SalCalc, weibull > normal
+  ## ngggg let's do unif for pco2atm
 }
-else { fit.test <- fitdist(x, disttest)
-fit.norm <- fitdist(x, "norm")}
-}
-
-plot(fit.test)
-plot(fit.norm)
-
-## lower = better, not in the absolute value sense
-fit.test$aic
-fit.norm$aic
-## for temperature, weibull > normal > chisq | gamma --> weibull
-## for pH, logis > normal > cauchy
-## for cond, pressure: unif doesn't produce AIC but by eye, normal is better
-## for DICumol, normal > logis > cauchy
-## looking at dist plot, normal for windspeed
-## for SalCalc, weibull > normal
-## ngggg let's do unif for pco2atm
-
 ## Continue defining parameters for the chosen distros
 distro <- c("qweibull", "qnorm", "qlogis", "qnorm", "qweibull", "qnorm", "qnorm", "qunif") 
 # in order of 'factors'; retrieve args to list by calling the fit.[] object
@@ -132,26 +134,27 @@ pairs(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc",
 ## cond ~ SalCalc ~ TICumol --> these need a rank order combination
 
 ## make basic cube
-latin <- LHS(gasExchangeSens, factors = factors, N = 200, q = distro, q.arg = props, nboot = 50)
-
+if(runextras) {
+  latin <- LHS(gasExchangeSens, factors = factors, N = 200, q = distro, q.arg = props, nboot = 50)
+}
 ## introduce correlation structures
 datacorr <- cor(fluxes[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
                           "TICumol", "Pressure", "pco2atm")], method = "spearman",
-                  use = "complete.obs")
+                use = "complete.obs")
 
 latincorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = props, 
                  nboot = 200, opts = list(COR = datacorr, eps = 0.1, maxIt=200))
-
-## create an identical one for testing reproducibility (e.g. 200 had low sbma)
-testcorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = props, 
-                nboot = 200, opts = list(COR = datacorr, eps = 0.1, maxIt=200))
-## test if N is large enough to produce reproducible results...
-(testSbma <- sbma(latincorr, testcorr)) # > 90% agreement with eps 0.1, N=500
-# NB the default is to use absolute values since -ve correlations get given almost
-#   no weight by the method otherwise
-targetLHS <- target.sbma(target=0.91, gasExchangeSens, factors, distro, props, 
-                          opts = list(COR = datacorr, eps = 0.1, maxIt=200))
-
+if(runextras) {
+  ## create an identical one for testing reproducibility (e.g. 200 had low sbma)
+  testcorr <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = props, 
+                  nboot = 200, opts = list(COR = datacorr, eps = 0.1, maxIt=200))
+  ## test if N is large enough to produce reproducible results...
+  (testSbma <- sbma(latincorr, testcorr)) # > 90% agreement with eps 0.1, N=500
+  # NB the default is to use absolute values since -ve correlations get given almost
+  #   no weight by the method otherwise
+  targetLHS <- target.sbma(target=0.91, gasExchangeSens, factors, distro, props, 
+                           opts = list(COR = datacorr, eps = 0.1, maxIt=200))
+}
 ## look at diagnostic plots of objects
 want <- latincorr
 
@@ -160,20 +163,20 @@ abline(v=0)
 plotscatter(want, ylim = c(-300,600), add.lm = FALSE)
 plotprcc(want)
 
-
-## now what happens when our DIC can explode to values like in Brian's data set?
-distro <- c("qweibull", "qnorm", "qlogis", "qnorm", "qweibull", "qnorm", "qnorm", "qunif") 
-# in order of 'factors'; retrieve args to list by calling the fit.[] object
-propsdic <- list( list(shape=4.02, scale=18.65), list(mean=1013, sd=499), 
-               list(location=8.84,scale=0.31), list(mean=4.98, sd=0.83),
-               list(shape=2.13, scale=0.68), list(mean=8000, sd=1068),
-               list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
-
-diccube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = propsdic, 
-                nboot = 200)
-
-plotscatter(diccube, ylim = c(-300,600))
-
+if(runextras){
+  ## now what happens when our DIC can explode to values like in Brian's data set?
+  distro <- c("qweibull", "qnorm", "qlogis", "qnorm", "qweibull", "qnorm", "qnorm", "qunif") 
+  # in order of 'factors'; retrieve args to list by calling the fit.[] object
+  propsdic <- list( list(shape=4.02, scale=18.65), list(mean=1013, sd=499), 
+                    list(location=8.84,scale=0.31), list(mean=4.98, sd=0.83),
+                    list(shape=2.13, scale=0.68), list(mean=8000, sd=1068),
+                    list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
+  
+  diccube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distro, q.arg = propsdic, 
+                 nboot = 200)
+  
+  plotscatter(diccube, ylim = c(-300,600))
+}
 ### split by lake
 lakesub <- fluxes[,c("Lake","Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
                      "TICumol", "Pressure", "pco2atm")]
@@ -182,49 +185,50 @@ lakesplit <- lapply(lakesplit, "[", -1) # remove lake before doing correlation m
 lakesplit <- lakesplit[sapply(lakesplit, function(x) nrow(x) >= 4)] #remove unwanted lakes
 
 lakecorr <- lapply(lakesplit, cor, method = "spearman",
-                use = "complete.obs")
+                   use = "complete.obs")
 
 ## eyeball distros to guess at what to use now (probs same as for all lakes in most cases)
 varnames <- c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
-                "TICumol", "Pressure", "pco2atm")
+              "TICumol", "Pressure", "pco2atm")
 #choose variable
 varname <- varnames[1]
 
 #plot chosen variable
 ggplot(lakesub, aes_string(x=varname)) + geom_density(aes(colour=Lake, group=Lake)) +
-facet_wrap( "Lake", scales = "free") 
+  facet_wrap( "Lake", scales = "free") 
 
 #write wrapper to look at probable distro
 giveDistdf <- function(df) { 
   opar <- par(mfrow = c(2,4))
   apply(df[,c("Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
-            "TICumol", "Pressure", "pco2atm")], 
-      2, giveDist) 
-par(opar)
+              "TICumol", "Pressure", "pco2atm")], 
+        2, giveDist) 
+  par(opar)
 }
-
-#apply to lake, plots in following order:
-# "B"  "C"  "D"  "K"  "L"  "P"  "WW"
-lapply(lakesplit, giveDistdf)
-
-### play with this:
-x <- lakesplit$C$Temperature
-disttest <- "gamma"
-## chisq may require this to run: start = list(df = 8) or some other number
-## t requires same to run but behaves suspiciously (see plots with expected lines)
-{if(any(is.na(x))) {
-  remove <- which(is.na(x)) 
-  fit.test <- fitdist(x[-remove], disttest)
-  fit.norm <- fitdist(x[-remove], "norm")
+if(runextras){
+  #apply to lake, plots in following order:
+  # "B"  "C"  "D"  "K"  "L"  "P"  "WW"
+  lapply(lakesplit, giveDistdf)
+  
+  ### play with this:
+  x <- lakesplit$C$Temperature
+  disttest <- "gamma"
+  ## chisq may require this to run: start = list(df = 8) or some other number
+  ## t requires same to run but behaves suspiciously (see plots with expected lines)
+  {if(any(is.na(x))) {
+    remove <- which(is.na(x)) 
+    fit.test <- fitdist(x[-remove], disttest)
+    fit.norm <- fitdist(x[-remove], "norm")
+  }
+    else { fit.test <- fitdist(x, disttest)
+    fit.norm <- fitdist(x, "norm")}
+  }
+  plot(fit.norm)
+  plot(fit.test)
+  
+  fit.norm$aic
+  fit.test$aic
 }
-else { fit.test <- fitdist(x, disttest)
-fit.norm <- fitdist(x, "norm")}
-}
-plot(fit.norm)
-plot(fit.test)
-
-fit.norm$aic
-fit.test$aic
 
 ## lake-specific values
 distroc <- c("qnorm", "qnorm", "qlogis", "qnorm", "qlogis", "qnorm", 
@@ -253,9 +257,9 @@ propsp <- list( list(shape=3.93, scale=18.6), list(mean=1196.5, sd=272.7),
 distrob <- c("qweibull", "qnorm", "qlogis", "qnorm", "qnorm", "qnorm", 
              "qnorm", "qunif") 
 propsb <- list( list(shape=5.33, scale=19.6), list(mean=471.8, sd=83.2), 
-                  list(location=8.78,scale=0.32), list(mean=4.98, sd=0.83),
-                  list(mean=0.26, sd=0.04), list(mean=2719.1, sd=636.1),
-                  list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
+                list(location=8.78,scale=0.32), list(mean=4.98, sd=0.83),
+                list(mean=0.26, sd=0.04), list(mean=2719.1, sd=636.1),
+                list(mean=94.6, sd=0.17), list(min=356.9, max=402.2))
 
 
 distrod <- c("qweibull", "qlogis", "qlogis", "qnorm", "qnorm", "qnorm", 
@@ -287,7 +291,7 @@ dcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrod, q.arg = p
              nboot = 200, opts = list(COR = lakecorr$D, eps = 0.1, maxIt=200))
 
 lcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrol, q.arg = propsl, 
-                          nboot = 200, opts = list(COR = lakecorr$L, eps = 0.1, maxIt=200))
+             nboot = 200, opts = list(COR = lakecorr$L, eps = 0.1, maxIt=200))
 wcube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distrow, q.arg = propsw, 
              nboot = 200, opts = list(COR = lakecorr$WW, eps = 0.1, maxIt=200))
 ccube <- LHS(gasExchangeSens, factors = factors, N = 500, q = distroc, q.arg = propsc, 
@@ -319,25 +323,24 @@ grabs <- function(list) {
 prcclist <- lapply(prcclist, grabs)
 prccdf <- do.call(rbind, c(prcclist, make.row.names= FALSE))
 varnames <- c("Temperature","Conductivity","pH","meanWindMS","SalCalc","TICumol",
-            "Pressure","pco2atm")
+              "Pressure","pco2atm")
 prccdf$var <- rep(varnames, times = 4)
 prccdf$lake <- rep(c("all","B","D","L","W","P","C","K"), each = 8)
 names(prccdf)[c(1:5)] <- c("original", "bias", "stderr", "minci", "maxci")
 
+write.csv(prccdf,"../data/private/lhs-prcc.csv", row.names = FALSE)
 # plot the prcc's
 pd <- position_dodge(0.7)
 prccdf$initial <- substr(prccdf$lake, 1, 1)
 
-prccplot <- ggplot(prccdf, aes(x=var, group=interaction(var,lake), colour = lake, 
-                               label = initial)) + 
+prccplot <- ggplot(prccdf, aes(x=var, group=interaction(var,lake), colour = lake)) + 
   geom_errorbar(aes(ymin=minci, ymax=maxci), width=.1, position=pd) +
-  geom_jitter(aes(y=original, label=initial), size=3, position=pd) +
+  geom_jitter(aes(y=original), size=3, position=pd) +
   #geom_text(aes(y=original, label=initial), size=2, position=position_dodge(.3)) + 
   scale_color_brewer(palette="Paired") +
   ylim(-1,1) +
   ylab("PRCC")
 prccplot
-## FIXME: can't get this nice into r markdown...!
 
 ## plot only the main one
 prcclist <- list(latincorr)
@@ -359,39 +362,41 @@ prccplot <- ggplot(prccdf, aes(x=var)) +
   theme(axis.text.x=element_text(angle=45, vjust=0.5), axis.title.x=element_blank()) +
   ylim(-1,1) +
   ylab("Correlation")
-ggsave('../docs/private/prccplot.png', prccplot, width=8, height=4, units = 'in')
 
 ## general lake diffs in variables
-melted <- melt(lakesub, id = "Lake")
-melted$variable <- factor(melted$variable, levels = c("Temperature", "Conductivity", "pH", 
-                                                        "SalCalc", "TICumol", "meanWindMS", 
-                                                        "Pressure", "pco2atm"))
-
-# create a list with strip labels
-varnames <- list(
-  'Temperature'=expression(paste("Temperature ("~degree*"C)")) ,
-  'Conductivity'= expression(paste("Conductivity ("*mu*"S"~"cm"^{-1}*")")),
-  'pH'="pH",
-  'SalCalc' = "Salinity (ppt)",
-  'TICumol' = expression(paste("DIC ("~mu*"mol"~"L"^{-1}*")")),
-  'meanWindMS'= expression(paste("Mean Wind (m"~"s"^{-1}*")")),
-  'Pressure' = 'Pressure (kPa)',
-  'pco2atm' = expression(paste("Air"~italic(p)*"CO"[2]~"(ppm)"))
-)
-
 # Create a 'labeller' function, and push it into facet_grid call:
 var_labeller <- function(variable,value){
   return(varnames[value])
 }
 
-# run the ggplot
-meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
-  geom_boxplot(outlier.colour="black", outlier.shape=5,
-               outlier.size=1) +
-  theme_bw(base_size = 14, base_family = 'Arial') +
-  facet_wrap( "variable", scales = "free", labeller = var_labeller, ncol=2) +
-  theme(axis.title = element_blank())
-meltplot
+
+if(runextras) {
+  melted <- melt(lakesub, id = "Lake")
+  melted$variable <- factor(melted$variable, levels = c("Temperature", "Conductivity", "pH", 
+                                                        "SalCalc", "TICumol", "meanWindMS", 
+                                                        "Pressure", "pco2atm"))
+  
+  # create a list with strip labels
+  varnames <- list(
+    'Temperature'=expression(paste("Temperature ("~degree*"C)")) ,
+    'Conductivity'= expression(paste("Conductivity ("*mu*"S"~"cm"^{-1}*")")),
+    'pH'="pH",
+    'SalCalc' = "Salinity (ppt)",
+    'TICumol' = expression(paste("DIC ("~mu*"mol"~"L"^{-1}*")")),
+    'meanWindMS'= expression(paste("Mean Wind (m"~"s"^{-1}*")")),
+    'Pressure' = 'Pressure (kPa)',
+    'pco2atm' = expression(paste("Air"~italic(p)*"CO"[2]~"(ppm)"))
+  )
+  
+  # run the ggplot
+  meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
+    geom_boxplot(outlier.colour="black", outlier.shape=5,
+                 outlier.size=1) +
+    theme_bw(base_size = 14, base_family = 'Arial') +
+    facet_wrap( "variable", scales = "free", labeller = var_labeller, ncol=2) +
+    theme(axis.title = element_blank())
+  meltplot
+}
 ## FIXME: apparently var_labeller style labeling is deprecated but I can't get anything else to work
 ##    for the expressions so going with this for now... new version wants df's but df doesn't accept
 ##    expressions....
@@ -404,7 +409,7 @@ meltplot
 
 ## create ggplot of the simulated data
 simdat <- cbind(latincorr$data, latincorr$res)
-names(simdat)[names(simdat) == "cube$res"] <- "flux"
+names(simdat)[names(simdat) == "latincorr$res"] <- "flux"
 simmelt <- melt(simdat, id.vars = "flux")
 simmelt$variable <- factor(simmelt$variable, levels = c("Temperature", "Conductivity", "pH", 
                                                         "SalCalc", "TICumol", "meanWindMS", 
@@ -416,12 +421,6 @@ simplot <- ggplot(simmelt, aes(x=value,y=flux, group=variable)) +
   ylab(expression(paste(CO[2]~"flux (mmol"~"C "*m^{-2}*"d"^{-1}*')'))) +
   theme(axis.title.x = element_blank())
 
-# save meltplots?
-savemelt <- TRUE
-if(savemelt) {
-  ggsave("../docs/private/routines-boxplot.pdf", meltplot, width=15, units = "cm")
-  ggsave("../docs/private/sensitivity-sims.pdf", simplot, width=12, height=15, units="cm")
-}
 ## save LHS's?
 saveLHS <- TRUE
 
@@ -436,6 +435,7 @@ if(saveLHS) {
 saveplots <- TRUE
 
 if(saveplots) {
+  ggsave("../docs/private/sensitivity-sims.pdf", simplot, width=12, height=15, units="cm")
+  ggsave('../docs/private/prccplot.png', prccplot, width=8, height=4, units = 'in')
   saveRDS(prccplot, file = "../data/private/prccplot.rds")
-  saveRDS(meltplot, file = "../data/private/meltplot.rds")
 }
