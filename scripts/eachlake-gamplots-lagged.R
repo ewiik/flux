@@ -78,6 +78,109 @@ rownames(minmaxes) <- NULL
 papertheme <- theme_bw(base_size=18, base_family = 'Arial') +
   theme(legend.position='top')
 
+## summary plot for all vars
+## or maybe this could be an approach
+testing <- gam(data=regvars[regvars$Month > 4 & regvars$Month < 9,], pH_surface ~ s(Year) + 
+                 s(Year, by=Lake, m=1, k=7) + 
+                 s(DOY) + s(DOY, by=Lake, m=1) +
+                 s(Lake, bs='re'), family='gaussian', na.action=na.exclude, select=TRUE)
+N <- 500
+varWant <- "DOY"
+lakeXbar <- with(regvars, do.call(rbind, lapply(split(regvars[, varWant], droplevels(Lake)), 
+                                                mean, na.rm = TRUE)))
+lakeXbar <- transform(lakeXbar, Lake = factor(rownames(lakeXbar)))
+
+Year.pdat <- with(droplevels(regvars),
+                  data.frame(Year = rep(seq(min(`Year`, na.rm = TRUE),
+                                            max(`Year`, na.rm = TRUE),
+                                            length = N),
+                                        nlevels(Lake)),
+                             Lake = rep(levels(Lake), each = N)
+                  ))
+Year.pdat <- merge(Year.pdat, lakeXbar)
+names(Year.pdat)[which(names(Year.pdat)=='X_data')] <- 'DOY'
+
+toofar <- c(which(Year.pdat$Lake == 'WW' & Year.pdat$Year < 1996),
+            which(Year.pdat$Lake == 'P' & Year.pdat$Year < 2004))
+Year.pdat <- Year.pdat[-toofar,]
+
+Year.pred <- predict(testing, newdata = Year.pdat, type = "terms")
+whichCols <- grep("Year", colnames(Year.pred))
+Year.pdat <- cbind(Year.pdat, Fitted = rowSums(Year.pred[, whichCols]))
+
+shiftYear <- attr(Year.pred, "constant")
+Year.pdatnorm <- Year.pdat
+Year.pdatnorm <- with(Year.pdatnorm, transform(Year.pdatnorm, Fitted = Fitted + shiftYear))
+
+
+Yearplot <- ggplot(Year.pdatnorm, 
+                   aes(x = Year, y = Fitted, group = Lake, 
+                       colour = 
+                         ifelse(Lake == "WW", "Wascana", 
+                                ifelse(Lake == "D", "Diefenbaker",
+                                       ifelse(Lake == 'K', "Katepwa", 
+                                              ifelse(Lake == 'P', "Pasqua", 
+                                                     ifelse(Lake == 'B', 'Buffalo Pound', 
+                                                            ifelse(Lake=='L','Last Mountain',
+                                                                   'Crooked')))))),
+                       lty=ifelse(Lake == "WW", "Wascana", 
+                                  ifelse(Lake == "D", "Diefenbaker",
+                                         ifelse(Lake == 'K', "Katepwa", 
+                                                ifelse(Lake == 'P', "Pasqua", 
+                                                       ifelse(Lake == 'B', 'Buffalo Pound', 
+                                                              ifelse(Lake=='L','Last Mountain',
+                                                                     'Crooked')))))))) +
+  theme_bw(base_size=14, base_family = 'Arial') +
+  theme(legend.position='top') +
+  geom_line() + 
+  xlab("Year") + 
+  guides(colour=guide_legend(ncol=2,bycol =TRUE,title.position = 'left')) + 
+  scale_linetype_manual(name='Lake', values = c("solid", "longdash","dotdash", "solid", "solid", 
+                                                "solid", "longdash")) +
+  scale_colour_manual(name="Lake", values = c("#5e3c99", "#b2abd2","#5e3c99", "#5e3c99", "#b2abd2",
+                                              "#e66101", "#e66101"))+
+  #c("black", "#02818A","black", "black", "#02818A",
+  #"#A6BDDB", "#A6BDDB"))+
+  ylab('pH') + #02818A", "#A6BDDB" 
+  #theme(legend.position = "none")+
+  #guides(colour=guide_legend(nrow=1,byrow=TRUE))+
+  scale_x_continuous(breaks=c(1995, 2000,2005, 2010, 2014), labels = c(1995, 2000,2005, 2010, 2014))
+
+## general lake diffs in variables -- remove those deriving from same weather station
+melted <- melt(lakesub[,c('Lake', 'Temperature', 'Conductivity', 'pH', 'SalCalc', 'TICumol')], id = "Lake")
+
+# create a list with strip labels
+varnames <- list(
+  'Temperature'=expression(paste("Water temperature ("~degree*"C)")) ,
+  'Conductivity'= expression(paste("Conductivity ("*mu*"S"~"cm"^{-1}*")")),
+  'pH'="pH",
+  #'meanWindMS'= expression(paste("Mean Wind (m"~"s"^{-1}*")")),
+  'SalCalc' = "Salinity (ppt)",
+  'TICumol' = expression(paste("DIC ("~mu*"mol"~"L"^{-1}*")"))#,
+  #'Pressure' = 'Pressure (kPa)',
+  #'pco2atm' = expression(paste("Air"~italic(p)*"CO"[2]~"(ppm)"))
+)
+
+# Create a 'labeller' function, and push it into facet_grid call:
+var_labeller <- function(variable,value){
+  return(varnames[value])
+}
+
+# run the ggplot
+melted$Lake <- as.character(melted$Lake)
+melted$Lake[melted$Lake == 'WW'] <- "W"
+melted$Lake <- factor(melted$Lake)
+meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
+  geom_boxplot(outlier.colour="black", outlier.shape=5,
+               outlier.size=1) +
+  theme_bw(base_size = 14, base_family = 'Arial') +
+  facet_wrap( "variable", scales = "free", labeller = var_labeller, ncol=2, strip.position = "left") +
+  theme(axis.title = element_blank())
+
+boxgrid <- plot_grid(meltplot, Yearplot, ncol = 1, nrow=2, 
+                     rel_heights = c(3,1.5), labels = c('a.','b.'))
+ggsave("../docs/private/summaryfig.pdf", boxgrid, width=20, height=40, units = "cm")
+
 
 ## for SPEI
 N <- 200

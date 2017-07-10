@@ -732,7 +732,7 @@ meltplot <- ggplot(melted, aes(x=Lake,y=value, group=Lake)) +
   theme(axis.title = element_blank())
 
 boxgrid <- plot_grid(meltplot, Yearplot, ncol = 1, nrow=2, 
-                     rel_heights = c(3,1.5), labels = 'AUTO')
+                     rel_heights = c(3,1.5), labels = c('a.','b.'))
 ggsave("../docs/private/summaryfig.pdf", boxgrid, width=20, height=40, units = "cm")
 
 ## ==================================================================================
