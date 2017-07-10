@@ -147,6 +147,8 @@ Yearplot <- ggplot(Year.pdatnorm,
   scale_x_continuous(breaks=c(1995, 2000,2005, 2010, 2014), labels = c(1995, 2000,2005, 2010, 2014))
 
 ## general lake diffs in variables -- remove those deriving from same weather station
+lakesub <- fluxes[,c("Lake","Temperature", "Conductivity", "pH", "meanWindMS", "SalCalc", 
+                     "TICumol", "Pressure", "pco2atm")]
 melted <- melt(lakesub[,c('Lake', 'Temperature', 'Conductivity', 'pH', 'SalCalc', 'TICumol')], id = "Lake")
 
 # create a list with strip labels
