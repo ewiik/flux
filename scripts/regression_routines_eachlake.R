@@ -292,6 +292,7 @@ if(runextras) {
 }
 
 ## some of the GPP lake-specific things look a bit far-fetched so took Lake away there.
+if (runextras) {
 resmodred <- gam(res ~ 
                    s(log10(Chl_a_ug_L)) + s(log10(Chl_a_ug_L), by = Lake, m = 1) +
                    s(GPP_h) +
@@ -305,10 +306,10 @@ resmodred <- gam(res ~
                  na.action = na.exclude,
                  control = gam.control(nthreads = 3, trace = TRUE,
                                        newton = list(maxHalf = 60)))
-if (runextras) {
+
   anova(resmodred, resmod, test = "LRT")
   ## the simpler model is just fine
-}
+
 saveRDS(resmodred, "../data/private/resmodred.rds")
 
 co2resmodredsum <- summary(resmodred)
@@ -326,7 +327,7 @@ if (plotmods) {
   dev.off()
   
   plot(resmodred, pages = 3, scheme = 2)
-}
+}}
 ## can we simplify even further?
 if (runextras) {
   resmodredchl <- gam(res ~ 
