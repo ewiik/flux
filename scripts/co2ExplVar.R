@@ -4,6 +4,8 @@
 ## 2. process routines sampling data tables
 ## 3. get flow et al data from other sources
 
+extras <- FALSE # for running extra bits at end
+
 ## Part 1: all these data are complete
 ## ==================================================================================================
 
@@ -321,29 +323,30 @@ nrow(dataloss)
 
 ## Part 3: ice-out, inflow, evaporation
 ## ==========================================================================================
-
-## kerri emailed me this (in PhDPapers/Data..) pCO2_vars_yearlyaverageswithclimate.csv, but
-##    it has only a few years, so we need to supplement it.
-## other files downloaded at this point are from Rich. Go to 2010/2011
-## kerri used the "old" way of calculating annual flows, but nicole and I checking what data
-##    we can get to bring us up to 2015. probably will be the "new way"
-## "new way": monthly data set from rich (full csv in !git/fromrich, sensible csv in /private..)
-##    filled in a few missing annual totals in openoffice before saving as csv
-## "old way": annual data set from rich, full csv in !git/fromrich, sensible csv in /private..)
-##  Interestingly: why does finlay et al 2009 say that inflow for crooked was regressed, since it
-##    exists in the data set that rich sent that should correspond to what kerri did?
-
-## ice-out
-iceout1 <- read.csv("../data/private/IceOut.csv") # pending data to 2015
-icedataloss <- iceout1[is.na(iceout1$ICEOUTDOY),]
-nrow(iceout1) # 120
-nrow(icedataloss) # 45
-
-## inflow flows
-inflow1 <- read.csv("../data/private/Monthly_Inflow_Estimates2.csv") # pending data to 2015
-inflowold <- read.csv("../data/private/Lake_Inflows.csv") # 1994-2009
-
-othervars <- read.csv("../data/private/pCO2_vars_yearlyaverageswithclimate.csv")
-## this doesn't however indicate which vars interpolated and which real, but has the separate inflow
-##    sites and inflow data
-evap <- subset(othervars, select = "evap" %in% colnames(othervars))
+if (extras) {
+  ## kerri emailed me this (in PhDPapers/Data..) pCO2_vars_yearlyaverageswithclimate.csv, but
+  ##    it has only a few years, so we need to supplement it.
+  ## other files downloaded at this point are from Rich. Go to 2010/2011
+  ## kerri used the "old" way of calculating annual flows, but nicole and I checking what data
+  ##    we can get to bring us up to 2015. probably will be the "new way"
+  ## "new way": monthly data set from rich (full csv in !git/fromrich, sensible csv in /private..)
+  ##    filled in a few missing annual totals in openoffice before saving as csv
+  ## "old way": annual data set from rich, full csv in !git/fromrich, sensible csv in /private..)
+  ##  Interestingly: why does finlay et al 2009 say that inflow for crooked was regressed, since it
+  ##    exists in the data set that rich sent that should correspond to what kerri did?
+  
+  ## ice-out
+  iceout1 <- read.csv("../data/private/IceOut.csv") # pending data to 2015
+  icedataloss <- iceout1[is.na(iceout1$ICEOUTDOY),]
+  nrow(iceout1) # 120
+  nrow(icedataloss) # 45
+  
+  ## inflow flows
+  inflow1 <- read.csv("../data/private/Monthly_Inflow_Estimates2.csv") # pending data to 2015
+  inflowold <- read.csv("../data/private/Lake_Inflows.csv") # 1994-2009
+  
+  othervars <- read.csv("../data/private/pCO2_vars_yearlyaverageswithclimate.csv")
+  ## this doesn't however indicate which vars interpolated and which real, but has the separate inflow
+  ##    sites and inflow data
+  evap <- subset(othervars, select = "evap" %in% colnames(othervars))
+}
