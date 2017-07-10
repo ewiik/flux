@@ -14,6 +14,7 @@
 ##    from models that were kept
 runextras <- FALSE
 plotmods <- FALSE
+runwasc <- FALSE
 
 ## load necessary packages
 library("mgcv")
@@ -349,275 +350,277 @@ if (runextras) {
 ## ==========================================================================
 ## RUN MODELS FOR WASCANA ONLY -- USE regvarf2 WITH <0 made to 0, +1
 ## ==========================================================================
-ww <- subset(regvarf2, Lake == "WW") # 168 data points
-
-## 1. Create models and output
-## ====================================
-
-## model CO2 on pH with Year as factor
-co2wwmod <- gam(co2Flux ~ 
-                  s(pH_surface) +
-                  s(Year, bs = "re"), 
-                data = ww,
-                select = TRUE, method = "REML", family = gaussian,
-                na.action = na.exclude,
-                control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
-saveRDS(co2wwmod, "../data/private/co2wwmod.rds")
-
-## save summary as txt document
-co2wwsum <- summary(co2wwmod)
-sink("../data/private/co2wwmodsummary.txt")
-co2wwsum
-sink()
-
-## model with logged chla and TDN and Year as factor
-phwwmod <- gam(pH_surface ~ 
-                 s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
-                 s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) +
-                 s(Year, bs = "re"), 
-               data = ww,
-               select = TRUE, method = "REML", family = gaussian,
-               na.action = na.exclude,
-               control = gam.control(nthreads = 3, trace = TRUE))
-# a note regarding select = T | F: "select = FALSE just fits the model 
-#   without the second penalty on the linear part of the function. It seems to want to 
-#   keep some small amount of curvature but put a little shrinkage into the null space 
-#   just like the lasso would shrink a term away from the least squares fit." -GS
-saveRDS(phwwmod, "../data/private/phwwmod.rds")
-
-
-## save summary as txt document
-phwwsum <- summary(phwwmod)
-sink("../data/private/phwwmodsummary.txt")
-phwwsum
-sink()
-
-## one more model with co2 against everything
-dummymod <- gam(co2Flux ~ 
-                  s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
-                  s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) +
-                  s(Year, bs = "re"), 
-                data = ww,
-                select = TRUE, method = "REML", family = gaussian,
-                na.action = na.exclude,
-                control = gam.control(nthreads = 3, trace = TRUE))
-
-saveRDS(dummymod, "../data/private/dummymod.rds")
-
-## save summary as txt document
-dummysum <- summary(dummymod)
-sink("../data/private/dummysummary.txt")
-dummysum
-sink()
-
-## AAANNND looking at SOI and PDO separately
-nointer <- gam(pH_surface ~ 
-                 s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
-                 s(log10(DOC_mg_L)) + s(Oxygen_ppm) +
-                 ti(PDO) + ti(SOI) +
-                 s(Year, bs = "re"), 
-               data = ww,
-               select = TRUE, method = "REML", family = gaussian,
-               na.action = na.exclude,
-               control = gam.control(nthreads = 3, trace = TRUE))
-
-inter <- gam(pH_surface ~ 
-               s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
-               s(log10(DOC_mg_L)) + s(Oxygen_ppm) + 
-               ti(PDO) + ti(SOI) + ti(PDO, SOI) +
-               s(Year, bs = "re"), 
-             data = ww,
-             select = TRUE, method = "REML", family = gaussian,
-             na.action = na.exclude,
-             control = gam.control(nthreads = 3, trace = TRUE))
-anova(nointer, inter, test = "LRT")
-
-# a note regarding select = T | F: "select = FALSE just fits the model 
-#   without the second penalty on the linear part of the function. It seems to want to 
-#   keep some small amount of curvature but put a little shrinkage into the null space 
-#   just like the lasso would shrink a term away from the least squares fit." -GS
-
-
-## 2. Predict responses with most interesting terms and plot
-## =========================================================
-
-## predict CO2 based on pH: keep using iterms
-phwant <- with(ww, seq(min(`pH_surface`, na.rm = TRUE),
-                       max(`pH_surface`, na.rm = TRUE),
-                       length = N))
-
-ww.pdatc <- data.frame(pH_surface = phwant, Year = 2004) 
-ww.predc <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms") 
-whichColsc <- grep("pH", colnames(ww.predc))
-
-ww.predcse <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms", se.fit = TRUE)
-ww.predcse <- as.data.frame(ww.predcse$se.fit)
-whichColscse <- grep("pH", colnames(ww.predcse))
-
-ww.pdatc <- cbind(ww.pdatc, Fitted = ww.predc[, whichColsc], Fittedse = ww.predcse[,whichColscse])
-ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedplus = Fitted + Fittedse))
-ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedminus = Fitted - Fittedse))
-
-## transform back into original pH value for clarity:
-# get mean/intercept pH used by the model
-shiftco2 <- attr(predict(co2wwmod, newdata = ww.pdatc, type = "iterms"), "constant")
-ww.pdatcnorm <- ww.pdatc
-ww.pdatcnorm <- with(ww.pdatcnorm, transform(ww.pdatcnorm, Fitted = Fitted + shiftco2, 
-                                             Fittedplus = Fittedplus + shiftco2, 
-                                             Fittedminus = Fittedminus + shiftco2))
-
-labdat1 <- data.frame(x = 7, y = -15, label = "mean flux: -23")
-# without this step, the resolution of the text is really off for some reason
-
-## plot with all labels
-pdf("../data/private/wwco2mod.pdf", width = 10, height = 6.7)
-ggplot(ww.pdatcnorm, aes(x = pH_surface, y = Fitted)) +
-  geom_line() + 
-  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-              alpha = 0.25) +  
-  geom_abline(slope = 0, intercept = shiftco2, linetype="dotted") +
-  geom_text(data = labdat1, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
-  xlab('pH') + ylab('CO2 flux (mmolC/m2/d)')
-dev.off()
-
-## plot with disabled labels and white background
-tiff("../data/private/wwco2mod-notext.tiff", width = 2.3, height = 1.5, 
-     units = "in", res = 300)
-ggplot(ww.pdatcnorm, aes(x = pH_surface, y = Fitted)) +
-  geom_line() + 
-  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-              alpha = 0.25) +  
-  theme_bw() +
-  theme(axis.text = element_blank(), title = element_blank(),
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-dev.off()
-
-## extract predicted values based on chlorophyll for Matt's paper
-## we can use raw, not logged, chl values, since the gam retains this information
-##    and therefore we can feed it raw to predict() !!!
-N <- 200
-varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
-lakeWbar <- data.frame(t(colMeans(ww[, varWant], na.rm = TRUE)))
-lakeWbar$Year <- 2004
-
-ww.pdat <- with(droplevels(ww),
-                data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
-                                                  max(`Chl_a_ug_L`, na.rm = TRUE),
-                                                  length = N),
-                                              nlevels(Lake)),
-                           Lake = rep(levels(Lake), each = N),
-                           Year = rep(2004, prod(nlevels(Lake), N)),
-                           dummy = rep(0, prod(nlevels(Lake), N))))
-ww.pdat <- merge(ww.pdat, lakeWbar)
-
-
-## predict pH based on chlorophyll alone;
-## iterms means that uncertainty in intercept is included; especially good for when
-##   y axis units transformed back into original scale
-ww.pred <- predict(phwwmod, newdata = ww.pdat, type = "iterms")
-ww.predse <- predict(phwwmod, newdata = ww.pdat, type = "iterms", se.fit = TRUE)
-whichCols <- grep("Chl", colnames(ww.pred))
-ww.predse <- as.data.frame(ww.predse$se.fit)
-whichColsse <- grep("Chl", colnames(ww.predse))
-ww.pdat <- cbind(ww.pdat, Fitted = ww.pred[, whichCols], Fittedse = ww.predse[,whichColsse])
-ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedplus = Fitted + Fittedse))
-# simple subtraction addition works here because family=gaussian
-# if I had a log-transformed response, I'd have to change the se:
-## "The standard errors are for the function on the log scale. You need to exp() the fitted 
-##    values and the upper and lower confidence before you plot" -GS
-ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedminus = Fitted - Fittedse))
-
-## transform back into original pH value for clarity:
-# get mean/intercept pH used by the model
-shiftph <- attr(predict(phwwmod, newdata = ww.pdat, type = "iterms"), "constant")
-ww.pdatnorm <- ww.pdat
-ww.pdatnorm <- with(ww.pdatnorm, transform(ww.pdatnorm, Fitted = Fitted + shiftph, 
-                                           Fittedplus = Fittedplus + shiftph, 
-                                           Fittedminus = Fittedminus + shiftph))
-
-labdat2 <- data.frame(x = 270, y = 9.1, label = "mean pH: 9.1")
-# without this step, the resolution of the text is really off for some reason
-
-## plot with all labels
-pdf("../data/private/wwphmod.pdf", width = 10, height = 6.7)
-ggplot(ww.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted)) +
-  geom_line() + 
-  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-              alpha = 0.25) +  
-  geom_abline(slope = 0, intercept = shiftph, linetype="dotted") +
-  geom_text(data = labdat2, aes(label = label, x = x, y = y, size = 5), 
-            show.legend = FALSE) +
-  xlab('Chlorophyll a (ug/L)') + ylab('pH')
-dev.off()
-
-## plot with disabled labels and white background
-tiff("../data/private/wwphmod-notext.tiff", width = 2.3, height = 1.5, 
-     units = "in", res = 300)
-ggplot(ww.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted)) +
-  geom_line() + 
-  geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
-              alpha = 0.25) +  
-  theme_bw() +
-  theme(axis.text = element_blank(), title = element_blank(), 
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-dev.off()
-
-if (runextras) {
-  ## ===========================================================================
-  ## Below are my initial apply applications before learning that I can introduce
-  ##    by = ... into a gam call which makes it all better cause I am still using 
-  ##    all the data that way and other obvious reasons
-  ## ===========================================================================
-  co2gams <- function(df) {
-    if (nrow(df) < 3) { return(NA) } else {
-      co2gam <- gam(co2Flux ~ s(pH_surface, k = 20), data = df,
-                    select = TRUE, method = "ML", family = scat(),
-                    na.action = na.exclude)
-    }}
+if(runwasc) {
+  ww <- subset(regvarf2, Lake == "WW") # 168 data points
   
-  resgams <- function(df, res) {
-    if (nrow(df) < 3) { return(NA) } else {
-      res <- as.vector(res)
-      resmod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
-                      s(DOC_mg_L) + s(Oxygen_ppm) + 
-                      te(PDO, SOI) + s(Year, bs = "re"), data = df,
-                    select = TRUE, method = "REML", family = scat(),
-                    na.action = na.exclude) }
+  ## 1. Create models and output
+  ## ====================================
+  
+  ## model CO2 on pH with Year as factor
+  co2wwmod <- gam(co2Flux ~ 
+                    s(pH_surface) +
+                    s(Year, bs = "re"), 
+                  data = ww,
+                  select = TRUE, method = "REML", family = gaussian,
+                  na.action = na.exclude,
+                  control = gam.control(nthreads = 3, newton = list(maxHalf = 60), trace = TRUE))
+  saveRDS(co2wwmod, "../data/private/co2wwmod.rds")
+  
+  ## save summary as txt document
+  co2wwsum <- summary(co2wwmod)
+  sink("../data/private/co2wwmodsummary.txt")
+  co2wwsum
+  sink()
+  
+  ## model with logged chla and TDN and Year as factor
+  phwwmod <- gam(pH_surface ~ 
+                   s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+                   s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) +
+                   s(Year, bs = "re"), 
+                 data = ww,
+                 select = TRUE, method = "REML", family = gaussian,
+                 na.action = na.exclude,
+                 control = gam.control(nthreads = 3, trace = TRUE))
+  # a note regarding select = T | F: "select = FALSE just fits the model 
+  #   without the second penalty on the linear part of the function. It seems to want to 
+  #   keep some small amount of curvature but put a little shrinkage into the null space 
+  #   just like the lasso would shrink a term away from the least squares fit." -GS
+  saveRDS(phwwmod, "../data/private/phwwmod.rds")
+  
+  
+  ## save summary as txt document
+  phwwsum <- summary(phwwmod)
+  sink("../data/private/phwwmodsummary.txt")
+  phwwsum
+  sink()
+  
+  ## one more model with co2 against everything
+  dummymod <- gam(co2Flux ~ 
+                    s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+                    s(log10(DOC_mg_L)) + s(Oxygen_ppm) + te(PDO, SOI) +
+                    s(Year, bs = "re"), 
+                  data = ww,
+                  select = TRUE, method = "REML", family = gaussian,
+                  na.action = na.exclude,
+                  control = gam.control(nthreads = 3, trace = TRUE))
+  
+  saveRDS(dummymod, "../data/private/dummymod.rds")
+  
+  ## save summary as txt document
+  dummysum <- summary(dummymod)
+  sink("../data/private/dummysummary.txt")
+  dummysum
+  sink()
+  
+  ## AAANNND looking at SOI and PDO separately
+  nointer <- gam(pH_surface ~ 
+                   s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+                   s(log10(DOC_mg_L)) + s(Oxygen_ppm) +
+                   ti(PDO) + ti(SOI) +
+                   s(Year, bs = "re"), 
+                 data = ww,
+                 select = TRUE, method = "REML", family = gaussian,
+                 na.action = na.exclude,
+                 control = gam.control(nthreads = 3, trace = TRUE))
+  
+  inter <- gam(pH_surface ~ 
+                 s(log10(Chl_a_ug_L)) + s(GPP_h) + s(log10(TDN_ug_L)) + 
+                 s(log10(DOC_mg_L)) + s(Oxygen_ppm) + 
+                 ti(PDO) + ti(SOI) + ti(PDO, SOI) +
+                 s(Year, bs = "re"), 
+               data = ww,
+               select = TRUE, method = "REML", family = gaussian,
+               na.action = na.exclude,
+               control = gam.control(nthreads = 3, trace = TRUE))
+  anova(nointer, inter, test = "LRT")
+  
+  # a note regarding select = T | F: "select = FALSE just fits the model 
+  #   without the second penalty on the linear part of the function. It seems to want to 
+  #   keep some small amount of curvature but put a little shrinkage into the null space 
+  #   just like the lasso would shrink a term away from the least squares fit." -GS
+  
+  
+  ## 2. Predict responses with most interesting terms and plot
+  ## =========================================================
+  
+  ## predict CO2 based on pH: keep using iterms
+  phwant <- with(ww, seq(min(`pH_surface`, na.rm = TRUE),
+                         max(`pH_surface`, na.rm = TRUE),
+                         length = N))
+  
+  ww.pdatc <- data.frame(pH_surface = phwant, Year = 2004) 
+  ww.predc <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms") 
+  whichColsc <- grep("pH", colnames(ww.predc))
+  
+  ww.predcse <- predict(co2wwmod, newdata = ww.pdatc, type = "iterms", se.fit = TRUE)
+  ww.predcse <- as.data.frame(ww.predcse$se.fit)
+  whichColscse <- grep("pH", colnames(ww.predcse))
+  
+  ww.pdatc <- cbind(ww.pdatc, Fitted = ww.predc[, whichColsc], Fittedse = ww.predcse[,whichColscse])
+  ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedplus = Fitted + Fittedse))
+  ww.pdatc <- with(ww.pdatc, transform(ww.pdatc, Fittedminus = Fitted - Fittedse))
+  
+  ## transform back into original pH value for clarity:
+  # get mean/intercept pH used by the model
+  shiftco2 <- attr(predict(co2wwmod, newdata = ww.pdatc, type = "iterms"), "constant")
+  ww.pdatcnorm <- ww.pdatc
+  ww.pdatcnorm <- with(ww.pdatcnorm, transform(ww.pdatcnorm, Fitted = Fitted + shiftco2, 
+                                               Fittedplus = Fittedplus + shiftco2, 
+                                               Fittedminus = Fittedminus + shiftco2))
+  
+  labdat1 <- data.frame(x = 7, y = -15, label = "mean flux: -23")
+  # without this step, the resolution of the text is really off for some reason
+  
+  ## plot with all labels
+  pdf("../data/private/wwco2mod.pdf", width = 10, height = 6.7)
+  ggplot(ww.pdatcnorm, aes(x = pH_surface, y = Fitted)) +
+    geom_line() + 
+    geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+                alpha = 0.25) +  
+    geom_abline(slope = 0, intercept = shiftco2, linetype="dotted") +
+    geom_text(data = labdat1, aes(label = label, x = x, y = y, size = 5), 
+              show.legend = FALSE) +
+    xlab('pH') + ylab('CO2 flux (mmolC/m2/d)')
+  dev.off()
+  
+  ## plot with disabled labels and white background
+  tiff("../data/private/wwco2mod-notext.tiff", width = 2.3, height = 1.5, 
+       units = "in", res = 300)
+  ggplot(ww.pdatcnorm, aes(x = pH_surface, y = Fitted)) +
+    geom_line() + 
+    geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+                alpha = 0.25) +  
+    theme_bw() +
+    theme(axis.text = element_blank(), title = element_blank(),
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  dev.off()
+  
+  ## extract predicted values based on chlorophyll for Matt's paper
+  ## we can use raw, not logged, chl values, since the gam retains this information
+  ##    and therefore we can feed it raw to predict() !!!
+  N <- 200
+  varWant <- c("GPP_h", "TDN_ug_L", "DOC_mg_L", "Oxygen_ppm", "PDO", "SOI")
+  lakeWbar <- data.frame(t(colMeans(ww[, varWant], na.rm = TRUE)))
+  lakeWbar$Year <- 2004
+  
+  ww.pdat <- with(droplevels(ww),
+                  data.frame(`Chl_a_ug_L` = rep(seq(min(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    max(`Chl_a_ug_L`, na.rm = TRUE),
+                                                    length = N),
+                                                nlevels(Lake)),
+                             Lake = rep(levels(Lake), each = N),
+                             Year = rep(2004, prod(nlevels(Lake), N)),
+                             dummy = rep(0, prod(nlevels(Lake), N))))
+  ww.pdat <- merge(ww.pdat, lakeWbar)
+  
+  
+  ## predict pH based on chlorophyll alone;
+  ## iterms means that uncertainty in intercept is included; especially good for when
+  ##   y axis units transformed back into original scale
+  ww.pred <- predict(phwwmod, newdata = ww.pdat, type = "iterms")
+  ww.predse <- predict(phwwmod, newdata = ww.pdat, type = "iterms", se.fit = TRUE)
+  whichCols <- grep("Chl", colnames(ww.pred))
+  ww.predse <- as.data.frame(ww.predse$se.fit)
+  whichColsse <- grep("Chl", colnames(ww.predse))
+  ww.pdat <- cbind(ww.pdat, Fitted = ww.pred[, whichCols], Fittedse = ww.predse[,whichColsse])
+  ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedplus = Fitted + Fittedse))
+  # simple subtraction addition works here because family=gaussian
+  # if I had a log-transformed response, I'd have to change the se:
+  ## "The standard errors are for the function on the log scale. You need to exp() the fitted 
+  ##    values and the upper and lower confidence before you plot" -GS
+  ww.pdat <- with(ww.pdat, transform(ww.pdat, Fittedminus = Fitted - Fittedse))
+  
+  ## transform back into original pH value for clarity:
+  # get mean/intercept pH used by the model
+  shiftph <- attr(predict(phwwmod, newdata = ww.pdat, type = "iterms"), "constant")
+  ww.pdatnorm <- ww.pdat
+  ww.pdatnorm <- with(ww.pdatnorm, transform(ww.pdatnorm, Fitted = Fitted + shiftph, 
+                                             Fittedplus = Fittedplus + shiftph, 
+                                             Fittedminus = Fittedminus + shiftph))
+  
+  labdat2 <- data.frame(x = 270, y = 9.1, label = "mean pH: 9.1")
+  # without this step, the resolution of the text is really off for some reason
+  
+  ## plot with all labels
+  pdf("../data/private/wwphmod.pdf", width = 10, height = 6.7)
+  ggplot(ww.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted)) +
+    geom_line() + 
+    geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+                alpha = 0.25) +  
+    geom_abline(slope = 0, intercept = shiftph, linetype="dotted") +
+    geom_text(data = labdat2, aes(label = label, x = x, y = y, size = 5), 
+              show.legend = FALSE) +
+    xlab('Chlorophyll a (ug/L)') + ylab('pH')
+  dev.off()
+  
+  ## plot with disabled labels and white background
+  tiff("../data/private/wwphmod-notext.tiff", width = 2.3, height = 1.5, 
+       units = "in", res = 300)
+  ggplot(ww.pdatnorm, aes(x = Chl_a_ug_L, y = Fitted)) +
+    geom_line() + 
+    geom_ribbon(aes(ymin = Fittedminus, ymax = Fittedplus), 
+                alpha = 0.25) +  
+    theme_bw() +
+    theme(axis.text = element_blank(), title = element_blank(), 
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  dev.off()
+  
+  if (runextras) {
+    ## ===========================================================================
+    ## Below are my initial apply applications before learning that I can introduce
+    ##    by = ... into a gam call which makes it all better cause I am still using 
+    ##    all the data that way and other obvious reasons
+    ## ===========================================================================
+    co2gams <- function(df) {
+      if (nrow(df) < 3) { return(NA) } else {
+        co2gam <- gam(co2Flux ~ s(pH_surface, k = 20), data = df,
+                      select = TRUE, method = "ML", family = scat(),
+                      na.action = na.exclude)
+      }}
+    
+    resgams <- function(df, res) {
+      if (nrow(df) < 3) { return(NA) } else {
+        res <- as.vector(res)
+        resmod <- gam(res ~ s(Chl_a_ug_L) + s(GPP_h) + s(TDN_ug_L) + 
+                        s(DOC_mg_L) + s(Oxygen_ppm) + 
+                        te(PDO, SOI) + s(Year, bs = "re"), data = df,
+                      select = TRUE, method = "REML", family = scat(),
+                      na.action = na.exclude) }
+    }
+    
+    ## apply gam 
+    regmods <- lapply(regsplit, co2gams)
+    
+    ## apply residual extraction to regmods
+    allres <- lapply(regmods, resid, type = "pearson", na.action = na.exclude)
+    
+    ## apply resgams to the residuals
+    ## FIXME: this not doing the right thing!
+    resmods <- mapply(resgams, regsplit, allres)
+    
+    ## can lapply these to the above to check diagnostics however
+    ##    over gam.check the plotting default means I don't know how to store objects
+    lapply(regmods, gam.check)
+    regsumms <- lapply(regmods, summary)
+    ## deviance explained ranges from 68 - 80%
+    lapply(regsumms, '[[', "dev.expl")
+    
+    lapply(regmods, plot, pers = TRUE, pages = 1)
+    
+    
+    ## 2. pH ~ .
+    ## ===========================================================================
+    phgams <- function(df) {
+      if (nrow(df) < 3) { return(NA) } else {
+        gam(pH_surface ~ s(Lake, Year, bs = "re") + s(Chl_a_ug_L) + s(GPP_h) +
+              s(TDN_ug_L) + s(DOC_mg_L) + s(Oxygen_ppm) + te(PDO, SOI), data = df,
+            select = TRUE, method = "REML", family = gaussian, na.action = na.exclude)
+      }}
+    
+    phmods <- lapply(regsplit, phgams)
+    
+    summary(phmod)
+    plot(phmod, pages = 1, pers = TRUE)
+    gam.check(phmod)
   }
-  
-  ## apply gam 
-  regmods <- lapply(regsplit, co2gams)
-  
-  ## apply residual extraction to regmods
-  allres <- lapply(regmods, resid, type = "pearson", na.action = na.exclude)
-  
-  ## apply resgams to the residuals
-  ## FIXME: this not doing the right thing!
-  resmods <- mapply(resgams, regsplit, allres)
-  
-  ## can lapply these to the above to check diagnostics however
-  ##    over gam.check the plotting default means I don't know how to store objects
-  lapply(regmods, gam.check)
-  regsumms <- lapply(regmods, summary)
-  ## deviance explained ranges from 68 - 80%
-  lapply(regsumms, '[[', "dev.expl")
-  
-  lapply(regmods, plot, pers = TRUE, pages = 1)
-  
-  
-  ## 2. pH ~ .
-  ## ===========================================================================
-  phgams <- function(df) {
-    if (nrow(df) < 3) { return(NA) } else {
-      gam(pH_surface ~ s(Lake, Year, bs = "re") + s(Chl_a_ug_L) + s(GPP_h) +
-            s(TDN_ug_L) + s(DOC_mg_L) + s(Oxygen_ppm) + te(PDO, SOI), data = df,
-          select = TRUE, method = "REML", family = gaussian, na.action = na.exclude)
-    }}
-  
-  phmods <- lapply(regsplit, phgams)
-  
-  summary(phmod)
-  plot(phmod, pages = 1, pers = TRUE)
-  gam.check(phmod)
 }
