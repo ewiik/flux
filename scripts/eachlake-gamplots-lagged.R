@@ -326,7 +326,7 @@ TDN.pdat <- with(droplevels(regvarf2),
                             Year = rep(2004, prod(nlevels(Lake), N)),
                             dummy = rep(0, prod(nlevels(Lake), N))))
 TDN.pdat <- merge(TDN.pdat, lakeXbar)
-TDN.pred <- predict(egmodlaggedtdn, newdata = TDN.pdat, type = "terms", se.fit = TRUE)
+TDN.pred <- predict(egmodtdn, newdata = TDN.pdat, type = "terms", se.fit = TRUE)
 whichCols <- grep("TDN", colnames(TDN.pred$fit))
 whichColsSE <- grep("TDN", colnames(TDN.pred$se.fit))
 TDN.pdat <- cbind(TDN.pdat, Fitted = TDN.pred$fit[, whichCols], 
