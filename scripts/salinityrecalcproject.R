@@ -12,7 +12,7 @@
 ##    are copied into R in this script (checked for reproducibility)
 
 ## download necessary background data
-params <- readRDS("data/private/params.rds")
+params <- readRDS("../data/private/params.rds")
 
 ## take out most likely outliers (see metadata file in shared google drive)
 params <- subset(params, Salinity < 2 & pH < 12 & pH >= 7 & Conductivity < 2500)
@@ -29,6 +29,9 @@ params <- params[-removec,]
 ## load necessary packages
 library("ggplot2")
 library("reshape2")
+
+papertheme <- theme_bw(base_size=12, base_family = 'Arial') +
+  theme(legend.position='top')
 
 ## a few plots of measured data for the curious:
 ##    just salinity
@@ -84,8 +87,10 @@ library("reshape2")
   
   p <- ggplot(data = super, mapping = aes(x = Date, y = y, colour = Lake)) # 
   p <- p + facet_grid(Lake+panel~., scale="free")
-  p <- p + layer(data = sal, geom = c("point"), stat = "identity")
-  p <- p + layer(data = cond, geom = c("point"), stat = "identity") + theme(legend.position = "none")
+  p <- p + layer(data = sal, geom = c("point"), mapping = aes(x = Date, y = y, colour = Lake),
+                 stat = "identity", position = "identity")
+  p <- p + layer(data = cond, geom = c("point"), mapping = aes(x = Date, y = y, colour = Lake),
+                 stat = "identity", position = "identity") + theme(legend.position = "none")
   p
 
 ## YSI85 calcs, which are based on conductivity and temperature readings on the probe:
@@ -105,7 +110,7 @@ salcalc <- function(temp, cond, dbar) {
   temp <- temp
   cond <- cond/1000 # in params, cond is in uS/cm, we need mS/cm
   dbar <- dbar
-  consts <- read.csv("data/private/ysi85constants.csv", row.names = 1)
+  consts <- read.csv("../data/private/ysi85constants.csv", row.names = 1)
   consts <- as.data.frame(t(consts))
   attach(consts)
   
@@ -140,23 +145,27 @@ params <- transform(params, SalCalc = salcalc(Temperature, Conductivity, dbar))
 
 ## plot calculated salinity vs measured salinity
 Index <- c("calculated", "measured")
-salcalcplot <- ggplot(data = params, aes(x= Date, y = SalCalc, 
-                                         group = Lake, colour = Index[1])) +
+salmelt <- melt(params, id.vars = c('Date','Lake'), measure.vars = c('SalCalc','Salinity'))
+salmelt$variable <- factor(salmelt$variable, labels = c('Recalculated','Recorded'))
+#salcalcplot <- 
+ggplot(data = salmelt, aes(x= Date, y = value, group = Lake, colour = variable, shape=variable)) +
+  papertheme +
   ylab("Salinity (ppt)") +
   geom_line() +
-  geom_point() +
-  geom_line(data = params, aes(x = Date, y = Salinity, group = Lake, colour = Index[2])) +
-  facet_wrap( "Lake" ) +
-  theme(legend.position = "top")
+  #geom_point() +
+  facet_wrap( "Lake", scales = 'free_y' ) +
+  theme(legend.position = "top", legend.title = element_blank())
 
 salcalcplot
 
-diffplot <- ggplot(data = params, aes(x= Date, y = SalCalc - Salinity, 
-                                      group = Lake, colour = Lake)) +
+#diffplot <- 
+ggplot(data = params[-which(params$Lake=="P"),], aes(x= Date, y = SalCalc - Salinity, 
+                                      group = Lake)) +
+  papertheme +
   geom_abline() +
   geom_point( size = 1, shape= 21, fill="white") +
   facet_wrap( "Lake" ) + 
-  ylab("Calculated - measured salinity (ppt)")
+  ylab("Recalculated - recorded salinity (ppt)")
 
 diffplot
 
